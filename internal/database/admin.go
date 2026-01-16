@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -168,7 +167,6 @@ func (db *Database) UpdateAdminQuery(
 	if err != nil {
 		return err
 	}
-
 	if tag.RowsAffected() == 0 {
 		return pgx.ErrNoRows
 	}
@@ -222,10 +220,8 @@ func (db *Database) ListAdminsQuery(
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(admin)
 		list = append(list, admin)
 	}
-	fmt.Println("hello")
 
 	return list, nil
 }

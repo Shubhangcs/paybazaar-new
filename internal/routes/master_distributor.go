@@ -15,7 +15,7 @@ func (r *routes) MasterDistributorRoutes(db *database.Database, jwtUtils *pkg.Jw
 	r.Router.POST("/md/login", mdHandler.LoginMasterDistributorRequest)
 	mdrg := r.Router.Group("/md", middlewares.AuthorizationMiddleware(jwtUtils))
 	mdrg.POST("/create", mdHandler.CreateMasterDistributorRequest, middlewares.RequireRoles("admin"))
-	mdrg.PUT("/update", mdHandler.UpdateMasterDistributorRequest, middlewares.RequireRoles("admin", "master_distributor"))
+	mdrg.PUT("/update/:master_distributor_id", mdHandler.UpdateMasterDistributorRequest, middlewares.RequireRoles("admin", "master_distributor"))
 	mdrg.DELETE("/delete/:master_distributor_id", mdHandler.DeleteMasterDistributorRequest, middlewares.RequireRoles("admin"))
 	mdrg.GET("/get/all", mdHandler.ListMasterDistributorsRequest, middlewares.RequireRoles("admin"))
 	mdrg.GET("/get/:master_distributor_id", mdHandler.GetMasterDistributorByIDRequest, middlewares.RequireRoles("master_distributor", "admin"))

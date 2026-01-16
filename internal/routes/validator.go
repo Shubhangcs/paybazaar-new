@@ -16,6 +16,8 @@ func NewValidator() *CustomValidator {
 	// register custom validations ONCE
 	v.RegisterValidation("strpwd", strongPassword)
 	v.RegisterValidation("phone", phone)
+	v.RegisterValidation("aadhar", AadharNumber)
+	v.RegisterValidation("pan", PanNumber)
 
 	return &CustomValidator{
 		validator: v,
@@ -57,4 +59,16 @@ func phone(fl validator.FieldLevel) bool {
 	var phoneRegex = regexp.MustCompile(`^[0-9]{10}$`)
 	phone := fl.Field().String()
 	return phoneRegex.MatchString(phone)
+}
+
+func AadharNumber(fl validator.FieldLevel) bool {
+	aadhar := fl.Field().String()
+	regex := regexp.MustCompile(`^[0-9]{12}$`)
+	return regex.MatchString(aadhar)
+}
+
+func PanNumber(fl validator.FieldLevel) bool {
+	pan := fl.Field().String()
+	regex := regexp.MustCompile(`^[A-Z]{5}[0-9]{4}[A-Z]{1}$`)
+	return regex.MatchString(pan)
 }

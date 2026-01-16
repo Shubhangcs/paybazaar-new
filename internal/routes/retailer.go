@@ -15,7 +15,7 @@ func (r *routes) RetailerRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	r.Router.POST("/retailer/login", retHandler.LoginRetailerRequest)
 	rrg := r.Router.Group("/retailer", middlewares.AuthorizationMiddleware(jwtUtils))
 	rrg.POST("/create", retHandler.CreateRetailerRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
-	rrg.PUT("/update", retHandler.UpdateRetailerRequest, middlewares.RequireRoles("admin", "retailer"))
+	rrg.PUT("/update/:retailer_id", retHandler.UpdateRetailerRequest, middlewares.RequireRoles("admin", "retailer"))
 	rrg.DELETE("/delete/:retailer_id", retHandler.DeleteRetailerRequest, middlewares.RequireRoles("admin"))
 	rrg.GET("/get/all", retHandler.ListRetailersRequest, middlewares.RequireRoles("admin"))
 	rrg.GET("/get/:retailer_id", retHandler.GetRetailerByIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor", "retailer"))

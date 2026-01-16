@@ -16,7 +16,7 @@ func (r *routes) AdminRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	r.Router.POST("/admin/create", adminHandler.CreateAdminRequest)
 	arg := r.Router.Group("/admin", middlewares.AuthorizationMiddleware(jwtUtils))
 	arg.POST("/get/all", adminHandler.ListAdminsRequest, middlewares.RequireRoles("admin"))
-	arg.PUT("/update", adminHandler.UpdateAdminRequest, middlewares.RequireRoles("admin"))
+	arg.PUT("/update/:admin_id", adminHandler.UpdateAdminRequest, middlewares.RequireRoles("admin"))
 	arg.DELETE("/delete/:admin_id", adminHandler.DeleteAdminRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/dropdown", adminHandler.GetAdminsForDropdownRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/:admin_id", adminHandler.GetAdminByIDRequest, middlewares.RequireRoles("admin"))
