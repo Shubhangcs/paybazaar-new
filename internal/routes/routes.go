@@ -14,9 +14,9 @@ type routes struct {
 }
 
 type Config struct {
-	ServerENV   string
-	JWTUtils    *pkg.JwtUtils
-	Database    *database.Database
+	ServerENV string
+	JWTUtils  *pkg.JwtUtils
+	Database  *database.Database
 }
 
 func NewRoutes(cfg Config) *routes {
@@ -38,6 +38,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.MasterDistributorRoutes(cfg.Database, cfg.JWTUtils)
 	routes.RetailerRoutes(cfg.Database, cfg.JWTUtils)
 	routes.WalletTransactionRoutes(cfg.Database, cfg.JWTUtils)
+	routes.RevertRoutes(cfg.Database, cfg.JWTUtils)
 
 	return routes
 }

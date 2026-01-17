@@ -368,7 +368,7 @@ func (db *Database) AcceptFundRequestQuery(
 		return err
 	}
 
-	ref := fmt.Sprintf("FR%d", fundRequestID)
+	ref := fmt.Sprintf("%d", fundRequestID)
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions
