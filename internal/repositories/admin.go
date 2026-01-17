@@ -19,7 +19,7 @@ type AdminInterface interface {
 	DeleteAdmin(echo.Context) error
 	GetAdminsForDropdown(echo.Context) ([]models.DropdownModel, error)
 	LoginAdmin(echo.Context) (string, error)
-	AdminWalletTopup(echo.Context) (string, error)
+	AdminWalletTopup(echo.Context) (float64, error)
 }
 
 type adminRepository struct {
@@ -124,12 +124,12 @@ func (ar *adminRepository) LoginAdmin(c echo.Context) (string, error) {
 	})
 }
 
-func (ar *adminRepository) AdminWalletTopup(c echo.Context) (string, error) {
+func (ar *adminRepository) AdminWalletTopup(c echo.Context) (float64, error) {
 	var req models.AdminWalletTopupModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return "", err
+		return 0, err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	return ar.db.AdminWalletTopup(ctx, req)
+	return ar.db.AdminWalletTopupQuery(ctx, req)
 }

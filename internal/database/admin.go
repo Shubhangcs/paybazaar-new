@@ -289,26 +289,98 @@ func (db *Database) UpdateAdminBlockStatusQuery(
 	return nil
 }
 
-func (db *Database) AdminWalletTopup(
+func (db *Database) AdminWalletTopupQuery(
 	ctx context.Context,
 	req models.AdminWalletTopupModel,
-) (string, error) {
-	query := `
-		UPDATE admins
-			SET admin_wallet_balance = admin_wallet_balance + @amount
+) (float64, error) {
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Get current balance (lock row)
+	var beforeBalance float64
+	getBalanceQuery := `
+		SELECT admin_wallet_balance
+		FROM admins
 		WHERE admin_id = @admin_id
-		RETURNING admin_wallet_balance::TEXT;
+		FOR UPDATE;
 	`
-	var balance string
-	if err := db.pool.QueryRow(
+
+	if err := tx.QueryRow(
 		ctx,
-		query,
+		getBalanceQuery,
+		pgx.NamedArgs{
+			"admin_id": req.AdminID,
+		},
+	).Scan(&beforeBalance); err != nil {
+		return 0, err
+	}
+
+	// 2. Update wallet balance
+	var afterBalance float64
+	updateWalletQuery := `
+		UPDATE admins
+		SET admin_wallet_balance = admin_wallet_balance + @amount
+		WHERE admin_id = @admin_id
+		RETURNING admin_wallet_balance;
+	`
+
+	if err := tx.QueryRow(
+		ctx,
+		updateWalletQuery,
 		pgx.NamedArgs{
 			"amount":   req.Amount,
 			"admin_id": req.AdminID,
 		},
-	).Scan(&balance); err != nil {
-		return "", err
+	).Scan(&afterBalance); err != nil {
+		return 0, err
 	}
-	return balance, nil
+
+	// 3. Insert wallet transaction
+	insertTransactionQuery := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			credit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@credit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks
+		);
+	`
+
+	_, err = tx.Exec(
+		ctx,
+		insertTransactionQuery,
+		pgx.NamedArgs{
+			"user_id":            req.AdminID,
+			"reference_id":       "NONE",
+			"credit_amount":      req.Amount,
+			"before_balance":     beforeBalance,
+			"after_balance":      afterBalance,
+			"transaction_reason": "TOPUP",
+			"remarks":            "Admin wallet topup",
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	// 4. Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+
+	return afterBalance, nil
 }
