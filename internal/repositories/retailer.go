@@ -163,6 +163,7 @@ func (rr *retailerRepository) LoginRetailer(c echo.Context) (string, error) {
 		return "", fmt.Errorf("incorrect password")
 	}
 	return rr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
+		AdminID: res.AdminID,
 		UserID:   res.RetailerID,
 		UserName: res.Name,
 		UserRole: "retailer",
