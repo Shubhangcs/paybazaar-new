@@ -11,6 +11,7 @@ CREATE TABLE
         admin_bank_id BIGSERIAL PRIMARY KEY,
         admin_bank_name TEXT NOT NULL,
         admin_bank_account_number TEXT NOT NULL,
-        admin_bank_ifsc_code TEXT NOT NULL
+        admin_bank_ifsc_code TEXT NOT NULL,
+        FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
     );
 
