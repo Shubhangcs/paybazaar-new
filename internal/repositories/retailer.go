@@ -155,7 +155,7 @@ func (rr *retailerRepository) LoginRetailer(c echo.Context) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	res, err := rr.db.GetRetailerByIDQuery(ctx, req.RetailerID)
+	res, err := rr.db.GetRetailerByPhoneQuery(ctx, req.RetailerPhoneNumber)
 	if err != nil {
 		return "", err
 	}

@@ -118,6 +118,6 @@ type RetailerModel struct {
 }
 
 type LoginRetailerModel struct {
-	RetailerID       string `json:"retailer_id" validate:"required"`
-	RetailerPassword string `json:"retailer_password" validate:"required"`
+	RetailerPhoneNumber string `json:"retailer_phone_number" validate:"required,phone"`
+	RetailerPassword    string `json:"retailer_password" validate:"required"`
 }

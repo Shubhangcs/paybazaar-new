@@ -17,7 +17,7 @@ CREATE TABLE
         revert_transaction_id BIGSERIAL PRIMARY KEY,
         revert_by_id TEXT NOT NULL,
         revert_on_id TEXT NOT NULL,
-        amount TEXT NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
         revert_status TEXT NOT NULL CHECK (revert_status IN ('PENDING', 'SUCCESS', 'FAILED')),
         remarks TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
@@ -28,7 +28,7 @@ CREATE TABLE
         fund_transfer_id BIGSERIAL PRIMARY KEY,
         fund_transferer_id TEXT NOT NULL,
         fund_receiver_id TEXT NOT NULL,
-        amount NUMERIC(20,2) NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
         fund_transfer_status TEXT NOT NULL CHECK (
             fund_transfer_status IN ('PENDING', 'SUCCESS', 'FAILED')
         ),
@@ -41,7 +41,7 @@ CREATE TABLE
         fund_request_id BIGSERIAL PRIMARY KEY,
         requester_id TEXT NOT NULL,
         request_to_id TEXT NOT NULL,
-        amount NUMERIC(20,2) NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
         bank_name TEXT NOT NULL,
         request_date TEXT NOT NULL,
         utr_number TEXT NOT NULL,

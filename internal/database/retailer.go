@@ -155,6 +155,50 @@ func (db *Database) GetRetailerByEmailQuery(
 	return &r, nil
 }
 
+func (db *Database) GetRetailerByPhoneQuery(
+	ctx context.Context,
+	phone string,
+) (*models.RetailerModel, error) {
+
+	query := `
+		SELECT
+			r.retailer_id,
+			r.distributor_id,
+			r.retailer_name,
+			r.retailer_password,
+			r.is_retailer_blocked,
+			md.admin_id
+		FROM retailers r
+		JOIN distributors d ON r.distributor_id = d.distributor_id
+		JOIN master_distributors md ON d.master_distributor_id = md.master_distributor_id
+		WHERE r.retailer_phone = @phone;
+	`
+
+	row := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"phone": phone,
+		},
+	)
+
+	var r models.RetailerModel
+	err := row.Scan(
+		&r.RetailerID,
+		&r.DistributorID,
+		&r.Name,
+		&r.Password,
+		&r.IsBlocked,
+		&r.AdminID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
+}
+
 func (db *Database) UpdateRetailerQuery(
 	ctx context.Context,
 	retailerID string,
