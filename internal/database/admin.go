@@ -288,3 +288,27 @@ func (db *Database) UpdateAdminBlockStatusQuery(
 
 	return nil
 }
+
+func (db *Database) AdminWalletTopup(
+	ctx context.Context,
+	req models.AdminWalletTopupModel,
+) (string, error) {
+	query := `
+		UPDATE admins
+			SET admin_wallet_balance = admin_wallet_balance + @amount
+		WHERE admin_id = @admin_id
+		RETURNING admin_wallet_balance::TEXT;
+	`
+	var balance string
+	if err := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"amount":   req.Amount,
+			"admin_id": req.AdminID,
+		},
+	).Scan(&balance); err != nil {
+		return "", err
+	}
+	return balance, nil
+}

@@ -20,4 +20,5 @@ func (r *routes) AdminRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	arg.DELETE("/delete/:admin_id", adminHandler.DeleteAdminRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/dropdown", adminHandler.GetAdminsForDropdownRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/:admin_id", adminHandler.GetAdminByIDRequest, middlewares.RequireRoles("admin"))
+	arg.POST("/wallet/topup", adminHandler.AdminWalletTopupRequest, middlewares.RequireRoles("admin"))
 }

@@ -135,3 +135,22 @@ func (ah *adminHandler) LoginAdminRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (ah *adminHandler) AdminWalletTopupRequest(c echo.Context) error {
+	res, err := ah.adminRepository.AdminWalletTopup(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusUnauthorized,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "admin wallet topup successful",
+			Data:    map[string]any{"balance": res},
+		},
+	)
+}

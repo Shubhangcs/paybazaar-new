@@ -16,7 +16,7 @@ func (r *routes) FundRequestRoutes(db *database.Database, jwtUtils *pkg.JwtUtils
 	frr.POST("/create", fundReqHandler.CreateFundRequestRequest, middlewares.RequireRoles("master_distributor", "distributor", "retailer"))
 	frr.GET("/get/all", fundReqHandler.GetAllFundRequestsRequest, middlewares.RequireRoles("admin"))
 	frr.GET("/get/requester", fundReqHandler.GetFundRequestsByRequesterIDRequest, middlewares.RequireRoles("master_distributor", "distributor", "retailer"))
-	frr.GET("/get/request_to", fundReqHandler.GetFundRequestsByRequestToIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
+	frr.POST("/get/request_to", fundReqHandler.GetFundRequestsByRequestToIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
 	frr.GET("/get/:fund_request_id", fundReqHandler.GetFundRequestByIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor", "retailer"))
 	frr.GET("/accept/:fund_request_id", fundReqHandler.AcceptFundRequestRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
 }

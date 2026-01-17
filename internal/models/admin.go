@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 // ADMIN MODELS
 
@@ -45,4 +47,9 @@ type AdminModel struct {
 type LoginAdminModel struct {
 	AdminID       string `json:"admin_id" validate:"required"`
 	AdminPassword string `json:"admin_password" validate:"required"`
+}
+
+type AdminWalletTopupModel struct {
+	AdminID string  `json:"admin_id" validate:"required"`
+	Amount  float64 `json:"amount" validate:"required"`
 }
