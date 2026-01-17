@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -33,7 +34,7 @@ func (db *Database) CreateFundRequestQuery(
 			'PENDING',
 			@remarks
 		)
-		RETURNING fund_request_id
+		RETURNING fund_request_id;
 	`
 
 	var fundRequestID int64
@@ -47,11 +48,7 @@ func (db *Database) CreateFundRequestQuery(
 		"remarks":       req.Remarks,
 	}).Scan(&fundRequestID)
 
-	if err != nil {
-		return 0, err
-	}
-
-	return fundRequestID, nil
+	return fundRequestID, err
 }
 
 func (db *Database) GetFundRequestQuery(
@@ -73,31 +70,31 @@ func (db *Database) GetFundRequestQuery(
 			created_at,
 			updated_at
 		FROM fund_requests
-		WHERE fund_request_id = @fund_request_id
+		WHERE fund_request_id = @fund_request_id;
 	`
 
-	var fundRequest models.GetFundRequestResponseModel
+	var fr models.GetFundRequestResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"fund_request_id": fundRequestID,
 	}).Scan(
-		&fundRequest.FundRequestID,
-		&fundRequest.RequesterID,
-		&fundRequest.RequestToID,
-		&fundRequest.Amount,
-		&fundRequest.BankName,
-		&fundRequest.RequestDate,
-		&fundRequest.UTRNumber,
-		&fundRequest.RequestStatus,
-		&fundRequest.Remarks,
-		&fundRequest.CreatedAt,
-		&fundRequest.UpdatedAt,
+		&fr.FundRequestID,
+		&fr.RequesterID,
+		&fr.RequestToID,
+		&fr.Amount,
+		&fr.BankName,
+		&fr.RequestDate,
+		&fr.UTRNumber,
+		&fr.RequestStatus,
+		&fr.Remarks,
+		&fr.CreatedAt,
+		&fr.UpdatedAt,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &fundRequest, nil
+	return &fr, nil
 }
 
 func (db *Database) GetAllFundRequestsQuery(
@@ -120,7 +117,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			updated_at
 		FROM fund_requests
 		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset
+		LIMIT @limit OFFSET @offset;
 	`
 
 	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
@@ -132,34 +129,107 @@ func (db *Database) GetAllFundRequestsQuery(
 	}
 	defer rows.Close()
 
-	var fundRequests []models.GetFundRequestResponseModel
+	var list []models.GetFundRequestResponseModel
 
 	for rows.Next() {
-		var fundRequest models.GetFundRequestResponseModel
-		err := rows.Scan(
-			&fundRequest.FundRequestID,
-			&fundRequest.RequesterID,
-			&fundRequest.RequestToID,
-			&fundRequest.Amount,
-			&fundRequest.BankName,
-			&fundRequest.RequestDate,
-			&fundRequest.UTRNumber,
-			&fundRequest.RequestStatus,
-			&fundRequest.Remarks,
-			&fundRequest.CreatedAt,
-			&fundRequest.UpdatedAt,
-		)
-		if err != nil {
+		var fr models.GetFundRequestResponseModel
+		if err := rows.Scan(
+			&fr.FundRequestID,
+			&fr.RequesterID,
+			&fr.RequestToID,
+			&fr.Amount,
+			&fr.BankName,
+			&fr.RequestDate,
+			&fr.UTRNumber,
+			&fr.RequestStatus,
+			&fr.Remarks,
+			&fr.CreatedAt,
+			&fr.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
-		fundRequests = append(fundRequests, fundRequest)
+		list = append(list, fr)
 	}
 
-	if err = rows.Err(); err != nil {
+	return list, rows.Err()
+}
+
+func (db *Database) getFundRequestsByUser(
+	ctx context.Context,
+	column string,
+	req models.GetFundRequestFilterRequestModel,
+	limit, offset int,
+) ([]models.GetFundRequestResponseModel, error) {
+
+	query := fmt.Sprintf(`
+		SELECT
+			fund_request_id,
+			requester_id,
+			request_to_id,
+			amount,
+			bank_name,
+			request_date,
+			utr_number,
+			request_status,
+			remarks,
+			created_at,
+			updated_at
+		FROM fund_requests
+		WHERE %s = @id
+	`, column)
+
+	args := pgx.NamedArgs{
+		"id":     req.ID,
+		"limit":  limit,
+		"offset": offset,
+	}
+
+	if req.StartDate != nil {
+		query += ` AND created_at >= @start_date`
+		args["start_date"] = *req.StartDate
+	}
+
+	if req.EndDate != nil {
+		query += ` AND created_at <= @end_date`
+		args["end_date"] = *req.EndDate
+	}
+
+	if req.Status != nil {
+		query += ` AND request_status = @status`
+		args["status"] = *req.Status
+	}
+
+	query += ` ORDER BY created_at DESC LIMIT @limit OFFSET @offset;`
+
+	rows, err := db.pool.Query(ctx, query, args)
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return fundRequests, nil
+	var list []models.GetFundRequestResponseModel
+
+	for rows.Next() {
+		var fr models.GetFundRequestResponseModel
+		if err := rows.Scan(
+			&fr.FundRequestID,
+			&fr.RequesterID,
+			&fr.RequestToID,
+			&fr.Amount,
+			&fr.BankName,
+			&fr.RequestDate,
+			&fr.UTRNumber,
+			&fr.RequestStatus,
+			&fr.Remarks,
+			&fr.CreatedAt,
+			&fr.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		list = append(list, fr)
+	}
+
+	return list, rows.Err()
 }
 
 func (db *Database) GetFundRequestsByRequesterIDQuery(
@@ -167,85 +237,7 @@ func (db *Database) GetFundRequestsByRequesterIDQuery(
 	req models.GetFundRequestFilterRequestModel,
 	limit, offset int,
 ) ([]models.GetFundRequestResponseModel, error) {
-
-	query := `
-		SELECT
-			fund_request_id,
-			requester_id,
-			request_to_id,
-			amount,
-			bank_name,
-			request_date,
-			utr_number,
-			request_status,
-			remarks,
-			created_at,
-			updated_at
-		FROM fund_requests
-		WHERE requester_id = @requester_id
-	`
-
-	args := pgx.NamedArgs{
-		"requester_id": req.ID,
-		"limit":        limit,
-		"offset":       offset,
-	}
-
-	// 🔹 Optional created_at filters
-	if req.StartDate != nil {
-		query += ` AND created_at >= @start_date`
-		args["start_date"] = *req.StartDate
-	}
-
-	if req.EndDate != nil {
-		query += ` AND created_at <= @end_date`
-		args["end_date"] = *req.EndDate
-	}
-
-	// 🔹 Optional status filter
-	if req.Status != nil {
-		query += ` AND request_status = @status`
-		args["status"] = *req.Status
-	}
-
-	query += `
-		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset
-	`
-
-	rows, err := db.pool.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get fund requests by requester id: %w", err)
-	}
-	defer rows.Close()
-
-	var fundRequests []models.GetFundRequestResponseModel
-
-	for rows.Next() {
-		var fr models.GetFundRequestResponseModel
-		if err := rows.Scan(
-			&fr.FundRequestID,
-			&fr.RequesterID,
-			&fr.RequestToID,
-			&fr.Amount,
-			&fr.BankName,
-			&fr.RequestDate,
-			&fr.UTRNumber,
-			&fr.RequestStatus,
-			&fr.Remarks,
-			&fr.CreatedAt,
-			&fr.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		fundRequests = append(fundRequests, fr)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return fundRequests, nil
+	return db.getFundRequestsByUser(ctx, "requester_id", req, limit, offset)
 }
 
 func (db *Database) GetFundRequestsByRequestToIDQuery(
@@ -253,85 +245,7 @@ func (db *Database) GetFundRequestsByRequestToIDQuery(
 	req models.GetFundRequestFilterRequestModel,
 	limit, offset int,
 ) ([]models.GetFundRequestResponseModel, error) {
-
-	query := `
-		SELECT
-			fund_request_id,
-			requester_id,
-			request_to_id,
-			amount,
-			bank_name,
-			request_date,
-			utr_number,
-			request_status,
-			remarks,
-			created_at,
-			updated_at
-		FROM fund_requests
-		WHERE request_to_id = @request_to_id
-	`
-
-	args := pgx.NamedArgs{
-		"request_to_id": req.ID,
-		"limit":         limit,
-		"offset":        offset,
-	}
-
-	// 🔹 Optional created_at filters
-	if req.StartDate != nil {
-		query += ` AND created_at >= @start_date`
-		args["start_date"] = *req.StartDate
-	}
-
-	if req.EndDate != nil {
-		query += ` AND created_at <= @end_date`
-		args["end_date"] = *req.EndDate
-	}
-
-	// 🔹 Optional status filter
-	if req.Status != nil {
-		query += ` AND request_status = @status`
-		args["status"] = *req.Status
-	}
-
-	query += `
-		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset
-	`
-
-	rows, err := db.pool.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get fund requests by request_to id: %w", err)
-	}
-	defer rows.Close()
-
-	var fundRequests []models.GetFundRequestResponseModel
-
-	for rows.Next() {
-		var fr models.GetFundRequestResponseModel
-		if err := rows.Scan(
-			&fr.FundRequestID,
-			&fr.RequesterID,
-			&fr.RequestToID,
-			&fr.Amount,
-			&fr.BankName,
-			&fr.RequestDate,
-			&fr.UTRNumber,
-			&fr.RequestStatus,
-			&fr.Remarks,
-			&fr.CreatedAt,
-			&fr.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		fundRequests = append(fundRequests, fr)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return fundRequests, nil
+	return db.getFundRequestsByUser(ctx, "request_to_id", req, limit, offset)
 }
 
 func (db *Database) RejectFundRequestQuery(
@@ -341,21 +255,19 @@ func (db *Database) RejectFundRequestQuery(
 
 	query := `
 		UPDATE fund_requests
-		SET
-			request_status = 'REJECTED',
-			updated_at = NOW()
-		WHERE fund_request_id = @fund_request_id
-		AND request_status = 'PENDING'
+		SET request_status = 'REJECTED',
+		    updated_at = NOW()
+		WHERE fund_request_id = @id
+		  AND request_status = 'PENDING';
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"fund_request_id": fundRequestID,
+		"id": fundRequestID,
 	})
 
 	if err != nil {
 		return err
 	}
-
 	if tag.RowsAffected() == 0 {
 		return pgx.ErrNoRows
 	}
@@ -368,236 +280,143 @@ func (db *Database) AcceptFundRequestQuery(
 	fundRequestID int64,
 ) error {
 
-	// Start transaction
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
-	// Get fund request details
-	var fundRequest struct {
+	var fr struct {
 		RequesterID   string
 		RequestToID   string
-		Amount        string
+		Amount        float64
 		RequestStatus string
 	}
 
-	getFundRequestQuery := `
+	err = tx.QueryRow(ctx, `
 		SELECT requester_id, request_to_id, amount, request_status
 		FROM fund_requests
-		WHERE fund_request_id = @fund_request_id
-	`
-
-	err = tx.QueryRow(ctx, getFundRequestQuery, pgx.NamedArgs{
-		"fund_request_id": fundRequestID,
-	}).Scan(
-		&fundRequest.RequesterID,
-		&fundRequest.RequestToID,
-		&fundRequest.Amount,
-		&fundRequest.RequestStatus,
+		WHERE fund_request_id = @id
+		FOR UPDATE;
+	`, pgx.NamedArgs{"id": fundRequestID}).Scan(
+		&fr.RequesterID,
+		&fr.RequestToID,
+		&fr.Amount,
+		&fr.RequestStatus,
 	)
 
 	if err != nil {
 		return err
 	}
 
-	// Check if already processed
-	if fundRequest.RequestStatus != "PENDING" {
-		return pgx.ErrNoRows // or custom error
+	if fr.RequestStatus != "PENDING" {
+		return errors.New("fund request already processed")
 	}
 
-	// Convert amount to numeric for calculations
-	var amountNumeric float64
-	_, err = fmt.Sscanf(fundRequest.Amount, "%f", &amountNumeric)
+	senderTable, err := db.getUserTable(fr.RequestToID)
 	if err != nil {
 		return err
 	}
 
-	// Get current balance of request_to user (sender)
-	var senderBeforeBalance float64
-	var senderTable string
-
-	senderTable, err = db.getUserTable(fundRequest.RequestToID)
+	receiverTable, err := db.getUserTable(fr.RequesterID)
 	if err != nil {
 		return err
 	}
 
-	getSenderBalanceQuery := fmt.Sprintf(`
-		SELECT %s_wallet_balance
-		FROM %s
-		WHERE %s_id = @user_id
-	`, senderTable, senderTable+"s", senderTable)
-
-	err = tx.QueryRow(ctx, getSenderBalanceQuery, pgx.NamedArgs{
-		"user_id": fundRequest.RequestToID,
-	}).Scan(&senderBeforeBalance)
-
+	var senderBalance float64
+	err = tx.QueryRow(ctx,
+		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id = @id`,
+			senderTable, senderTable, senderTable),
+		pgx.NamedArgs{"id": fr.RequestToID},
+	).Scan(&senderBalance)
 	if err != nil {
 		return err
 	}
 
-	// Check sufficient balance
-	if senderBeforeBalance < amountNumeric {
-		return fmt.Errorf("insufficient balance")
+	if senderBalance < fr.Amount {
+		return errors.New("insufficient balance")
 	}
 
-	senderAfterBalance := senderBeforeBalance - amountNumeric
-
-	// Get current balance of requester (receiver)
-	var receiverBeforeBalance float64
-	var receiverTable string
-
-	receiverTable, err = db.getUserTable(fundRequest.RequesterID)
+	var receiverBalance float64
+	err = tx.QueryRow(ctx,
+		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id = @id`,
+			receiverTable, receiverTable, receiverTable),
+		pgx.NamedArgs{"id": fr.RequesterID},
+	).Scan(&receiverBalance)
 	if err != nil {
 		return err
 	}
 
-	getReceiverBalanceQuery := fmt.Sprintf(`
-		SELECT %s_wallet_balance
-		FROM %s
-		WHERE %s_id = @user_id
-	`, receiverTable, receiverTable+"s", receiverTable)
+	senderAfter := senderBalance - fr.Amount
+	receiverAfter := receiverBalance + fr.Amount
 
-	err = tx.QueryRow(ctx, getReceiverBalanceQuery, pgx.NamedArgs{
-		"user_id": fundRequest.RequesterID,
-	}).Scan(&receiverBeforeBalance)
-
+	_, err = tx.Exec(ctx,
+		fmt.Sprintf(`UPDATE %ss SET %s_wallet_balance=@b WHERE %s_id=@id`,
+			senderTable, senderTable, senderTable),
+		pgx.NamedArgs{"b": senderAfter, "id": fr.RequestToID},
+	)
 	if err != nil {
 		return err
 	}
 
-	receiverAfterBalance := receiverBeforeBalance + amountNumeric
+	_, err = tx.Exec(ctx,
+		fmt.Sprintf(`UPDATE %ss SET %s_wallet_balance=@b WHERE %s_id=@id`,
+			receiverTable, receiverTable, receiverTable),
+		pgx.NamedArgs{"b": receiverAfter, "id": fr.RequesterID},
+	)
+	if err != nil {
+		return err
+	}
 
-	// Update sender wallet (deduct amount)
-	updateSenderQuery := fmt.Sprintf(`
-		UPDATE %s
-		SET %s_wallet_balance = @new_balance,
-		    updated_at = NOW()
-		WHERE %s_id = @user_id
-	`, senderTable+"s", senderTable, senderTable)
+	ref := fmt.Sprintf("FR%d", fundRequestID)
 
-	_, err = tx.Exec(ctx, updateSenderQuery, pgx.NamedArgs{
-		"user_id":     fundRequest.RequestToID,
-		"new_balance": senderAfterBalance,
+	_, err = tx.Exec(ctx, `
+		INSERT INTO wallet_transactions
+		(user_id, reference_id, debit_amount, before_balance, after_balance, transaction_reason, remarks)
+		VALUES (@u, @r, @a, @bb, @ab, 'FUND_REQUEST', @rm);
+	`, pgx.NamedArgs{
+		"u":  fr.RequestToID,
+		"r":  ref,
+		"a":  fr.Amount,
+		"bb": senderBalance,
+		"ab": senderAfter,
+		"rm": "Fund request sent",
 	})
-
 	if err != nil {
 		return err
 	}
 
-	// Update receiver wallet (add amount)
-	updateReceiverQuery := fmt.Sprintf(`
-		UPDATE %s
-		SET %s_wallet_balance = @new_balance,
-		    updated_at = NOW()
-		WHERE %s_id = @user_id
-	`, receiverTable+"s", receiverTable, receiverTable)
-
-	_, err = tx.Exec(ctx, updateReceiverQuery, pgx.NamedArgs{
-		"user_id":     fundRequest.RequesterID,
-		"new_balance": receiverAfterBalance,
+	_, err = tx.Exec(ctx, `
+		INSERT INTO wallet_transactions
+		(user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
+		VALUES (@u, @r, @a, @bb, @ab, 'FUND_REQUEST', @rm);
+	`, pgx.NamedArgs{
+		"u":  fr.RequesterID,
+		"r":  ref,
+		"a":  fr.Amount,
+		"bb": receiverBalance,
+		"ab": receiverAfter,
+		"rm": "Fund request received",
 	})
-
 	if err != nil {
 		return err
 	}
 
-	// Insert debit transaction for sender
-	insertDebitTransactionQuery := `
-		INSERT INTO wallet_transactions (
-			user_id,
-			reference_id,
-			credit_amount,
-			debit_amount,
-			before_balance,
-			after_balance,
-			transaction_reason,
-			remarks
-		) VALUES (
-			@user_id,
-			@reference_id,
-			NULL,
-			@debit_amount,
-			@before_balance,
-			@after_balance,
-			'FUND_REQUEST',
-			@remarks
-		)
-	`
-
-	_, err = tx.Exec(ctx, insertDebitTransactionQuery, pgx.NamedArgs{
-		"user_id":        fundRequest.RequestToID,
-		"reference_id":   fmt.Sprintf("FR%d", fundRequestID),
-		"debit_amount":   fundRequest.Amount,
-		"before_balance": fmt.Sprintf("%.2f", senderBeforeBalance),
-		"after_balance":  fmt.Sprintf("%.2f", senderAfterBalance),
-		"remarks":        fmt.Sprintf("Fund request to %s", fundRequest.RequesterID),
-	})
-
-	if err != nil {
-		return err
-	}
-
-	// Insert credit transaction for receiver
-	insertCreditTransactionQuery := `
-		INSERT INTO wallet_transactions (
-			user_id,
-			reference_id,
-			credit_amount,
-			debit_amount,
-			before_balance,
-			after_balance,
-			transaction_reason,
-			remarks
-		) VALUES (
-			@user_id,
-			@reference_id,
-			@credit_amount,
-			NULL,
-			@before_balance,
-			@after_balance,
-			'FUND_REQUEST',
-			@remarks
-		)
-	`
-
-	_, err = tx.Exec(ctx, insertCreditTransactionQuery, pgx.NamedArgs{
-		"user_id":        fundRequest.RequesterID,
-		"reference_id":   fmt.Sprintf("FR%d", fundRequestID),
-		"credit_amount":  fundRequest.Amount,
-		"before_balance": fmt.Sprintf("%.2f", receiverBeforeBalance),
-		"after_balance":  fmt.Sprintf("%.2f", receiverAfterBalance),
-		"remarks":        fmt.Sprintf("Fund request from %s", fundRequest.RequestToID),
-	})
-
-	if err != nil {
-		return err
-	}
-
-	// Update fund request status to ACCEPTED
-	updateFundRequestQuery := `
+	_, err = tx.Exec(ctx, `
 		UPDATE fund_requests
-		SET request_status = 'ACCEPTED',
-		    updated_at = NOW()
-		WHERE fund_request_id = @fund_request_id
-	`
-
-	_, err = tx.Exec(ctx, updateFundRequestQuery, pgx.NamedArgs{
-		"fund_request_id": fundRequestID,
-	})
-
+		SET request_status='ACCEPTED', updated_at=NOW()
+		WHERE fund_request_id=@id;
+	`, pgx.NamedArgs{"id": fundRequestID})
 	if err != nil {
 		return err
 	}
 
-	// Commit transaction
 	return tx.Commit(ctx)
 }
 
 func (db *Database) getUserTable(userID string) (string, error) {
 	if len(userID) == 0 {
-		return "", fmt.Errorf("invalid user ID")
+		return "", errors.New("invalid user id")
 	}
 
 	switch userID[0] {
@@ -610,6 +429,6 @@ func (db *Database) getUserTable(userID string) (string, error) {
 	case 'R':
 		return "retailer", nil
 	default:
-		return "", fmt.Errorf("unknown user type")
+		return "", errors.New("unknown user type")
 	}
 }

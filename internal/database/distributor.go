@@ -85,25 +85,68 @@ func (db *Database) GetDistributorByIDQuery(
 			d.distributor_id,
 			d.master_distributor_id,
 			d.distributor_name,
+			d.distributor_phone,
+			d.distributor_email,
 			d.distributor_password,
+			d.distributor_aadhar_number,
+			d.distributor_pan_number,
+			d.distributor_date_of_birth,
+			d.distributor_gender,
+			d.distributor_city,
+			d.distributor_state,
+			d.distributor_address,
+			d.distributor_pincode,
+			d.distributor_business_name,
+			d.distributor_business_type,
+			d.distributor_gst_number,
+			d.distributor_mpin,
+			d.distributor_kyc_status,
+			d.distributor_documents_url,
+			d.distributor_wallet_balance,
 			d.is_distributor_blocked,
+			d.created_at,
+			d.updated_at,
 			md.admin_id
 		FROM distributors d
-		JOIN master_distributors md ON d.master_distributor_id = md.master_distributor_id
-		WHERE d.distributor_id = @distributor_id
+		JOIN master_distributors md
+			ON d.master_distributor_id = md.master_distributor_id
+		WHERE d.distributor_id = @distributor_id;
 	`
 
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"distributor_id": distributorID,
-	})
+	row := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"distributor_id": distributorID,
+		},
+	)
 
 	var d models.DistributorModel
 	err := row.Scan(
 		&d.DistributorID,
 		&d.MasterDistributorID,
 		&d.Name,
+		&d.Phone,
+		&d.Email,
 		&d.Password,
+		&d.AadharNumber,
+		&d.PanNumber,
+		&d.DateOfBirth,
+		&d.Gender,
+		&d.City,
+		&d.State,
+		&d.Address,
+		&d.Pincode,
+		&d.BusinessName,
+		&d.BusinessType,
+		&d.GSTNumber,
+		&d.MPIN,
+		&d.KYCStatus,
+		&d.DocumentsURL,
+		&d.WalletBalance,
 		&d.IsBlocked,
+		&d.CreatedAt,
+		&d.UpdatedAt,
 		&d.AdminID,
 	)
 

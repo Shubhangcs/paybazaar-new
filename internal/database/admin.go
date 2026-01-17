@@ -48,14 +48,21 @@ func (db *Database) GetAdminByIDQuery(
 			admin_email,
 			admin_phone,
 			admin_password,
-			is_admin_blocked
+			admin_wallet_balance,
+			is_admin_blocked,
+			created_at,
+			updated_at
 		FROM admins
-		WHERE admin_id = @admin_id
+		WHERE admin_id = @admin_id;
 	`
 
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"admin_id": adminID,
-	})
+	row := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"admin_id": adminID,
+		},
+	)
 
 	var admin models.AdminModel
 	err := row.Scan(
@@ -64,7 +71,10 @@ func (db *Database) GetAdminByIDQuery(
 		&admin.AdminEmail,
 		&admin.AdminPhone,
 		&admin.AdminPassword,
+		&admin.AdminWalletBalance,
 		&admin.IsAdminBlocked,
+		&admin.CreatedAt,
+		&admin.UpdatedAt,
 	)
 
 	if err != nil {

@@ -6,7 +6,7 @@ type FundRequestModel struct {
 	FundRequestID int64
 	RequesterID   string
 	RequestToID   string
-	Amount        string
+	Amount        float64
 	BankName      string
 	RequestDate   string
 	UTRNumber     string
@@ -17,13 +17,13 @@ type FundRequestModel struct {
 }
 
 type CreateFundRequestModel struct {
-	RequesterID string `json:"requester_id" validate:"required"`
-	RequestToID string `json:"request_to_id" validate:"required"`
-	Amount      string `json:"amount" validate:"required"`
-	BankName    string `json:"bank_name" validate:"required"`
-	RequestDate string `json:"request_date" validate:"required"`
-	UTRNumber   string `json:"utr_number" validate:"required"`
-	Remarks     string `json:"remarks" validate:"required"`
+	RequesterID string  `json:"requester_id" validate:"required"`
+	RequestToID string  `json:"request_to_id" validate:"required"`
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	BankName    string  `json:"bank_name" validate:"required"`
+	RequestDate string  `json:"request_date" validate:"required"`
+	UTRNumber   string  `json:"utr_number" validate:"required"`
+	Remarks     string  `json:"remarks" validate:"required"`
 }
 
 type GetFundRequestFilterRequestModel struct {
@@ -37,7 +37,7 @@ type GetFundRequestResponseModel struct {
 	FundRequestID int64     `json:"fund_request_id"`
 	RequesterID   string    `json:"requester_id"`
 	RequestToID   string    `json:"request_to_id"`
-	Amount        string    `json:"amount"`
+	Amount        float64   `json:"amount"`
 	BankName      string    `json:"bank_name"`
 	RequestDate   string    `json:"request_date"`
 	UTRNumber     string    `json:"utr_number"`
