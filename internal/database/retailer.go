@@ -85,26 +85,70 @@ func (db *Database) GetRetailerByIDQuery(
 			r.retailer_id,
 			r.distributor_id,
 			r.retailer_name,
+			r.retailer_phone,
+			r.retailer_email,
 			r.retailer_password,
+			r.retailer_aadhar_number,
+			r.retailer_pan_number,
+			r.retailer_date_of_birth,
+			r.retailer_gender,
+			r.retailer_city,
+			r.retailer_state,
+			r.retailer_address,
+			r.retailer_pincode,
+			r.retailer_business_name,
+			r.retailer_business_type,
+			r.retailer_gst_number,
+			r.retailer_mpin,
+			r.retailer_kyc_status,
+			r.retailer_documents_url,
+			r.retailer_wallet_balance,
 			r.is_retailer_blocked,
+			r.created_at,
+			r.updated_at,
 			md.admin_id
 		FROM retailers r
-		JOIN distributors d ON r.distributor_id = d.distributor_id
-		JOIN master_distributors md ON d.master_distributor_id = md.master_distributor_id
-		WHERE r.retailer_id = @retailer_id
+		JOIN distributors d
+			ON r.distributor_id = d.distributor_id
+		JOIN master_distributors md
+			ON d.master_distributor_id = md.master_distributor_id
+		WHERE r.retailer_id = @retailer_id;
 	`
 
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"retailer_id": retailerID,
-	})
+	row := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"retailer_id": retailerID,
+		},
+	)
 
 	var r models.RetailerModel
 	err := row.Scan(
 		&r.RetailerID,
 		&r.DistributorID,
 		&r.Name,
+		&r.Phone,
+		&r.Email,
 		&r.Password,
+		&r.AadharNumber,
+		&r.PanNumber,
+		&r.DateOfBirth,
+		&r.Gender,
+		&r.City,
+		&r.State,
+		&r.Address,
+		&r.Pincode,
+		&r.BusinessName,
+		&r.BusinessType,
+		&r.GSTNumber,
+		&r.MPIN,
+		&r.KYCStatus,
+		&r.DocumentsURL,
+		&r.WalletBalance,
 		&r.IsBlocked,
+		&r.CreatedAt,
+		&r.UpdatedAt,
 		&r.AdminID,
 	)
 

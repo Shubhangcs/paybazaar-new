@@ -82,26 +82,68 @@ func (db *Database) GetMasterDistributorByIDQuery(
 
 	query := `
 		SELECT
-			master_distributor_id,
-			admin_id,
-			master_distributor_name,
-			master_distributor_password,
-			is_master_distributor_blocked
-		FROM master_distributors
-		WHERE master_distributor_id = @md_id
+			m.master_distributor_id,
+			m.admin_id,
+			m.master_distributor_name,
+			m.master_distributor_phone,
+			m.master_distributor_email,
+			m.master_distributor_password,
+			m.master_distributor_aadhar_number,
+			m.master_distributor_pan_number,
+			m.master_distributor_date_of_birth,
+			m.master_distributor_gender,
+			m.master_distributor_city,
+			m.master_distributor_state,
+			m.master_distributor_address,
+			m.master_distributor_pincode,
+			m.master_distributor_business_name,
+			m.master_distributor_business_type,
+			m.master_distributor_mpin,
+			m.master_distributor_kyc_status,
+			m.master_distributor_documents_url,
+			m.master_distributor_gst_number,
+			m.master_distributor_wallet_balance,
+			m.is_master_distributor_blocked,
+			m.created_at,
+			m.updated_at
+		FROM master_distributors m
+		WHERE m.master_distributor_id = @md_id;
 	`
 
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"md_id": mdID,
-	})
+	row := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"md_id": mdID,
+		},
+	)
 
 	var md models.MasterDistributorModel
 	err := row.Scan(
 		&md.MasterDistributorID,
 		&md.AdminID,
 		&md.Name,
+		&md.Phone,
+		&md.Email,
 		&md.Password,
+		&md.AadharNumber,
+		&md.PanNumber,
+		&md.DateOfBirth,
+		&md.Gender,
+		&md.City,
+		&md.State,
+		&md.Address,
+		&md.Pincode,
+		&md.BusinessName,
+		&md.BusinessType,
+		&md.MPIN,
+		&md.KYCStatus,
+		&md.DocumentsURL,
+		&md.GSTNumber,
+		&md.WalletBalance,
 		&md.IsBlocked,
+		&md.CreatedAt,
+		&md.UpdatedAt,
 	)
 
 	if err != nil {
