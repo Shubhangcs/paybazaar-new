@@ -40,6 +40,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.WalletTransactionRoutes(cfg.Database, cfg.JWTUtils)
 	routes.RevertRoutes(cfg.Database, cfg.JWTUtils)
 	routes.BankRouter(cfg.Database, cfg.JWTUtils)
+	routes.CommisionRoutes(cfg.Database, cfg.JWTUtils)
 
 	return routes
 }
