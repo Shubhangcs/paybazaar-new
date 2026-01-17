@@ -144,6 +144,7 @@ func (dr *distributorRepository) LoginDistributor(c echo.Context) (string, error
 		return "", fmt.Errorf("incorrect password")
 	}
 	return dr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
+		AdminID: res.AdminID,
 		UserID:   res.DistributorID,
 		UserName: res.Name,
 		UserRole: "distributor",

@@ -137,6 +137,7 @@ func (mdr *masterDistributorRepository) LoginMasterDistributor(c echo.Context) (
 		return "", fmt.Errorf("incorrect password")
 	}
 	return mdr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
+		AdminID:  res.AdminID,
 		UserID:   res.MasterDistributorID,
 		UserName: res.Name,
 		UserRole: "master_distributor",
