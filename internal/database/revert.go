@@ -217,3 +217,203 @@ func (db *Database) CreateRevertQuery(
 
 	return tx.Commit(ctx)
 }
+
+func (db *Database) GetRevertTransactionsByFromIDQuery(
+	ctx context.Context,
+	req models.GetRevertTransactionFilterRequestModel,
+	limit, offset int,
+) ([]models.GetRevertTransactionResponseModel, error) {
+
+	query := `
+		SELECT
+			rt.revert_transaction_id,
+			rt.revert_by_id,
+			rt.revert_on_id,
+
+			-- From Name
+			COALESCE(
+				a.admin_name,
+				md.master_distributor_name,
+				d.distributor_name,
+				r.retailer_name
+			) AS revert_from_name,
+
+			-- On Name
+			COALESCE(
+				a2.admin_name,
+				md2.master_distributor_name,
+				d2.distributor_name,
+				r2.retailer_name
+			) AS revert_on_name,
+
+			rt.amount,
+			rt.remarks,
+			rt.created_at
+		FROM revert_transactions rt
+
+		-- FROM user joins
+		LEFT JOIN admins a ON rt.revert_by_id = a.admin_id
+		LEFT JOIN master_distributors md ON rt.revert_by_id = md.master_distributor_id
+		LEFT JOIN distributors d ON rt.revert_by_id = d.distributor_id
+		LEFT JOIN retailers r ON rt.revert_by_id = r.retailer_id
+
+		-- ON user joins
+		LEFT JOIN admins a2 ON rt.revert_on_id = a2.admin_id
+		LEFT JOIN master_distributors md2 ON rt.revert_on_id = md2.master_distributor_id
+		LEFT JOIN distributors d2 ON rt.revert_on_id = d2.distributor_id
+		LEFT JOIN retailers r2 ON rt.revert_on_id = r2.retailer_id
+
+		WHERE rt.revert_by_id = @id
+	`
+
+	args := pgx.NamedArgs{
+		"id":     req.ID,
+		"limit":  limit,
+		"offset": offset,
+	}
+
+	if req.StartDate != nil {
+		query += ` AND rt.created_at >= @start_date`
+		args["start_date"] = *req.StartDate
+	}
+
+	if req.EndDate != nil {
+		query += ` AND rt.created_at <= @end_date`
+		args["end_date"] = *req.EndDate
+	}
+
+	if req.Status != nil {
+		query += ` AND rt.revert_status = @status`
+		args["status"] = *req.Status
+	}
+
+	query += `
+		ORDER BY rt.created_at DESC
+		LIMIT @limit OFFSET @offset;
+	`
+
+	rows, err := db.pool.Query(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.GetRevertTransactionResponseModel
+
+	for rows.Next() {
+		var r models.GetRevertTransactionResponseModel
+		if err := rows.Scan(
+			&r.RevertTransactionID,
+			&r.RevertFromID,
+			&r.RevertOnID,
+			&r.RevertFromName,
+			&r.RevertOnName,
+			&r.Amount,
+			&r.Remarks,
+			&r.CreatedAT,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}
+
+func (db *Database) GetRevertTransactionsByOnIDQuery(
+	ctx context.Context,
+	req models.GetRevertTransactionFilterRequestModel,
+	limit, offset int,
+) ([]models.GetRevertTransactionResponseModel, error) {
+
+	query := `
+		SELECT
+			rt.revert_transaction_id,
+			rt.revert_by_id,
+			rt.revert_on_id,
+
+			COALESCE(
+				a.admin_name,
+				md.master_distributor_name,
+				d.distributor_name,
+				r.retailer_name
+			) AS revert_from_name,
+
+			COALESCE(
+				a2.admin_name,
+				md2.master_distributor_name,
+				d2.distributor_name,
+				r2.retailer_name
+			) AS revert_on_name,
+
+			rt.amount,
+			rt.remarks,
+			rt.created_at
+		FROM revert_transactions rt
+
+		LEFT JOIN admins a ON rt.revert_by_id = a.admin_id
+		LEFT JOIN master_distributors md ON rt.revert_by_id = md.master_distributor_id
+		LEFT JOIN distributors d ON rt.revert_by_id = d.distributor_id
+		LEFT JOIN retailers r ON rt.revert_by_id = r.retailer_id
+
+		LEFT JOIN admins a2 ON rt.revert_on_id = a2.admin_id
+		LEFT JOIN master_distributors md2 ON rt.revert_on_id = md2.master_distributor_id
+		LEFT JOIN distributors d2 ON rt.revert_on_id = d2.distributor_id
+		LEFT JOIN retailers r2 ON rt.revert_on_id = r2.retailer_id
+
+		WHERE rt.revert_on_id = @id
+	`
+
+	args := pgx.NamedArgs{
+		"id":     req.ID,
+		"limit":  limit,
+		"offset": offset,
+	}
+
+	if req.StartDate != nil {
+		query += ` AND rt.created_at >= @start_date`
+		args["start_date"] = *req.StartDate
+	}
+
+	if req.EndDate != nil {
+		query += ` AND rt.created_at <= @end_date`
+		args["end_date"] = *req.EndDate
+	}
+
+	if req.Status != nil {
+		query += ` AND rt.revert_status = @status`
+		args["status"] = *req.Status
+	}
+
+	query += `
+		ORDER BY rt.created_at DESC
+		LIMIT @limit OFFSET @offset;
+	`
+
+	rows, err := db.pool.Query(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.GetRevertTransactionResponseModel
+
+	for rows.Next() {
+		var r models.GetRevertTransactionResponseModel
+		if err := rows.Scan(
+			&r.RevertTransactionID,
+			&r.RevertFromID,
+			&r.RevertOnID,
+			&r.RevertFromName,
+			&r.RevertOnName,
+			&r.Amount,
+			&r.Remarks,
+			&r.CreatedAT,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}

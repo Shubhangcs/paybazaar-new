@@ -14,4 +14,6 @@ func (r *routes) RevertRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 
 	rrg := r.Router.Group("/revert", middlewares.AuthorizationMiddleware(jwtUtils))
 	rrg.POST("/create", revertHandler.CreateRevertRequest)
+	rrg.POST("/get/revert/from", revertHandler.GetRevertsByFromID)
+	rrg.POST("/get/revert/on", revertHandler.GetRevertsByOnID)
 }
