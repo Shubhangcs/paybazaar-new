@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -16,6 +17,7 @@ type RetailerBeneficiaryInterface interface {
 	UpdateRetailerBeneficiary(echo.Context) error
 	UpdateRetailerBeneficiaryVerification(echo.Context) error
 	DeleteRetailerBeneficiary(echo.Context) error
+	GetRetailerBeneficiariesByMobileNumber(echo.Context) ([]models.GetRetailerBeneficiaryResponseModel, error)
 }
 
 type retailerBeneficiaryRepository struct {
@@ -160,4 +162,29 @@ func (rb *retailerBeneficiaryRepository) DeleteRetailerBeneficiary(
 	defer cancel()
 
 	return rb.db.DeleteRetailerBeneficiaryQuery(ctx, beneficiaryID)
+}
+
+func (rb *retailerBeneficiaryRepository) GetRetailerBeneficiariesByMobileNumber(
+	c echo.Context,
+) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+
+	mobileNumber := c.Param("mobile_number")
+	if mobileNumber == "" {
+		return nil, fmt.Errorf("mobile_number is required")
+	}
+
+	limit, offset := parsePagination(c)
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return rb.db.GetRetailerBeneficiariesByMobileNumberQuery(
+		ctx,
+		mobileNumber,
+		limit,
+		offset,
+	)
 }

@@ -29,4 +29,5 @@ func (r *routes) RetailerBeneficiaryRoutes(
 	rb.PUT("/update/:beneficiary_id", retailerBeneficiaryHandler.UpdateRetailerBeneficiary)
 	rb.PUT("/update/:beneficiary_id/verify", retailerBeneficiaryHandler.UpdateRetailerBeneficiaryVerification)
 	rb.DELETE("/delete/:beneficiary_id", retailerBeneficiaryHandler.DeleteRetailerBeneficiary)
+	rb.GET("/mobile/:mobile_number", retailerBeneficiaryHandler.GetBeneficiariesByMobileNumber)
 }

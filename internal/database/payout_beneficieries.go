@@ -153,6 +153,66 @@ func (db *Database) GetRetailerBeneficiariesByRetailerIDQuery(
 	return list, rows.Err()
 }
 
+func (db *Database) GetRetailerBeneficiariesByMobileNumberQuery(
+	ctx context.Context,
+	mobileNumber string,
+	limit, offset int,
+) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+
+	query := `
+		SELECT
+			beneficiary_id,
+			retailer_id,
+			mobile_number,
+			beneficiary_bank_name,
+			beneficiary_name,
+			beneficiary_account_number,
+			beneficiary_ifsc_code,
+			beneficiary_phone,
+			is_beneficiary_verified,
+			created_at,
+			updated_at
+		FROM retailer_beneficiaries
+		WHERE mobile_number = @mobile_number
+		ORDER BY created_at DESC
+		LIMIT @limit OFFSET @offset;
+	`
+
+	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
+		"mobile_number": mobileNumber,
+		"limit":         limit,
+		"offset":        offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.GetRetailerBeneficiaryResponseModel
+
+	for rows.Next() {
+		var b models.GetRetailerBeneficiaryResponseModel
+		if err := rows.Scan(
+			&b.BeneficiaryID,
+			&b.RetailerID,
+			&b.MobileNumber,
+			&b.BankName,
+			&b.BeneficiaryName,
+			&b.AccountNumber,
+			&b.IFSCCode,
+			&b.Phone,
+			&b.IsVerified,
+			&b.CreatedAt,
+			&b.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		list = append(list, b)
+	}
+
+	return list, rows.Err()
+}
+
 func (db *Database) UpdateRetailerBeneficiaryQuery(
 	ctx context.Context,
 	beneficiaryID int64,

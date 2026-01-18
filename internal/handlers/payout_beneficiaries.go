@@ -123,3 +123,27 @@ func (h *RetailerBeneficiaryHandler) DeleteRetailerBeneficiary(
 		Message: "beneficiary deleted successfully",
 	})
 }
+
+func (h *RetailerBeneficiaryHandler) GetBeneficiariesByMobileNumber(
+	c echo.Context,
+) error {
+
+	list, err := h.repo.GetRetailerBeneficiariesByMobileNumber(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status: "success",
+			Data:   list,
+		},
+	)
+}
