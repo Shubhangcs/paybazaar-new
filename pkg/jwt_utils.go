@@ -63,3 +63,24 @@ func (ju *JwtUtils) ValidateToken(tokenString string) (*models.AccessTokenClaims
 	}
 	return nil, fmt.Errorf("invalid token")
 }
+
+func (ju *JwtUtils) GenerateTokenForPayoutBeneVerification(reqid string) (string, error) {
+	// JWT secret key
+	var key []byte = []byte("UTA5U1VEQXdNREF5TXpFMFRucEpORTVFYTNsT2VsbDNUbmM5UFE9PQ==")
+
+	// Creating a jwt
+	var claims = jwt.MapClaims{
+		"partnerId": "CORP00002314",
+		"reqid":     reqid,
+		"timestamp": time.Now().Unix(),
+	}
+	tokenSign := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Obtaining the signed string
+	token, err := tokenSign.SignedString(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign jwt: %w", err)
+	}
+	// Returning the token
+	return token, nil
+}

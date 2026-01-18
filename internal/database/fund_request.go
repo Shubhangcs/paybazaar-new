@@ -380,7 +380,7 @@ func (db *Database) AcceptFundRequestQuery(
 		"a":  fr.Amount,
 		"bb": senderBalance,
 		"ab": senderAfter,
-		"rm": "Fund request sent",
+		"rm": fmt.Sprintf("Fund sent to %s", fr.RequesterID),
 	})
 	if err != nil {
 		return err
@@ -396,7 +396,7 @@ func (db *Database) AcceptFundRequestQuery(
 		"a":  fr.Amount,
 		"bb": receiverBalance,
 		"ab": receiverAfter,
-		"rm": "Fund request received",
+		"rm": fmt.Sprintf("Fund received from %s", fr.RequestToID),
 	})
 	if err != nil {
 		return err
