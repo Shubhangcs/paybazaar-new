@@ -40,6 +40,14 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return err
 	}
 
+	// 🔐 Retailer ID MUST come from JWT
+	claims, ok := c.Get("user").(*models.AccessTokenClaims)
+	if !ok || claims.UserID == "" {
+		return fmt.Errorf("unauthorized")
+	}
+	payoutRequest.RetailerID = claims.UserID
+
+	// Amount validation
 	if payoutRequest.Amount < 1000 || payoutRequest.Amount > 25000 {
 		return fmt.Errorf("failed to payout invalid amount")
 	}
@@ -50,7 +58,12 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	)
 	defer cancel()
 
-	isValid, err := pr.db.VerifyMPINAndKycQuery(ctx, payoutRequest.RetailerID, payoutRequest.MPIN)
+	// MPIN + KYC check
+	isValid, err := pr.db.VerifyMPINAndKycQuery(
+		ctx,
+		payoutRequest.RetailerID,
+		payoutRequest.MPIN,
+	)
 	if err != nil {
 		return err
 	}
@@ -59,13 +72,23 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return fmt.Errorf("invalid mpin or incomplete kyc")
 	}
 
-	commision, err := pr.db.GetPayoutCommisionSplit(ctx, payoutRequest.RetailerID, payoutRequest.Amount)
-
+	// Commission split
+	commision, err := pr.db.GetPayoutCommisionSplit(
+		ctx,
+		payoutRequest.RetailerID,
+		payoutRequest.Amount,
+	)
 	if err != nil {
 		return err
 	}
 
-	hasBalance, err := pr.db.CheckRetailerWalletBalance(ctx, payoutRequest.RetailerID, payoutRequest.Amount, commision.TotalCommision)
+	// Wallet balance check
+	hasBalance, err := pr.db.CheckRetailerWalletBalance(
+		ctx,
+		payoutRequest.RetailerID,
+		payoutRequest.Amount,
+		commision.TotalCommision,
+	)
 	if err != nil {
 		return err
 	}
@@ -74,9 +97,14 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return fmt.Errorf("insufficient balance")
 	}
 
-	payoutRequest.PartnerRequestID = uuid.NewString()
+	// Generate partner request ID
+	partnerReqID := uuid.New()
+	payoutRequest.PartnerRequestID = partnerReqID.String()
+
+	// ---------------- API CALL ----------------
 
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitpayout/payoutTransfer`
+
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":          payoutRequest.MobileNumber,
 		"account_number":     payoutRequest.BeneficiaryAccountNumber,
@@ -89,7 +117,12 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	apiRequest, err := http.NewRequest("POST", apiUrl, bytes.NewReader(reqBody))
+
+	apiRequest, err := http.NewRequest(
+		http.MethodPost,
+		apiUrl,
+		bytes.NewReader(reqBody),
+	)
 	if err != nil {
 		return err
 	}
@@ -97,14 +130,12 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	apiRequest.Header.Set("Content-Type", "application/json")
 	apiRequest.Header.Set("Authorization", "Bearer "+os.Getenv("RKIT_API_TOKEN"))
 
-	client := &http.Client{
-		Timeout: 20 * time.Second,
-	}
+	client := &http.Client{Timeout: 20 * time.Second}
+
 	resp, err := client.Do(apiRequest)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
 
 	respBytes, err := io.ReadAll(resp.Body)
@@ -113,11 +144,15 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	}
 
 	var res models.PayoutAPIResponseModel
-
 	if err := json.Unmarshal(respBytes, &res); err != nil {
 		return err
 	}
 
-	
-	return nil
+	// Basic response sanity check
+	if res.Status == 0 {
+		return fmt.Errorf("invalid payout gateway response")
+	}
+
+	// ---------------- DB TRANSACTION ----------------
+	return pr.db.CreatePayoutQuery(ctx, payoutRequest, res, *commision)
 }

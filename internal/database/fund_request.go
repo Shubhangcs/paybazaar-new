@@ -9,6 +9,10 @@ import (
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
+/* =========================================================
+   CREATE FUND REQUEST
+========================================================= */
+
 func (db *Database) CreateFundRequestQuery(
 	ctx context.Context,
 	req models.CreateFundRequestModel,
@@ -23,7 +27,8 @@ func (db *Database) CreateFundRequestQuery(
 			request_date,
 			utr_number,
 			request_status,
-			remarks
+			remarks,
+			reject_remarks
 		) VALUES (
 			@requester_id,
 			@request_to_id,
@@ -32,12 +37,13 @@ func (db *Database) CreateFundRequestQuery(
 			@request_date,
 			@utr_number,
 			'PENDING',
-			@remarks
+			@remarks,
+			''
 		)
 		RETURNING fund_request_id;
 	`
 
-	var fundRequestID int64
+	var id int64
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"requester_id":  req.RequesterID,
 		"request_to_id": req.RequestToID,
@@ -46,10 +52,11 @@ func (db *Database) CreateFundRequestQuery(
 		"request_date":  req.RequestDate,
 		"utr_number":    req.UTRNumber,
 		"remarks":       req.Remarks,
-	}).Scan(&fundRequestID)
+	}).Scan(&id)
 
-	return fundRequestID, err
+	return id, err
 }
+
 
 func (db *Database) GetFundRequestQuery(
 	ctx context.Context,
@@ -67,15 +74,16 @@ func (db *Database) GetFundRequestQuery(
 			utr_number,
 			request_status,
 			remarks,
+			reject_remarks,
 			created_at,
 			updated_at
 		FROM fund_requests
-		WHERE fund_request_id = @fund_request_id;
+		WHERE fund_request_id = @id;
 	`
 
 	var fr models.GetFundRequestResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"fund_request_id": fundRequestID,
+		"id": fundRequestID,
 	}).Scan(
 		&fr.FundRequestID,
 		&fr.RequesterID,
@@ -86,6 +94,7 @@ func (db *Database) GetFundRequestQuery(
 		&fr.UTRNumber,
 		&fr.RequestStatus,
 		&fr.Remarks,
+		&fr.RejectRemarks,
 		&fr.CreatedAt,
 		&fr.UpdatedAt,
 	)
@@ -96,6 +105,7 @@ func (db *Database) GetFundRequestQuery(
 
 	return &fr, nil
 }
+
 
 func (db *Database) GetAllFundRequestsQuery(
 	ctx context.Context,
@@ -113,6 +123,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			utr_number,
 			request_status,
 			remarks,
+			reject_remarks,
 			created_at,
 			updated_at
 		FROM fund_requests
@@ -143,6 +154,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			&fr.UTRNumber,
 			&fr.RequestStatus,
 			&fr.Remarks,
+			&fr.RejectRemarks,
 			&fr.CreatedAt,
 			&fr.UpdatedAt,
 		); err != nil {
@@ -153,6 +165,7 @@ func (db *Database) GetAllFundRequestsQuery(
 
 	return list, rows.Err()
 }
+
 
 func (db *Database) getFundRequestsByUser(
 	ctx context.Context,
@@ -172,6 +185,7 @@ func (db *Database) getFundRequestsByUser(
 			utr_number,
 			request_status,
 			remarks,
+			reject_remarks,
 			created_at,
 			updated_at
 		FROM fund_requests
@@ -221,6 +235,7 @@ func (db *Database) getFundRequestsByUser(
 			&fr.UTRNumber,
 			&fr.RequestStatus,
 			&fr.Remarks,
+			&fr.RejectRemarks,
 			&fr.CreatedAt,
 			&fr.UpdatedAt,
 		); err != nil {
@@ -248,21 +263,26 @@ func (db *Database) GetFundRequestsByRequestToIDQuery(
 	return db.getFundRequestsByUser(ctx, "request_to_id", req, limit, offset)
 }
 
+
 func (db *Database) RejectFundRequestQuery(
 	ctx context.Context,
 	fundRequestID int64,
+	rejectRemarks string,
 ) error {
 
 	query := `
 		UPDATE fund_requests
-		SET request_status = 'REJECTED',
-		    updated_at = NOW()
+		SET
+			request_status = 'REJECTED',
+			reject_remarks = @remarks,
+			updated_at = NOW()
 		WHERE fund_request_id = @id
 		  AND request_status = 'PENDING';
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"id": fundRequestID,
+		"id":      fundRequestID,
+		"remarks": rejectRemarks,
 	})
 
 	if err != nil {
@@ -274,6 +294,7 @@ func (db *Database) RejectFundRequestQuery(
 
 	return nil
 }
+
 
 func (db *Database) AcceptFundRequestQuery(
 	ctx context.Context,
@@ -317,15 +338,15 @@ func (db *Database) AcceptFundRequestQuery(
 	if err != nil {
 		return err
 	}
-
 	receiverTable, err := db.getUserTable(fr.RequesterID)
 	if err != nil {
 		return err
 	}
 
-	var senderBalance float64
+	var senderBalance, receiverBalance float64
+
 	err = tx.QueryRow(ctx,
-		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id = @id`,
+		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id=@id`,
 			senderTable, senderTable, senderTable),
 		pgx.NamedArgs{"id": fr.RequestToID},
 	).Scan(&senderBalance)
@@ -337,9 +358,8 @@ func (db *Database) AcceptFundRequestQuery(
 		return errors.New("insufficient balance")
 	}
 
-	var receiverBalance float64
 	err = tx.QueryRow(ctx,
-		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id = @id`,
+		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id=@id`,
 			receiverTable, receiverTable, receiverTable),
 		pgx.NamedArgs{"id": fr.RequesterID},
 	).Scan(&receiverBalance)
@@ -373,7 +393,7 @@ func (db *Database) AcceptFundRequestQuery(
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions
 		(user_id, reference_id, debit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@u, @r, @a, @bb, @ab, 'FUND_REQUEST', @rm);
+		VALUES (@u,@r,@a,@bb,@ab,'FUND_REQUEST',@rm);
 	`, pgx.NamedArgs{
 		"u":  fr.RequestToID,
 		"r":  ref,
@@ -389,7 +409,7 @@ func (db *Database) AcceptFundRequestQuery(
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions
 		(user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@u, @r, @a, @bb, @ab, 'FUND_REQUEST', @rm);
+		VALUES (@u,@r,@a,@bb,@ab,'FUND_REQUEST',@rm);
 	`, pgx.NamedArgs{
 		"u":  fr.RequesterID,
 		"r":  ref,
