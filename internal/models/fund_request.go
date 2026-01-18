@@ -2,10 +2,6 @@ package models
 
 import "time"
 
-/* ---------------------------------------------------
-   Core DB Model
---------------------------------------------------- */
-
 type FundRequestModel struct {
 	FundRequestID int64
 	RequesterID   string
@@ -21,10 +17,6 @@ type FundRequestModel struct {
 	UpdatedAt     time.Time
 }
 
-/* ---------------------------------------------------
-   Create Request
---------------------------------------------------- */
-
 type CreateFundRequestModel struct {
 	RequesterID string  `json:"requester_id" validate:"required"`
 	RequestToID string  `json:"request_to_id" validate:"required"`
@@ -35,17 +27,9 @@ type CreateFundRequestModel struct {
 	Remarks     string  `json:"remarks" validate:"required"`
 }
 
-/* ---------------------------------------------------
-   Reject Request (NEW & REQUIRED)
---------------------------------------------------- */
-
 type RejectFundRequestModel struct {
 	RejectRemarks string `json:"reject_remarks" validate:"required"`
 }
-
-/* ---------------------------------------------------
-   Filter Request
---------------------------------------------------- */
 
 type GetFundRequestFilterRequestModel struct {
 	StartDate *time.Time `json:"start_date,omitempty"`
@@ -53,10 +37,6 @@ type GetFundRequestFilterRequestModel struct {
 	Status    *string    `json:"status,omitempty"`
 	ID        string     `json:"id" validate:"required"`
 }
-
-/* ---------------------------------------------------
-   Response Model
---------------------------------------------------- */
 
 type GetFundRequestResponseModel struct {
 	FundRequestID int64     `json:"fund_request_id"`
