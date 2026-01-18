@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -20,6 +21,7 @@ type AdminInterface interface {
 	GetAdminsForDropdown(echo.Context) ([]models.DropdownModel, error)
 	LoginAdmin(echo.Context) (string, error)
 	AdminWalletTopup(echo.Context) (float64, error)
+	UpdateAdminBlockStatus(echo.Context) error
 }
 
 type adminRepository struct {
@@ -132,4 +134,19 @@ func (ar *adminRepository) AdminWalletTopup(c echo.Context) (float64, error) {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
 	return ar.db.AdminWalletTopupQuery(ctx, req)
+}
+
+func (ar *adminRepository) UpdateAdminBlockStatus(c echo.Context) error {
+	adminID := c.Param("admin_id")
+	statusStr := c.QueryParam("status")
+	if statusStr == "" {
+		return fmt.Errorf("status query param is required")
+	}
+	status, err := strconv.ParseBool(statusStr)
+	if err != nil {
+		return echo.NewHTTPError(400, "invalid status value, must be true or false")
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+	defer cancel()
+	return ar.db.UpdateAdminBlockStatusQuery(ctx, adminID, status)
 }

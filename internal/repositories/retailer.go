@@ -21,6 +21,9 @@ type RetailerInterface interface {
 	DeleteRetailer(echo.Context) error
 	GetRetailersByDistributorIDForDropdown(echo.Context) ([]models.DropdownModel, error)
 	LoginRetailer(echo.Context) (string, error)
+	UpdateBlockStatus(echo.Context) error
+	UpdateKYCStatus(echo.Context) error
+	UpdateMPIN(echo.Context) (int64, error)
 }
 
 type retailerRepository struct {
@@ -168,4 +171,91 @@ func (rr *retailerRepository) LoginRetailer(c echo.Context) (string, error) {
 		UserName: res.Name,
 		UserRole: "retailer",
 	})
+}
+
+func (rr *retailerRepository) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	retailerID := c.Param("retailer_id")
+	if retailerID == "" {
+		return fmt.Errorf("retailer_id is required")
+	}
+
+	var req struct {
+		IsBlocked bool `json:"is_blocked" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return rr.db.UpdateRetailerBlockStatusQuery(
+		ctx,
+		retailerID,
+		req.IsBlocked,
+	)
+}
+
+func (rr *retailerRepository) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	retailerID := c.Param("retailer_id")
+	if retailerID == "" {
+		return fmt.Errorf("retailer_id is required")
+	}
+
+	var req struct {
+		KYCStatus bool `json:"kyc_status" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return rr.db.UpdateRetailerKYCStatusQuery(
+		ctx,
+		retailerID,
+		req.KYCStatus,
+	)
+}
+
+func (rr *retailerRepository) UpdateMPIN(
+	c echo.Context,
+) (int64, error) {
+
+	retailerID := c.Param("retailer_id")
+	if retailerID == "" {
+		return 0, fmt.Errorf("retailer_id is required")
+	}
+
+	var req struct {
+		MPIN int64 `json:"mpin" validate:"required,min=1000,max=9999"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return 0, err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return rr.db.UpdateRetailerMPINQuery(
+		ctx,
+		retailerID,
+		req.MPIN,
+	)
 }

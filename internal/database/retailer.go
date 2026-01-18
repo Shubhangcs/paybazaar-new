@@ -667,3 +667,23 @@ func (db *Database) UpdateRetailerKYCStatusQuery(
 
 	return nil
 }
+
+func (db *Database) UpdateRetailerMPINQuery(
+	ctx context.Context,
+	rtID string,
+	mpin int64,
+) (int64, error) {
+	query := `
+		UPDATE retailers SET retailer_mpin=@mpin
+		WHERE retailer_id=@rt_id
+		RETURNING retailer_mpin;
+	`
+	var newMpin int64
+	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"mpin":  mpin,
+		"rt_id": rtID,
+	}).Scan(&newMpin); err != nil {
+		return 0, err
+	}
+	return newMpin, nil
+}

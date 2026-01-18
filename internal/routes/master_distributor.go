@@ -21,4 +21,7 @@ func (r *routes) MasterDistributorRoutes(db *database.Database, jwtUtils *pkg.Jw
 	mdrg.GET("/get/md/:master_distributor_id", mdHandler.GetMasterDistributorByIDRequest, middlewares.RequireRoles("master_distributor", "admin"))
 	mdrg.GET("/get/admin/:admin_id", mdHandler.ListMasterDistributorsByAdminIDRequest, middlewares.RequireRoles("admin"))
 	mdrg.GET("/get/dropdown/:admin_id", mdHandler.GetMasterDistributorsByAdminIDForDropdownRequest, middlewares.RequireRoles("admin"))
+	mdrg.PUT("/update/kyc/:master_distributor_id", mdHandler.UpdateKYCStatus, middlewares.RequireRoles("admin"))
+	mdrg.PUT("/update/block/:master_distributor_id", mdHandler.UpdateBlockStatus, middlewares.RequireRoles("admin"))
+	mdrg.PUT("/update/mpin/:master_distributor_id", mdHandler.UpdateMPIN, middlewares.RequireRoles("master_distributor"))
 }

@@ -150,3 +150,76 @@ func (dh *distributorHandler) LoginDistributorRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (dh *distributorHandler) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	if err := dh.distributorRepository.UpdateBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "distributor block status updated successfully",
+		},
+	)
+}
+
+func (dh *distributorHandler) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	if err := dh.distributorRepository.UpdateKYCStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "distributor KYC status updated successfully",
+		},
+	)
+}
+
+func (dh *distributorHandler) UpdateMPIN(
+	c echo.Context,
+) error {
+
+	mpin, err := dh.distributorRepository.UpdateMPIN(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "distributor MPIN updated successfully",
+			Data: map[string]int64{
+				"mpin": mpin,
+			},
+		},
+	)
+}

@@ -21,4 +21,5 @@ func (r *routes) AdminRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	arg.GET("/get/dropdown", adminHandler.GetAdminsForDropdownRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/:admin_id", adminHandler.GetAdminByIDRequest, middlewares.RequireRoles("admin"))
 	arg.POST("/wallet/topup", adminHandler.AdminWalletTopupRequest, middlewares.RequireRoles("admin"))
+	arg.POST("/block/admin/:admin_id", adminHandler.UpdateAdminBlockStatusRequest, middlewares.RequireRoles("admin"))
 }

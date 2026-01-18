@@ -20,6 +20,9 @@ type DistributorInterface interface {
 	DeleteDistributor(echo.Context) error
 	GetDistributorsByMasterDistributorIDForDropdown(echo.Context) ([]models.DropdownModel, error)
 	LoginDistributor(echo.Context) (string, error)
+	UpdateBlockStatus(echo.Context) error
+	UpdateKYCStatus(echo.Context) error
+	UpdateMPIN(echo.Context) (int64, error)
 }
 
 type distributorRepository struct {
@@ -149,4 +152,91 @@ func (dr *distributorRepository) LoginDistributor(c echo.Context) (string, error
 		UserName: res.Name,
 		UserRole: "distributor",
 	})
+}
+
+func (dr *distributorRepository) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	distributorID := c.Param("distributor_id")
+	if distributorID == "" {
+		return fmt.Errorf("distributor_id is required")
+	}
+
+	var req struct {
+		IsBlocked bool `json:"is_blocked" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return dr.db.UpdateDistributorBlockStatusQuery(
+		ctx,
+		distributorID,
+		req.IsBlocked,
+	)
+}
+
+func (dr *distributorRepository) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	distributorID := c.Param("distributor_id")
+	if distributorID == "" {
+		return fmt.Errorf("distributor_id is required")
+	}
+
+	var req struct {
+		KYCStatus bool `json:"kyc_status" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return dr.db.UpdateDistributorKYCStatusQuery(
+		ctx,
+		distributorID,
+		req.KYCStatus,
+	)
+}
+
+func (dr *distributorRepository) UpdateMPIN(
+	c echo.Context,
+) (int64, error) {
+
+	distributorID := c.Param("distributor_id")
+	if distributorID == "" {
+		return 0, fmt.Errorf("distributor_id is required")
+	}
+
+	var req struct {
+		MPIN int64 `json:"mpin" validate:"required,min=1000,max=9999"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return 0, err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return dr.db.UpdateDistributorMPINQuery(
+		ctx,
+		distributorID,
+		req.MPIN,
+	)
 }

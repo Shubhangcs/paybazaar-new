@@ -20,6 +20,9 @@ type MasterDistributorInterface interface {
 	DeleteMasterDistributor(echo.Context) error
 	GetMasterDistributorsByAdminIDForDropdown(echo.Context) ([]models.DropdownModel, error)
 	LoginMasterDistributor(echo.Context) (string, error)
+	UpdateBlockStatus(echo.Context) error
+	UpdateKYCStatus(echo.Context) error
+	UpdateMPIN(echo.Context) (int64, error)
 }
 
 type masterDistributorRepository struct {
@@ -142,4 +145,91 @@ func (mdr *masterDistributorRepository) LoginMasterDistributor(c echo.Context) (
 		UserName: res.Name,
 		UserRole: "master_distributor",
 	})
+}
+
+func (mr *masterDistributorRepository) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	mdID := c.Param("master_distributor_id")
+	if mdID == "" {
+		return fmt.Errorf("master_distributor_id is required")
+	}
+
+	var req struct {
+		IsBlocked bool `json:"is_blocked" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return mr.db.UpdateMasterDistributorBlockStatusQuery(
+		ctx,
+		mdID,
+		req.IsBlocked,
+	)
+}
+
+func (mr *masterDistributorRepository) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	mdID := c.Param("master_distributor_id")
+	if mdID == "" {
+		return fmt.Errorf("master_distributor_id is required")
+	}
+
+	var req struct {
+		KYCStatus bool `json:"kyc_status" validate:"required"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return mr.db.UpdateMasterDistributorKYCStatusQuery(
+		ctx,
+		mdID,
+		req.KYCStatus,
+	)
+}
+
+func (mr *masterDistributorRepository) UpdateMPIN(
+	c echo.Context,
+) (int64, error) {
+
+	mdID := c.Param("master_distributor_id")
+	if mdID == "" {
+		return 0, fmt.Errorf("master_distributor_id is required")
+	}
+
+	var req struct {
+		MPIN int64 `json:"mpin" validate:"required,min=1000,max=9999"`
+	}
+	if err := bindAndValidate(c, &req); err != nil {
+		return 0, err
+	}
+
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+
+	return mr.db.UpdateMasterDistributorMPINQuery(
+		ctx,
+		mdID,
+		req.MPIN,
+	)
 }

@@ -150,3 +150,76 @@ func (mdh *masterDistributorHandler) LoginMasterDistributorRequest(c echo.Contex
 		},
 	)
 }
+
+func (mh *masterDistributorHandler) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	if err := mh.masterDistributorRepository.UpdateBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "block status updated successfully",
+		},
+	)
+}
+
+func (mh *masterDistributorHandler) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	if err := mh.masterDistributorRepository.UpdateKYCStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "KYC status updated successfully",
+		},
+	)
+}
+
+func (mh *masterDistributorHandler) UpdateMPIN(
+	c echo.Context,
+) error {
+
+	mpin, err := mh.masterDistributorRepository.UpdateMPIN(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "MPIN updated successfully",
+			Data: map[string]int64{
+				"mpin": mpin,
+			},
+		},
+	)
+}

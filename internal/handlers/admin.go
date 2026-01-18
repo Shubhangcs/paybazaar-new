@@ -154,3 +154,17 @@ func (ah *adminHandler) AdminWalletTopupRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (ah *adminHandler) UpdateAdminBlockStatusRequest(c echo.Context) error {
+	if err := ah.adminRepository.UpdateAdminBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "admin block status updated successfully"},
+	)
+}

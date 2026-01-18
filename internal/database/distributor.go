@@ -536,3 +536,23 @@ func (db *Database) UpdateDistributorKYCStatusQuery(
 
 	return nil
 }
+
+func (db *Database) UpdateDistributorMPINQuery(
+	ctx context.Context,
+	disID string,
+	mpin int64,
+) (int64, error) {
+	query := `
+		UPDATE distributors SET distributor_mpin=@mpin
+		WHERE distributor_id=@dis_id
+		RETURNING distributor_mpin;
+	`
+	var newMpin int64
+	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"mpin":   mpin,
+		"dis_id": disID,
+	}).Scan(&newMpin); err != nil {
+		return 0, err
+	}
+	return newMpin, nil
+}

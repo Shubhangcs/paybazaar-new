@@ -168,3 +168,76 @@ func (rh *retailerHandler) LoginRetailerRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (rh *retailerHandler) UpdateBlockStatus(
+	c echo.Context,
+) error {
+
+	if err := rh.retailerRepository.UpdateBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "retailer block status updated successfully",
+		},
+	)
+}
+
+func (rh *retailerHandler) UpdateKYCStatus(
+	c echo.Context,
+) error {
+
+	if err := rh.retailerRepository.UpdateKYCStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "retailer KYC status updated successfully",
+		},
+	)
+}
+
+func (rh *retailerHandler) UpdateMPIN(
+	c echo.Context,
+) error {
+
+	mpin, err := rh.retailerRepository.UpdateMPIN(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "retailer MPIN updated successfully",
+			Data: map[string]int64{
+				"mpin": mpin,
+			},
+		},
+	)
+}
