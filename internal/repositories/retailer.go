@@ -159,11 +159,11 @@ func (rr *retailerRepository) LoginRetailer(c echo.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if res.Password != req.RetailerPassword {
-		return "", fmt.Errorf("incorrect password")
+	if res.Password != req.RetailerPassword || res.IsBlocked {
+		return "", fmt.Errorf("incorrect password or retailer is blocked")
 	}
 	return rr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
-		AdminID: res.AdminID,
+		AdminID:  res.AdminID,
 		UserID:   res.RetailerID,
 		UserName: res.Name,
 		UserRole: "retailer",

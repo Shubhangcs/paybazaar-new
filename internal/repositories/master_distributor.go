@@ -133,8 +133,8 @@ func (mdr *masterDistributorRepository) LoginMasterDistributor(c echo.Context) (
 	if err != nil {
 		return "", err
 	}
-	if res.Password != req.MasterDistributorPassword {
-		return "", fmt.Errorf("incorrect password")
+	if res.Password != req.MasterDistributorPassword || res.IsBlocked {
+		return "", fmt.Errorf("incorrect password or md is blocked")
 	}
 	return mdr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
 		AdminID:  res.AdminID,

@@ -34,6 +34,7 @@ func (db *Database) CreateCommisionQuery(
 	query := `
 		INSERT INTO commisions (
 			user_id,
+			service,
 			total_commision,
 			admin_commision,
 			master_distributor_commision,
@@ -41,6 +42,7 @@ func (db *Database) CreateCommisionQuery(
 			retailer_commision
 		) VALUES (
 			@user_id,
+			@service,
 			@total,
 			@admin,
 			@md,
@@ -53,6 +55,7 @@ func (db *Database) CreateCommisionQuery(
 	var id int64
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"user_id": req.UserID,
+		"service": req.Service,
 		"total":   req.TotalCommision,
 		"admin":   adminCommision,
 		"md":      req.MasterDistributorCommision,
@@ -72,6 +75,7 @@ func (db *Database) GetCommisionByIDQuery(
 		SELECT
 			commision_id,
 			user_id,
+			service,
 			total_commision,
 			admin_commision,
 			master_distributor_commision,
@@ -89,6 +93,7 @@ func (db *Database) GetCommisionByIDQuery(
 	}).Scan(
 		&c.CommisionID,
 		&c.UserID,
+		&c.Service,
 		&c.TotalCommision,
 		&c.AdminCommision,
 		&c.MasterDistributorCommision,
@@ -114,6 +119,7 @@ func (db *Database) GetCommisionByUserIDQuery(
 		SELECT
 			commision_id,
 			user_id,
+			service,
 			total_commision,
 			admin_commision,
 			master_distributor_commision,
@@ -131,6 +137,7 @@ func (db *Database) GetCommisionByUserIDQuery(
 	}).Scan(
 		&c.CommisionID,
 		&c.UserID,
+		&c.Service,
 		&c.TotalCommision,
 		&c.AdminCommision,
 		&c.MasterDistributorCommision,
@@ -156,6 +163,7 @@ func (db *Database) GetAllCommisionsQuery(
 		SELECT
 			commision_id,
 			user_id,
+			service,
 			total_commision,
 			admin_commision,
 			master_distributor_commision,
@@ -184,6 +192,7 @@ func (db *Database) GetAllCommisionsQuery(
 		if err := rows.Scan(
 			&c.CommisionID,
 			&c.UserID,
+			&c.Service,
 			&c.TotalCommision,
 			&c.AdminCommision,
 			&c.MasterDistributorCommision,
@@ -303,7 +312,6 @@ func (db *Database) UpdateCommisionQuery(
 
 	return nil
 }
-
 
 func (db *Database) DeleteCommisionQuery(
 	ctx context.Context,

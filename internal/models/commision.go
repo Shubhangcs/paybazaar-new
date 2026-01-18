@@ -4,6 +4,7 @@ import "time"
 
 type CreateCommisionModel struct {
 	UserID                     string  `json:"user_id" validate:"required"`
+	Service                    string  `json:"service" validate:"required"`
 	TotalCommision             float64 `json:"total_commision" validate:"required,gt=0"`
 	MasterDistributorCommision float64 `json:"master_distributor_commision" validate:"gte=0"`
 	DistributorCommision       float64 `json:"distributor_commision" validate:"gte=0"`
@@ -20,6 +21,7 @@ type UpdateCommisionModel struct {
 type GetCommisionModel struct {
 	CommisionID                int64     `json:"commision_id"`
 	UserID                     string    `json:"user_id"`
+	Service                    string    `json:"service"`
 	TotalCommision             float64   `json:"total_commision"`
 	AdminCommision             float64   `json:"admin_commision"`
 	MasterDistributorCommision float64   `json:"master_distributor_commision"`

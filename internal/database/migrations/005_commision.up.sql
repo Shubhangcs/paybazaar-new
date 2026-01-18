@@ -2,6 +2,7 @@ CREATE TABLE
     IF NOT EXISTS commisions (
         commision_id BIGSERIAL PRIMARY KEY,
         user_id TEXT NOT NULL,
+        service TEXT NOT NULL CHECK (service in ('PAYOUT', 'DMT', 'AEPS', 'BBPS')),
         total_commision NUMERIC(20, 2) NOT NULL CHECK (total_commision >= 0),
         admin_commision NUMERIC(20, 2) NOT NULL CHECK (admin_commision >= 0),
         master_distributor_commision NUMERIC(20, 2) NOT NULL CHECK (master_distributor_commision >= 0),
@@ -9,7 +10,6 @@ CREATE TABLE
         retailer_commision NUMERIC(20, 2) NOT NULL CHECK (retailer_commision >= 0),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
-        -- 🔐 Core business rule protection
         CONSTRAINT commision_split_valid CHECK (
             master_distributor_commision + distributor_commision + retailer_commision <= total_commision
         ),
