@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"github.com/jackc/pgx/v5"
@@ -33,6 +34,7 @@ func (db *Database) VerifyMPINAndKycQuery(
 	}).Scan(&isValid); err != nil {
 		return false, err
 	}
+	fmt.Println(isValid)
 
 	return isValid, nil
 }
