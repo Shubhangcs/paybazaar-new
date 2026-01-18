@@ -43,6 +43,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.CommisionRoutes(cfg.Database, cfg.JWTUtils)
 	routes.TicketRoutes(cfg.Database, cfg.JWTUtils)
 	routes.FundTransferRoutes(cfg.Database, cfg.JWTUtils)
+	routes.PayoutRoutes(cfg.Database, cfg.JWTUtils)
 
 	return routes
 }

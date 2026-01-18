@@ -68,6 +68,7 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return err
 	}
 
+	fmt.Println(isValid)
 	if !isValid {
 		return fmt.Errorf("invalid mpin or incomplete kyc")
 	}

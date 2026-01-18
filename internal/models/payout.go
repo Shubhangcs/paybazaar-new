@@ -9,7 +9,7 @@ type CreatePayoutRequestModel struct {
 	BeneficiaryIFSCCode      string  `json:"beneficiary_ifsc_code" validate:"required"`
 	Amount                   float64 `json:"amount" validate:"required"`
 	TransferType             string  `json:"transfer_type" validate:"required"`
-	MPIN                     int64   `json:"mpin" validate:"required"`
+	MPIN                     int64   `json:"mpin"`
 	PartnerRequestID         string  `json:"partnerreqid,omitempty"`
 }
 
