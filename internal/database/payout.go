@@ -23,7 +23,7 @@ func (db *Database) VerifyMPINAndKycQuery(
 			FROM retailers
 			WHERE
 				retailer_id = @retailer_id
-				AND retailer_mpin = @mpin
+				AND retailer_mpin = @mpin::INTEGER
 				AND retailer_kyc_status = TRUE
 		);
 	`
