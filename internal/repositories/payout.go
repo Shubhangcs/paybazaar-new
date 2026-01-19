@@ -151,6 +151,7 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 
 	// Basic response sanity check
 	if res.Status == 0 {
+		fmt.Println(res)
 		return fmt.Errorf("invalid payout gateway response")
 	}
 

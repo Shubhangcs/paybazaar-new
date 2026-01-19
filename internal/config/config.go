@@ -28,6 +28,10 @@ type JwtConfig struct {
 	Expiry    time.Duration
 }
 
+type ExternalAPIConfig struct {
+	
+}
+
 func Load() *Config {
 	if godotenv.Load() != nil {
 		log.Println("no .env to load")

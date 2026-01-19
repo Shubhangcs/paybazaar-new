@@ -18,7 +18,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS retailer_beneficiaries (
+    IF NOT EXISTS payout_beneficiaries (
         retailer_id TEXT NOT NULL,
         mobile_number TEXT NOT NULL,
         beneficiary_id BIGSERIAL PRIMARY KEY,

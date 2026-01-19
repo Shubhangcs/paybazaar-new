@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-// ADMIN MODELS
-
 type CreateAdminRequestModel struct {
 	AdminName     string `json:"admin_name" validate:"required,min=3,max=100"`
 	AdminEmail    string `json:"admin_email" validate:"required,email"`

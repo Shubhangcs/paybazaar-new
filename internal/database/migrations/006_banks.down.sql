@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS banks;
+
+DROP TABLE IF EXISTS admin_banks;
