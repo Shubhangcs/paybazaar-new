@@ -2,23 +2,26 @@ package models
 
 import "time"
 
-type CreateCommisionModel struct {
+type CreateCommisionRequestModel struct {
 	UserID                     string  `json:"user_id" validate:"required"`
 	Service                    string  `json:"service" validate:"required"`
-	TotalCommision             float64 `json:"total_commision" validate:"required,gt=0"`
-	MasterDistributorCommision float64 `json:"master_distributor_commision" validate:"gte=0"`
-	DistributorCommision       float64 `json:"distributor_commision" validate:"gte=0"`
-	RetailerCommision          float64 `json:"retailer_commision" validate:"gte=0"`
+	TotalCommision             float64 `json:"total_commision" validate:"required"`
+	AdminCommision             float64 `json:"admin_commision" validate:"required"`
+	MasterDistributorCommision float64 `json:"master_distributor_commision" validate:"required"`
+	DistributorCommision       float64 `json:"distributor_commision" validate:"required"`
+	RetailerCommision          float64 `json:"retailer_commision" validate:"required"`
 }
 
-type UpdateCommisionModel struct {
-	TotalCommision             *float64 `json:"total_commision,omitempty"`
-	MasterDistributorCommision *float64 `json:"master_distributor_commision,omitempty"`
-	DistributorCommision       *float64 `json:"distributor_commision,omitempty"`
-	RetailerCommision          *float64 `json:"retailer_commision,omitempty"`
+type UpdateCommisionRequestModel struct {
+	CommisionID                int64    `json:"commision_id" validate:"required"`
+	TotalCommision             *float64 `json:"total_commision" validate:"omitempty"`
+	AdminCommision             *float64 `json:"admin_commision" validate:"omitempty"`
+	MasterDistributorCommision *float64 `json:"master_distributor_commision" validate:"omitempty"`
+	DistributorCommision       *float64 `json:"distributor_commision" validate:"omitempty"`
+	RetailerCommision          *float64 `json:"retailer_commision" validate:"omitempty"`
 }
 
-type GetCommisionModel struct {
+type GetCommisionResponseModel struct {
 	CommisionID                int64     `json:"commision_id"`
 	UserID                     string    `json:"user_id"`
 	Service                    string    `json:"service"`

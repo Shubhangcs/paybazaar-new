@@ -69,8 +69,8 @@ func (db *Database) CheckRetailerWalletBalance(
 	return false, nil
 }
 
-func defaultPayoutCommision() *models.GetCommisionModel {
-	return &models.GetCommisionModel{
+func defaultPayoutCommision() *models.GetCommisionResponseModel {
+	return &models.GetCommisionResponseModel{
 		TotalCommision:             1.20,
 		AdminCommision:             0.35,
 		MasterDistributorCommision: 0.05,
@@ -82,9 +82,9 @@ func defaultPayoutCommision() *models.GetCommisionModel {
 func (db *Database) getCommisionQuery(
 	ctx context.Context,
 	retailerID string,
-) (*models.GetCommisionModel, error) {
+) (*models.GetCommisionResponseModel, error) {
 
-	var c models.GetCommisionModel
+	var c models.GetCommisionResponseModel
 	const service = "PAYOUT"
 
 	query := `
@@ -185,7 +185,7 @@ func (db *Database) GetPayoutCommisionSplit(
 	ctx context.Context,
 	retailerID string,
 	amount float64,
-) (*models.GetCommisionModel, error) {
+) (*models.GetCommisionResponseModel, error) {
 
 	// 1. Get commission percentages (your existing logic)
 	c, err := db.getCommisionQuery(ctx, retailerID)
@@ -216,7 +216,7 @@ func (db *Database) CreatePayoutQuery(
 	ctx context.Context,
 	req models.CreatePayoutRequestModel,
 	res models.PayoutAPIResponseModel,
-	commision models.GetCommisionModel,
+	commision models.GetCommisionResponseModel,
 ) error {
 
 	tx, err := db.pool.Begin(ctx)

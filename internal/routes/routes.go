@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/levion-studio/paybazaar/internal/config"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/pkg"
 )
@@ -14,9 +15,10 @@ type routes struct {
 }
 
 type Config struct {
-	ServerENV string
-	JWTUtils  *pkg.JwtUtils
-	Database  *database.Database
+	ServerENV   string
+	JWTUtils    *pkg.JwtUtils
+	Database    *database.Database
+	RechargeKit *config.RechargeKitConfig
 }
 
 func NewRoutes(cfg Config) *routes {

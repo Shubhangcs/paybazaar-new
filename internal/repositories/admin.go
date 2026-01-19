@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -14,14 +13,15 @@ import (
 
 type AdminInterface interface {
 	CreateAdmin(echo.Context) error
-	GetAdminByID(echo.Context) (*models.AdminModel, error)
-	ListAdmins(echo.Context) ([]models.GetAdminResponseModel, error)
-	UpdateAdmin(echo.Context) error
-	DeleteAdmin(echo.Context) error
-	GetAdminsForDropdown(echo.Context) ([]models.DropdownModel, error)
-	LoginAdmin(echo.Context) (string, error)
-	AdminWalletTopup(echo.Context) (float64, error)
+	GetAdminDetailsByAdminID(echo.Context) (*models.GetCompleteAdminDetailsResponseModel, error)
+	GetAllAdmins(echo.Context) ([]models.GetCompleteAdminDetailsResponseModel, error)
+	GetAdminsForDropdown(echo.Context) ([]models.GetAdminDetailsForDropdownModel, error)
+	UpdateAdminDetails(echo.Context) error
+	UpdateAdminPassword(echo.Context) error
+	UpdateAdminWallet(echo.Context) error
 	UpdateAdminBlockStatus(echo.Context) error
+	DeleteAdmin(echo.Context) error
+	AdminLogin(echo.Context) (string, error)
 }
 
 type adminRepository struct {
@@ -48,105 +48,101 @@ func (ar *adminRepository) CreateAdmin(c echo.Context) error {
 	return ar.db.CreateAdminQuery(ctx, req)
 }
 
-func (ar *adminRepository) UpdateAdmin(c echo.Context) error {
-	adminID := c.Param("admin_id")
-
-	var req models.UpdateAdminRequestModel
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
+func (ar *adminRepository) GetAdminDetailsByAdminID(c echo.Context) (*models.GetCompleteAdminDetailsResponseModel, error) {
+	var adminID = c.Param("admin_id")
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-
-	return ar.db.UpdateAdminQuery(ctx, adminID, req)
+	return ar.db.GetAdminDetailsByAdminID(ctx, adminID)
 }
 
-func (ar *adminRepository) GetAdminByID(
-	c echo.Context,
-) (*models.AdminModel, error) {
-
-	adminID := c.Param("admin_id")
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
-	defer cancel()
-
-	return ar.db.GetAdminByIDQuery(ctx, adminID)
-}
-
-func (ar *adminRepository) ListAdmins(
-	c echo.Context,
-) ([]models.GetAdminResponseModel, error) {
-
+func (ar *adminRepository) GetAllAdmins(c echo.Context) ([]models.GetCompleteAdminDetailsResponseModel, error) {
 	limit, offset := parsePagination(c)
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
-
-	return ar.db.ListAdminsQuery(ctx, limit, offset)
-}
-
-func (ar *adminRepository) DeleteAdmin(c echo.Context) error {
-	adminID := c.Param("admin_id")
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-
-	return ar.db.DeleteAdminQuery(ctx, adminID)
+	return ar.db.GetAllAdminsQuery(ctx, offset, limit)
 }
 
-func (ar *adminRepository) GetAdminsForDropdown(
-	c echo.Context,
-) ([]models.DropdownModel, error) {
-
+func (ar *adminRepository) GetAdminsForDropdown(c echo.Context) ([]models.GetAdminDetailsForDropdownModel, error) {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-
 	return ar.db.GetAllAdminsForDropdownQuery(ctx)
 }
 
-func (ar *adminRepository) LoginAdmin(c echo.Context) (string, error) {
-	var req models.LoginAdminModel
+func (ar *adminRepository) UpdateAdminDetails(c echo.Context) error {
+	var req models.UpdateAdminDetailsRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return "", err
+		return err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	res, err := ar.db.GetAdminByIDQuery(ctx, req.AdminID)
-	if err != nil {
-		return "", err
-	}
-	if res.AdminPassword != req.AdminPassword {
-		return "", fmt.Errorf("incorrect password")
-	}
-	return ar.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
-		UserID:   res.AdminID,
-		UserName: res.AdminName,
-		UserRole: "admin",
-	})
+	return ar.db.UpdateAdminDetailsQuery(ctx, req)
 }
 
-func (ar *adminRepository) AdminWalletTopup(c echo.Context) (float64, error) {
-	var req models.AdminWalletTopupModel
+func (ar *adminRepository) UpdateAdminPassword(c echo.Context) error {
+	var req models.UpdateAdminPasswordRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return 0, err
+		return err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	return ar.db.AdminWalletTopupQuery(ctx, req)
+	return ar.db.UpdateAdminPasswordQuery(ctx, req)
+}
+
+func (ar *adminRepository) UpdateAdminWallet(c echo.Context) error {
+	var req models.UpdateAdminWalletRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+	defer cancel()
+	return ar.db.UpdateAdminWalletQuery(ctx, req)
 }
 
 func (ar *adminRepository) UpdateAdminBlockStatus(c echo.Context) error {
-	adminID := c.Param("admin_id")
-	statusStr := c.QueryParam("status")
-	if statusStr == "" {
-		return fmt.Errorf("status query param is required")
-	}
-	status, err := strconv.ParseBool(statusStr)
-	if err != nil {
-		return echo.NewHTTPError(400, "invalid status value, must be true or false")
+	var req models.UpdateAdminBlockStatusRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	return ar.db.UpdateAdminBlockStatusQuery(ctx, adminID, status)
+	return ar.db.UpdateAdminBlockStatusQuery(ctx, req)
+}
+
+func (ar *adminRepository) DeleteAdmin(c echo.Context) error {
+	var adminID = c.Param("admin_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+	defer cancel()
+	return ar.db.DeleteAdminQuery(ctx, adminID)
+}
+
+func (ar *adminRepository) AdminLogin(c echo.Context) (string, error) {
+	var req models.AdminLoginRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+	defer cancel()
+
+	details, err := ar.db.GetAdminDetailsForLogin(ctx, req.AdminID)
+	if err != nil {
+		return "", err
+	}
+
+	if details.AdminPassword != req.AdminPassword {
+		return "", fmt.Errorf("incorrect password")
+	}
+
+	if details.IsAdminBlocked {
+		return "", fmt.Errorf("admin is blocked")
+	}
+
+	token, err := ar.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
+		AdminID:  details.AdminID,
+		UserName: details.AdminName,
+		UserRole: "admin",
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

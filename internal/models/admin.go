@@ -11,15 +11,30 @@ type CreateAdminRequestModel struct {
 	AdminPassword string `json:"admin_password" validate:"required,strpwd"`
 }
 
-type UpdateAdminRequestModel struct {
-	AdminName      *string  `json:"admin_name" validate:"omitempty,min=3,max=100"`
-	AdminPhone     *string  `json:"admin_phone" validate:"omitempty,phone"`
-	AdminPassword  *string  `json:"admin_password" validate:"omitempty,strpwd"`
-	IsAdminBlocked *bool    `json:"is_admin_blocked"`
-	WalletBalance  *float64 `json:"admin_wallet_balance" validate:"omitempty,gte=0"`
+type UpdateAdminDetailsRequestModel struct {
+	AdminID    string  `json:"admin_id" validate:"required"`
+	AdminName  *string `json:"admin_name" validate:"omitempty,min=3,max=100"`
+	AdminPhone *string `json:"admin_phone" validate:"omitempty,phone"`
+	AdminEmail *string `json:"admin_email" validate:"omitempty,email"`
 }
 
-type GetAdminResponseModel struct {
+type UpdateAdminPasswordRequestModel struct {
+	AdminID     string `json:"admin_id" validate:"required"`
+	OldPassword string `json:"old_password" validate:"required,strpwd"`
+	NewPassword string `json:"new_password" validate:"required,strpwd"`
+}
+
+type UpdateAdminWalletRequestModel struct {
+	AdminID string  `json:"admin_id" validate:"required"`
+	Amount  float64 `json:"amount" validate:"required,min=1"`
+}
+
+type UpdateAdminBlockStatusRequestModel struct {
+	AdminID     string `json:"admin_id" validate:"required"`
+	BlockStatus bool   `json:"block_status"`
+}
+
+type GetCompleteAdminDetailsResponseModel struct {
 	AdminID            string    `json:"admin_id"`
 	AdminName          string    `json:"admin_name"`
 	AdminEmail         string    `json:"admin_email"`
@@ -30,24 +45,19 @@ type GetAdminResponseModel struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
-type AdminModel struct {
-	AdminID            string
-	AdminName          string
-	AdminEmail         string
-	AdminPhone         string
-	AdminPassword      string
-	AdminWalletBalance float64
-	IsAdminBlocked     bool
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+type GetAdminDetailsForLoginModel struct {
+	AdminID        string `json:"admin_id"`
+	AdminName      string `json:"admin_name"`
+	AdminPassword  string `json:"admin_password"`
+	IsAdminBlocked bool   `json:"is_admin_blocked"`
 }
 
-type LoginAdminModel struct {
+type GetAdminDetailsForDropdownModel struct {
+	AdminName string `json:"admin_name"`
+	AdminID   string `json:"admin_id"`
+}
+
+type AdminLoginRequestModel struct {
 	AdminID       string `json:"admin_id" validate:"required"`
-	AdminPassword string `json:"admin_password" validate:"required"`
-}
-
-type AdminWalletTopupModel struct {
-	AdminID string  `json:"admin_id" validate:"required"`
-	Amount  float64 `json:"amount" validate:"required"`
+	AdminPassword string `json:"admin_password" validate:"required,strpwd"`
 }

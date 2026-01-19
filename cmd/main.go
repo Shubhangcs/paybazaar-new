@@ -32,9 +32,10 @@ func run() error {
 	})
 
 	router := routes.NewRoutes(routes.Config{
-		ServerENV: cfg.ServerEnv,
-		JWTUtils:  jwtUtils,
-		Database:  db,
+		ServerENV:   cfg.ServerEnv,
+		JWTUtils:    jwtUtils,
+		Database:    db,
+		RechargeKit: &cfg.RechargeKitConfig,
 	})
 
 	return router.Router.Start(cfg.ServerPort)

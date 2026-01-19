@@ -10,26 +10,8 @@ import (
 
 func (db *Database) CreateCommisionQuery(
 	ctx context.Context,
-	req models.CreateCommisionModel,
-) (int64, error) {
-
-	// 1️⃣ Calculate split sum
-	splitTotal :=
-		req.MasterDistributorCommision +
-			req.DistributorCommision +
-			req.RetailerCommision
-
-	// 2️⃣ Validate split does not exceed total
-	if splitTotal > req.TotalCommision {
-		return 0, fmt.Errorf(
-			"invalid commission split: split total (%.2f) exceeds total commission (%.2f)",
-			splitTotal,
-			req.TotalCommision,
-		)
-	}
-
-	// 3️⃣ Calculate admin commission (remaining)
-	adminCommision := req.TotalCommision - splitTotal
+	req models.CreateCommisionRequestModel,
+) error {
 
 	query := `
 		INSERT INTO commisions (
@@ -43,33 +25,33 @@ func (db *Database) CreateCommisionQuery(
 		) VALUES (
 			@user_id,
 			@service,
-			@total,
-			@admin,
-			@md,
-			@dist,
-			@ret
-		)
-		RETURNING commision_id;
+			@total_commision,
+			@admin_commision,
+			@md_commision,
+			@distributor_commision,
+			@retailer_commision
+		);
 	`
 
-	var id int64
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"user_id": req.UserID,
-		"service": req.Service,
-		"total":   req.TotalCommision,
-		"admin":   adminCommision,
-		"md":      req.MasterDistributorCommision,
-		"dist":    req.DistributorCommision,
-		"ret":     req.RetailerCommision,
-	}).Scan(&id)
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"user_id":               req.UserID,
+		"service":               req.Service,
+		"total_commision":       req.TotalCommision,
+		"admin_commision":       req.AdminCommision,
+		"md_commision":          req.MasterDistributorCommision,
+		"distributor_commision": req.DistributorCommision,
+		"retailer_commision":    req.RetailerCommision,
+	}); err != nil {
+		return fmt.Errorf("failed to create commision")
+	}
 
-	return id, err
+	return nil
 }
 
-func (db *Database) GetCommisionByIDQuery(
+func (db *Database) GetCommisionDetailsByCommisionIDQuery(
 	ctx context.Context,
 	commisionID int64,
-) (*models.GetCommisionModel, error) {
+) (*models.GetCommisionResponseModel, error) {
 
 	query := `
 		SELECT
@@ -84,12 +66,12 @@ func (db *Database) GetCommisionByIDQuery(
 			created_at,
 			updated_at
 		FROM commisions
-		WHERE commision_id = @id;
+		WHERE commision_id = @commision_id;
 	`
 
-	var c models.GetCommisionModel
+	var c models.GetCommisionResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"id": commisionID,
+		"commision_id": commisionID,
 	}).Scan(
 		&c.CommisionID,
 		&c.UserID,
@@ -104,16 +86,16 @@ func (db *Database) GetCommisionByIDQuery(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch commision details")
 	}
 
 	return &c, nil
 }
 
-func (db *Database) GetCommisionByUserIDQuery(
+func (db *Database) GetCommisionsByUserIDQuery(
 	ctx context.Context,
 	userID string,
-) (*models.GetCommisionModel, error) {
+) ([]models.GetCommisionResponseModel, error) {
 
 	query := `
 		SELECT
@@ -131,33 +113,43 @@ func (db *Database) GetCommisionByUserIDQuery(
 		WHERE user_id = @user_id;
 	`
 
-	var c models.GetCommisionModel
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
 		"user_id": userID,
-	}).Scan(
-		&c.CommisionID,
-		&c.UserID,
-		&c.Service,
-		&c.TotalCommision,
-		&c.AdminCommision,
-		&c.MasterDistributorCommision,
-		&c.DistributorCommision,
-		&c.RetailerCommision,
-		&c.CreatedAt,
-		&c.UpdatedAt,
-	)
-
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch commisions")
+	}
+	defer res.Close()
+
+	var list []models.GetCommisionResponseModel
+
+	for res.Next() {
+		var commision models.GetCommisionResponseModel
+		if err := res.Scan(
+			&commision.CommisionID,
+			&commision.UserID,
+			&commision.Service,
+			&commision.TotalCommision,
+			&commision.AdminCommision,
+			&commision.MasterDistributorCommision,
+			&commision.DistributorCommision,
+			&commision.RetailerCommision,
+			&commision.CreatedAt,
+			&commision.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to fetch commisions")
+		}
+		list = append(list, commision)
 	}
 
-	return &c, nil
+	return list, res.Err()
 }
 
-func (db *Database) GetAllCommisionsQuery(
+func (db *Database) GetCommisionByUserIDAndServiceQuery(
 	ctx context.Context,
-	limit, offset int,
-) ([]models.GetCommisionModel, error) {
+	userID string,
+	service string,
+) (*models.GetCommisionResponseModel, error) {
 
 	query := `
 		SELECT
@@ -172,142 +164,66 @@ func (db *Database) GetAllCommisionsQuery(
 			created_at,
 			updated_at
 		FROM commisions
-		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset;
+		WHERE user_id = @user_id
+		AND service = @service;
 	`
 
-	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
-		"limit":  limit,
-		"offset": offset,
+	res := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"user_id": userID,
+		"service": service,
 	})
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 
-	var list []models.GetCommisionModel
+	var commision models.GetCommisionResponseModel
 
-	for rows.Next() {
-		var c models.GetCommisionModel
-		if err := rows.Scan(
-			&c.CommisionID,
-			&c.UserID,
-			&c.Service,
-			&c.TotalCommision,
-			&c.AdminCommision,
-			&c.MasterDistributorCommision,
-			&c.DistributorCommision,
-			&c.RetailerCommision,
-			&c.CreatedAt,
-			&c.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		list = append(list, c)
+	if err := res.Scan(
+		&commision.CommisionID,
+		&commision.UserID,
+		&commision.Service,
+		&commision.TotalCommision,
+		&commision.AdminCommision,
+		&commision.MasterDistributorCommision,
+		&commision.DistributorCommision,
+		&commision.RetailerCommision,
+		&commision.CreatedAt,
+		&commision.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch commision")
 	}
 
-	return list, rows.Err()
+	return &commision, nil
 }
 
 func (db *Database) UpdateCommisionQuery(
 	ctx context.Context,
-	commisionID int64,
-	req models.UpdateCommisionModel,
+	req models.UpdateCommisionRequestModel,
 ) error {
-
-	// 1️⃣ Fetch existing values
-	var existing struct {
-		Total float64
-		MD    float64
-		Dist  float64
-		Ret   float64
-	}
-
-	getQuery := `
-		SELECT
-			total_commision,
-			master_distributor_commision,
-			distributor_commision,
-			retailer_commision
-		FROM commisions
-		WHERE commision_id = @id;
+	query := `
+		UPDATE commisions
+		SET admin_commision = @admin_commision,
+		master_distributor_commision = @md_commision,
+		distributor_commision = @distributor_commision,
+		retailer_commision = @retailer_commision,
+		updated_at = NOW()
+		WHERE commision_id = @commision_id;
 	`
-
-	err := db.pool.QueryRow(ctx, getQuery, pgx.NamedArgs{
-		"id": commisionID,
-	}).Scan(
-		&existing.Total,
-		&existing.MD,
-		&existing.Dist,
-		&existing.Ret,
+	res, err := db.pool.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"admin_commision":              req.AdminCommision,
+			"master_distributor_commision": req.MasterDistributorCommision,
+			"distributor_commision":        req.DistributorCommision,
+			"retailer_commision":           req.RetailerCommision,
+			"commision_id":                 req.CommisionID,
+		},
 	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update commision")
 	}
 
-	// 2️⃣ Apply updates (COALESCE logic in Go)
-	total := existing.Total
-	if req.TotalCommision != nil {
-		total = *req.TotalCommision
-	}
-
-	md := existing.MD
-	if req.MasterDistributorCommision != nil {
-		md = *req.MasterDistributorCommision
-	}
-
-	dist := existing.Dist
-	if req.DistributorCommision != nil {
-		dist = *req.DistributorCommision
-	}
-
-	ret := existing.Ret
-	if req.RetailerCommision != nil {
-		ret = *req.RetailerCommision
-	}
-
-	// 3️⃣ Validate split
-	splitTotal := md + dist + ret
-	if splitTotal > total {
-		return fmt.Errorf(
-			"invalid commission split: split total (%.2f) exceeds total commission (%.2f)",
-			splitTotal,
-			total,
-		)
-	}
-
-	// 4️⃣ Calculate admin commission
-	admin := total - splitTotal
-
-	// 5️⃣ Update record
-	updateQuery := `
-		UPDATE commisions
-		SET
-			total_commision = @total,
-			admin_commision = @admin,
-			master_distributor_commision = @md,
-			distributor_commision = @dist,
-			retailer_commision = @ret,
-			updated_at = NOW()
-		WHERE commision_id = @id;
-	`
-
-	tag, err := db.pool.Exec(ctx, updateQuery, pgx.NamedArgs{
-		"id":    commisionID,
-		"total": total,
-		"admin": admin,
-		"md":    md,
-		"dist":  dist,
-		"ret":   ret,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("invalid commision id or commision is not found")
 	}
 
 	return nil
@@ -324,11 +240,11 @@ func (db *Database) DeleteCommisionQuery(
 	`, pgx.NamedArgs{"id": commisionID})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete commision")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid commision or commision not found")
 	}
 
 	return nil

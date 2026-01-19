@@ -20,8 +20,8 @@ func NewCommisionHandler(
 	}
 }
 
-func (ch *commisionHandler) CreateCommision(c echo.Context) error {
-	id, err := ch.commisionRepo.CreateCommision(c)
+func (ch *commisionHandler) CreateCommisionRequest(c echo.Context) error {
+	err := ch.commisionRepo.CreateCommision(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
@@ -32,48 +32,31 @@ func (ch *commisionHandler) CreateCommision(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.ResponseModel{
 		Status:  "success",
 		Message: "commision created successfully",
-		Data: map[string]int64{
-			"commision_id": id,
+	})
+}
+
+func (ch *commisionHandler) GetCommisionDetailsByCommisionIDRequest(c echo.Context) error {
+	data, err := ch.commisionRepo.GetCommisionDetailsByCommisionID(c)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, models.ResponseModel{
+			Status:  "failed",
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.ResponseModel{
+		Status:  "success",
+		Message: "commision fetched successfully",
+		Data: map[string]any{
+			"commision": data,
 		},
 	})
 }
 
-func (ch *commisionHandler) GetCommisionByID(c echo.Context) error {
-	data, err := ch.commisionRepo.GetCommisionByID(c)
+func (ch *commisionHandler) GetCommisionsByUserIDRequest(c echo.Context) error {
+	data, err := ch.commisionRepo.GetCommisionsByUserID(c)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "commision fetched successfully",
-		Data:    data,
-	})
-}
-
-func (ch *commisionHandler) GetCommisionByUserID(c echo.Context) error {
-	data, err := ch.commisionRepo.GetCommisionByUserID(c)
-	if err != nil {
-		return c.JSON(http.StatusNotFound, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "commision fetched successfully",
-		Data:    data,
-	})
-}
-
-func (ch *commisionHandler) GetAllCommisions(c echo.Context) error {
-	data, err := ch.commisionRepo.GetAllCommisions(c)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
 		})
@@ -82,12 +65,15 @@ func (ch *commisionHandler) GetAllCommisions(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.ResponseModel{
 		Status:  "success",
 		Message: "commisions fetched successfully",
-		Data:    data,
+		Data: map[string]any{
+			"commisions": data,
+		},
 	})
 }
 
-func (ch *commisionHandler) UpdateCommision(c echo.Context) error {
-	if err := ch.commisionRepo.UpdateCommision(c); err != nil {
+func (ch *commisionHandler) GetCommisionByUserIDAndServiceRequest(c echo.Context) error {
+	data, err := ch.commisionRepo.GetCommisionByUserIDAndService(c)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
@@ -96,11 +82,28 @@ func (ch *commisionHandler) UpdateCommision(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, models.ResponseModel{
 		Status:  "success",
-		Message: "commision updated successfully",
+		Message: "commision fetched successfully",
+		Data: map[string]any{
+			"commision": data,
+		},
 	})
 }
 
-func (ch *commisionHandler) DeleteCommision(c echo.Context) error {
+func (ch *commisionHandler) UpdateCommisionDetailsRequest(c echo.Context) error {
+	if err := ch.commisionRepo.UpdateCommisionDetails(c); err != nil {
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{
+			Status:  "failed",
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.ResponseModel{
+		Status:  "success",
+		Message: "commision details updated successfully",
+	})
+}
+
+func (ch *commisionHandler) DeleteCommisionRequest(c echo.Context) error {
 	if err := ch.commisionRepo.DeleteCommision(c); err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",

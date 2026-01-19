@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -9,9 +10,8 @@ import (
 
 func (db *Database) CreateBankQuery(
 	ctx context.Context,
-	req models.CreateBankModel,
-) (int64, error) {
-
+	req models.CreateBankRequestModel,
+) error {
 	query := `
 		INSERT INTO banks (
 			bank_name,
@@ -19,23 +19,22 @@ func (db *Database) CreateBankQuery(
 		) VALUES (
 			@bank_name,
 			@ifsc_code
-		)
-		RETURNING bank_id;
+		);
 	`
 
-	var bankID int64
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"bank_name": req.BankNams,
 		"ifsc_code": req.IFSCCode,
-	}).Scan(&bankID)
-
-	return bankID, err
+	}); err != nil {
+		return fmt.Errorf("failed to create bank")
+	}
+	return nil
 }
 
-func (db *Database) GetBankByIDQuery(
+func (db *Database) GetBankDetailsByBankIDQuery(
 	ctx context.Context,
 	bankID int64,
-) (*models.GetBankModel, error) {
+) (*models.GetBankDetailsResponseModel, error) {
 
 	query := `
 		SELECT
@@ -46,7 +45,7 @@ func (db *Database) GetBankByIDQuery(
 		WHERE bank_id = @bank_id;
 	`
 
-	var bank models.GetBankModel
+	var bank models.GetBankDetailsResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"bank_id": bankID,
 	}).Scan(
@@ -56,7 +55,7 @@ func (db *Database) GetBankByIDQuery(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch bank details")
 	}
 
 	return &bank, nil
@@ -64,7 +63,7 @@ func (db *Database) GetBankByIDQuery(
 
 func (db *Database) GetAllBanksQuery(
 	ctx context.Context,
-) ([]models.GetBankModel, error) {
+) ([]models.GetBankDetailsResponseModel, error) {
 
 	query := `
 		SELECT
@@ -77,20 +76,20 @@ func (db *Database) GetAllBanksQuery(
 
 	rows, err := db.pool.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch bank details")
 	}
 	defer rows.Close()
 
-	var banks []models.GetBankModel
+	var banks []models.GetBankDetailsResponseModel
 
 	for rows.Next() {
-		var b models.GetBankModel
+		var b models.GetBankDetailsResponseModel
 		if err := rows.Scan(
 			&b.BankID,
 			&b.BankName,
 			&b.IFSCCode,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch bank details")
 		}
 		banks = append(banks, b)
 	}
@@ -100,8 +99,7 @@ func (db *Database) GetAllBanksQuery(
 
 func (db *Database) UpdateBankQuery(
 	ctx context.Context,
-	bankID int64,
-	req models.UpdateBankModel,
+	req models.UpdateBankDetailsRequestModel,
 ) error {
 
 	query := `
@@ -113,17 +111,17 @@ func (db *Database) UpdateBankQuery(
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"bank_id":   bankID,
+		"bank_id":   req.BankID,
 		"bank_name": req.BankName,
 		"ifsc_code": req.IFSCCode,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update bank details")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid bank or bank not found")
 	}
 
 	return nil
@@ -144,11 +142,11 @@ func (db *Database) DeleteBankQuery(
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete bank")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid bank id or bank not found")
 	}
 
 	return nil
@@ -156,8 +154,8 @@ func (db *Database) DeleteBankQuery(
 
 func (db *Database) CreateAdminBankQuery(
 	ctx context.Context,
-	req models.CreateAdminBankModel,
-) (int64, error) {
+	req models.CreateAdminBankRequestModel,
+) error {
 
 	query := `
 		INSERT INTO admin_banks (
@@ -170,25 +168,25 @@ func (db *Database) CreateAdminBankQuery(
 			@bank_name,
 			@account_number,
 			@ifsc_code
-		)
-		RETURNING admin_bank_id;
+		);
 	`
 
-	var adminBankID int64
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"admin_id":       req.AdminID,
 		"bank_name":      req.BankNams,
 		"account_number": req.AccountNumber,
 		"ifsc_code":      req.IFSCCode,
-	}).Scan(&adminBankID)
+	}); err != nil {
+		return fmt.Errorf("failed to create admin bank")
+	}
 
-	return adminBankID, err
+	return nil
 }
 
-func (db *Database) GetAdminBankByIDQuery(
+func (db *Database) GetAdminBankDetailsByAdminBankIDQuery(
 	ctx context.Context,
 	adminBankID int64,
-) (*models.GetAdminBankModel, error) {
+) (*models.GetAdminBankDetailsResponseModel, error) {
 
 	query := `
 		SELECT
@@ -200,7 +198,7 @@ func (db *Database) GetAdminBankByIDQuery(
 		WHERE admin_bank_id = @admin_bank_id;
 	`
 
-	var ab models.GetAdminBankModel
+	var ab models.GetAdminBankDetailsResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"admin_bank_id": adminBankID,
 	}).Scan(
@@ -211,7 +209,7 @@ func (db *Database) GetAdminBankByIDQuery(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch admin bank details")
 	}
 
 	return &ab, nil
@@ -220,7 +218,7 @@ func (db *Database) GetAdminBankByIDQuery(
 func (db *Database) GetAdminBanksByAdminIDQuery(
 	ctx context.Context,
 	adminID string,
-) ([]models.GetAdminBankModel, error) {
+) ([]models.GetAdminBankDetailsResponseModel, error) {
 
 	query := `
 		SELECT
@@ -237,21 +235,21 @@ func (db *Database) GetAdminBanksByAdminIDQuery(
 		"admin_id": adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch admin banks")
 	}
 	defer rows.Close()
 
-	var banks []models.GetAdminBankModel
+	var banks []models.GetAdminBankDetailsResponseModel
 
 	for rows.Next() {
-		var ab models.GetAdminBankModel
+		var ab models.GetAdminBankDetailsResponseModel
 		if err := rows.Scan(
 			&ab.AdminBankID,
 			&ab.BankName,
 			&ab.AccountNumber,
 			&ab.IFSCCode,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch admin banks")
 		}
 		banks = append(banks, ab)
 	}
@@ -261,8 +259,7 @@ func (db *Database) GetAdminBanksByAdminIDQuery(
 
 func (db *Database) UpdateAdminBankQuery(
 	ctx context.Context,
-	adminBankID int64,
-	req models.UpdateAdminBankModel,
+	req models.UpdateAdminBankDetailsRequestModel,
 ) error {
 
 	query := `
@@ -275,18 +272,18 @@ func (db *Database) UpdateAdminBankQuery(
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"admin_bank_id":  adminBankID,
+		"admin_bank_id":  req.AdminBankID,
 		"bank_name":      req.BankName,
 		"account_number": req.AccountNumber,
 		"ifsc_code":      req.IFSCCode,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update admin bank details")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid admin bank id or admin bank not found")
 	}
 
 	return nil
@@ -307,11 +304,11 @@ func (db *Database) DeleteAdminBankQuery(
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete admin bank")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid admin bank id or admin bank not found")
 	}
 
 	return nil

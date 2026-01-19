@@ -10,18 +10,15 @@ import (
 )
 
 type BankInterface interface {
-	// Banks
-	CreateBank(echo.Context) (int64, error)
-	GetBankByID(echo.Context) (*models.GetBankModel, error)
-	GetAllBanks(echo.Context) ([]models.GetBankModel, error)
-	UpdateBank(echo.Context) error
+	CreateBank(echo.Context) error
+	GetBankDetailsByBankID(echo.Context) (*models.GetBankDetailsResponseModel, error)
+	GetAllBanks(echo.Context) ([]models.GetBankDetailsResponseModel, error)
+	UpdateBankDetails(echo.Context) error
 	DeleteBank(echo.Context) error
-
-	// Admin Banks
-	CreateAdminBank(echo.Context) (int64, error)
-	GetAdminBankByID(echo.Context) (*models.GetAdminBankModel, error)
-	GetAdminBanksByAdminID(echo.Context) ([]models.GetAdminBankModel, error)
-	UpdateAdminBank(echo.Context) error
+	CreateAdminBank(echo.Context) error
+	GetAdminBankDetailsByAdminBankID(echo.Context) (*models.GetAdminBankDetailsResponseModel, error)
+	GetAdminBanksByAdminID(echo.Context) ([]models.GetAdminBankDetailsResponseModel, error)
+	UpdateAdminBankDetails(echo.Context) error
 	DeleteAdminBank(echo.Context) error
 }
 
@@ -35,10 +32,10 @@ func NewBankRepository(db *database.Database) *bankRepository {
 	}
 }
 
-func (br *bankRepository) CreateBank(c echo.Context) (int64, error) {
-	var req models.CreateBankModel
+func (br *bankRepository) CreateBank(c echo.Context) error {
+	var req models.CreateBankRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return 0, err
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
@@ -47,47 +44,29 @@ func (br *bankRepository) CreateBank(c echo.Context) (int64, error) {
 	return br.db.CreateBankQuery(ctx, req)
 }
 
-func (br *bankRepository) GetBankByID(
+func (br *bankRepository) GetBankDetailsByBankID(
 	c echo.Context,
-) (*models.GetBankModel, error) {
-
+) (*models.GetBankDetailsResponseModel, error) {
 	bankID, err := parseInt64Param(c, "bank_id")
 	if err != nil {
 		return nil, err
 	}
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
 
-	return br.db.GetBankByIDQuery(ctx, bankID)
+	return br.db.GetBankDetailsByBankIDQuery(ctx, bankID)
 }
 
 func (br *bankRepository) GetAllBanks(
 	c echo.Context,
-) ([]models.GetBankModel, error) {
-
+) ([]models.GetBankDetailsResponseModel, error) {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
-
-	data, err := br.db.GetAllBanksQuery(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		data = []models.GetBankModel{}
-	}
-
-	return data, nil
+	return br.db.GetAllBanksQuery(ctx)
 }
 
-func (br *bankRepository) UpdateBank(c echo.Context) error {
-	bankID, err := parseInt64Param(c, "bank_id")
-	if err != nil {
-		return err
-	}
-
-	var req models.UpdateBankModel
+func (br *bankRepository) UpdateBankDetails(c echo.Context) error {
+	var req models.UpdateBankDetailsRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
@@ -95,7 +74,7 @@ func (br *bankRepository) UpdateBank(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
 
-	return br.db.UpdateBankQuery(ctx, bankID, req)
+	return br.db.UpdateBankQuery(ctx, req)
 }
 
 func (br *bankRepository) DeleteBank(c echo.Context) error {
@@ -103,20 +82,18 @@ func (br *bankRepository) DeleteBank(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
-
 	return br.db.DeleteBankQuery(ctx, bankID)
 }
 
 func (br *bankRepository) CreateAdminBank(
 	c echo.Context,
-) (int64, error) {
+) error {
 
-	var req models.CreateAdminBankModel
+	var req models.CreateAdminBankRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return 0, err
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
@@ -125,52 +102,30 @@ func (br *bankRepository) CreateAdminBank(
 	return br.db.CreateAdminBankQuery(ctx, req)
 }
 
-func (br *bankRepository) GetAdminBankByID(
+func (br *bankRepository) GetAdminBankDetailsByAdminBankID(
 	c echo.Context,
-) (*models.GetAdminBankModel, error) {
-
+) (*models.GetAdminBankDetailsResponseModel, error) {
 	adminBankID, err := parseInt64Param(c, "admin_bank_id")
 	if err != nil {
 		return nil, err
 	}
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
 
-	return br.db.GetAdminBankByIDQuery(ctx, adminBankID)
+	return br.db.GetAdminBankDetailsByAdminBankIDQuery(ctx, adminBankID)
 }
 
 func (br *bankRepository) GetAdminBanksByAdminID(
 	c echo.Context,
-) ([]models.GetAdminBankModel, error) {
-
+) ([]models.GetAdminBankDetailsResponseModel, error) {
 	adminID := c.Param("admin_id")
-	if adminID == "" {
-		return nil, echo.NewHTTPError(400, "admin_id is required")
-	}
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
-
-	data, err := br.db.GetAdminBanksByAdminIDQuery(ctx, adminID)
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		data = []models.GetAdminBankModel{}
-	}
-
-	return data, nil
+	return br.db.GetAdminBanksByAdminIDQuery(ctx, adminID)
 }
 
-func (br *bankRepository) UpdateAdminBank(c echo.Context) error {
-	adminBankID, err := parseInt64Param(c, "admin_bank_id")
-	if err != nil {
-		return err
-	}
-
-	var req models.UpdateAdminBankModel
+func (br *bankRepository) UpdateAdminBankDetails(c echo.Context) error {
+	var req models.UpdateAdminBankDetailsRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
@@ -178,7 +133,7 @@ func (br *bankRepository) UpdateAdminBank(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
 	defer cancel()
 
-	return br.db.UpdateAdminBankQuery(ctx, adminBankID, req)
+	return br.db.UpdateAdminBankQuery(ctx, req)
 }
 
 func (br *bankRepository) DeleteAdminBank(c echo.Context) error {

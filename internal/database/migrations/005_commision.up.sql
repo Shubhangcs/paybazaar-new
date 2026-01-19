@@ -4,10 +4,10 @@ CREATE TABLE
         user_id TEXT NOT NULL,
         service TEXT NOT NULL CHECK (service in ('PAYOUT', 'DMT', 'AEPS', 'BBPS')),
         total_commision NUMERIC(20, 2) NOT NULL CHECK (total_commision >= 0),
-        admin_commision NUMERIC(20, 2) NOT NULL CHECK (admin_commision >= 0),
-        master_distributor_commision NUMERIC(20, 2) NOT NULL CHECK (master_distributor_commision >= 0),
-        distributor_commision NUMERIC(20, 2) NOT NULL CHECK (distributor_commision >= 0),
-        retailer_commision NUMERIC(20, 2) NOT NULL CHECK (retailer_commision >= 0),
+        admin_commision NUMERIC(20, 2) NOT NULL,
+        master_distributor_commision NUMERIC(20, 2) NOT NULL,
+        distributor_commision NUMERIC(20, 2) NOT NULL,
+        retailer_commision NUMERIC(20, 2) NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         CONSTRAINT commision_split_valid CHECK (
@@ -17,7 +17,8 @@ CREATE TABLE
             admin_commision = total_commision - (
                 master_distributor_commision + distributor_commision + retailer_commision
             )
-        )
+        ),
+        UNIQUE (user_id, service)
     );
 
 CREATE INDEX IF NOT EXISTS idx_commisions_user_id ON commisions (user_id);

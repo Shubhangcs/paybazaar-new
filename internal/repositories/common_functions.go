@@ -54,12 +54,12 @@ func parsePagination(c echo.Context) (limit int, offset int) {
 func parseInt64Param(c echo.Context, key string) (int64, error) {
 	idStr := c.Param(key)
 	if idStr == "" {
-		return 0, echo.NewHTTPError(400, key+" is required")
+		return 0, fmt.Errorf("param is required")
 	}
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return 0, echo.NewHTTPError(400, "invalid "+key)
+		return 0, fmt.Errorf("param is required")
 	}
 
 	return id, nil

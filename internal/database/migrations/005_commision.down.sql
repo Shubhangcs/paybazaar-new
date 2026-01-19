@@ -1,1 +1,1 @@
-DROP TABLE IF NOT EXISTS commisions;
+DROP TABLE IF EXISTS commisions;

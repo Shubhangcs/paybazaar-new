@@ -7,6 +7,7 @@ CREATE TABLE
         ticket_description TEXT NOT NULL,
         is_ticket_cleared BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         FOREIGN KEY (admin_id) REFERENCES admins (admin_id) ON DELETE CASCADE
     );
 

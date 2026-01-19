@@ -12,6 +12,7 @@ type Config struct {
 	ServerConfig
 	DatabaseConfig
 	JwtConfig
+	RechargeKitConfig
 }
 
 type ServerConfig struct {
@@ -28,8 +29,8 @@ type JwtConfig struct {
 	Expiry    time.Duration
 }
 
-type ExternalAPIConfig struct {
-	
+type RechargeKitConfig struct {
+	APIToken string
 }
 
 func Load() *Config {
@@ -47,6 +48,9 @@ func Load() *Config {
 		JwtConfig: JwtConfig{
 			SecretKey: os.Getenv("SECRET_KEY"),
 			Expiry:    24 * time.Hour,
+		},
+		RechargeKitConfig: RechargeKitConfig{
+			APIToken: os.Getenv("RKIT_API_TOKEN"),
 		},
 	}
 }

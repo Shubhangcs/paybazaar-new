@@ -10,11 +10,11 @@ import (
 )
 
 type CommisionInterface interface {
-	CreateCommision(echo.Context) (int64, error)
-	GetCommisionByID(echo.Context) (*models.GetCommisionModel, error)
-	GetCommisionByUserID(echo.Context) (*models.GetCommisionModel, error)
-	GetAllCommisions(echo.Context) ([]models.GetCommisionModel, error)
-	UpdateCommision(echo.Context) error
+	CreateCommision(echo.Context) error
+	GetCommisionDetailsByCommisionID(echo.Context) (*models.GetCommisionResponseModel, error)
+	GetCommisionsByUserID(echo.Context) ([]models.GetCommisionResponseModel, error)
+	GetCommisionByUserIDAndService(echo.Context) (*models.GetCommisionResponseModel, error)
+	UpdateCommisionDetails(echo.Context) error
 	DeleteCommision(echo.Context) error
 }
 
@@ -30,11 +30,10 @@ func NewCommisionRepository(db *database.Database) *commisionRepository {
 
 func (cr *commisionRepository) CreateCommision(
 	c echo.Context,
-) (int64, error) {
-
-	var req models.CreateCommisionModel
+) error {
+	var req models.CreateCommisionRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
-		return 0, err
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(
@@ -46,107 +45,73 @@ func (cr *commisionRepository) CreateCommision(
 	return cr.db.CreateCommisionQuery(ctx, req)
 }
 
-func (cr *commisionRepository) GetCommisionByID(
+func (cr *commisionRepository) GetCommisionDetailsByCommisionID(
 	c echo.Context,
-) (*models.GetCommisionModel, error) {
-
+) (*models.GetCommisionResponseModel, error) {
 	commisionID, err := parseInt64Param(c, "commision_id")
 	if err != nil {
 		return nil, err
 	}
-
 	ctx, cancel := context.WithTimeout(
 		c.Request().Context(),
 		30*time.Second,
 	)
 	defer cancel()
 
-	return cr.db.GetCommisionByIDQuery(ctx, commisionID)
+	return cr.db.GetCommisionDetailsByCommisionIDQuery(ctx, commisionID)
 }
 
-func (cr *commisionRepository) GetCommisionByUserID(
+func (cr *commisionRepository) GetCommisionsByUserID(
 	c echo.Context,
-) (*models.GetCommisionModel, error) {
-
+) ([]models.GetCommisionResponseModel, error) {
 	userID := c.Param("user_id")
-	if userID == "" {
-		return nil, echo.NewHTTPError(400, "user_id is required")
-	}
-
 	ctx, cancel := context.WithTimeout(
 		c.Request().Context(),
 		30*time.Second,
 	)
 	defer cancel()
-
-	return cr.db.GetCommisionByUserIDQuery(ctx, userID)
+	return cr.db.GetCommisionsByUserIDQuery(ctx, userID)
 }
 
-func (cr *commisionRepository) GetAllCommisions(
+func (cr *commisionRepository) GetCommisionByUserIDAndService(
 	c echo.Context,
-) ([]models.GetCommisionModel, error) {
-
-	limit, offset := parsePagination(c)
-
+) (*models.GetCommisionResponseModel, error) {
+	userID := c.Param("user_id")
+	service := c.Param("service")
 	ctx, cancel := context.WithTimeout(
 		c.Request().Context(),
 		30*time.Second,
 	)
 	defer cancel()
-
-	data, err := cr.db.GetAllCommisionsQuery(
-		ctx,
-		limit,
-		offset,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		data = []models.GetCommisionModel{}
-	}
-
-	return data, nil
+	return cr.db.GetCommisionByUserIDAndServiceQuery(ctx, userID, service)
 }
 
-func (cr *commisionRepository) UpdateCommision(
+func (cr *commisionRepository) UpdateCommisionDetails(
 	c echo.Context,
 ) error {
-
-	commisionID, err := parseInt64Param(c, "commision_id")
-	if err != nil {
-		return err
-	}
-
-	var req models.UpdateCommisionModel
+	var req models.UpdateCommisionRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-
 	ctx, cancel := context.WithTimeout(
 		c.Request().Context(),
 		30*time.Second,
 	)
 	defer cancel()
-
-	return cr.db.UpdateCommisionQuery(ctx, commisionID, req)
+	return cr.db.UpdateCommisionQuery(ctx, req)
 }
 
 func (cr *commisionRepository) DeleteCommision(
 	c echo.Context,
 ) error {
-
 	commisionID, err := parseInt64Param(c, "commision_id")
 	if err != nil {
 		return err
 	}
-
 	ctx, cancel := context.WithTimeout(
 		c.Request().Context(),
 		30*time.Second,
 	)
 	defer cancel()
-
 	return cr.db.DeleteCommisionQuery(ctx, commisionID)
 }

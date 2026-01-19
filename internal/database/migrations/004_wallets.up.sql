@@ -7,7 +7,15 @@ CREATE TABLE
         debit_amount NUMERIC(20, 2),
         before_balance NUMERIC(20, 2) NOT NULL,
         after_balance NUMERIC(20, 2) NOT NULL,
-        transaction_reason TEXT NOT NULL,
+        transaction_reason TEXT NOT NULL CHECK (
+            transaction_reason IN (
+                'FUND_TRANSFER',
+                'FUND_REQUEST',
+                'TOPUP',
+                'REVERT',
+                'PAYOUT'
+            )
+        ),
         remarks TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
@@ -26,8 +34,8 @@ CREATE TABLE
 CREATE TABLE
     IF NOT EXISTS fund_transfers (
         fund_transfer_id BIGSERIAL PRIMARY KEY,
-        fund_transferer_id TEXT NOT NULL,
-        fund_receiver_id TEXT NOT NULL,
+        fund_transfer_by_id TEXT NOT NULL,
+        fund_treanfer_to_id TEXT NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
         fund_transfer_status TEXT NOT NULL CHECK (
             fund_transfer_status IN ('PENDING', 'SUCCESS', 'FAILED')
@@ -43,13 +51,13 @@ CREATE TABLE
         request_to_id TEXT NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
         bank_name TEXT NOT NULL,
-        request_date TEXT NOT NULL,
-        utr_number TEXT NOT NULL,
+        request_date DATE NOT NULL,
+        utr_number TEXT UNIQUE NOT NULL,
         request_status TEXT NOT NULL CHECK (
             request_status IN ('PENDING', 'ACCEPTED', 'REJECTED')
         ),
         remarks TEXT NOT NULL,
-        reject_remarks TEXT NOT NULL DEFAULT '',
+        reject_remarks TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );

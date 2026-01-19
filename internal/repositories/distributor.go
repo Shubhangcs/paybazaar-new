@@ -13,16 +13,19 @@ import (
 
 type DistributorInterface interface {
 	CreateDistributor(echo.Context) error
-	GetDistributorByID(echo.Context) (*models.DistributorModel, error)
-	ListDistributors(echo.Context) ([]models.GetDistributorResponseModel, error)
-	ListDistributorsByMasterDistributorID(echo.Context) ([]models.GetDistributorResponseModel, error)
-	UpdateDistributor(echo.Context) error
+	GetDistributorDetailsByDistributorID(echo.Context) (*models.GetCompleteDistributorDetailsResponseModel, error)
+	DistributorLogin(echo.Context) (string, error)
+	GetDistributorsByAdminID(echo.Context) ([]models.GetCompleteDistributorDetailsResponseModel, error)
+	GetDistributorsByMasterDistributorID(echo.Context) ([]models.GetCompleteDistributorDetailsResponseModel, error)
+	GetDistributorsForDropdownByMasterDistributorID(echo.Context) ([]models.GetDistributorForDropdownModel, error)
+	UpdateDistributorPassword(echo.Context) error
+	UpdateDistributorWallet(echo.Context) error
+	UpdateDistributorBlockStatus(echo.Context) error
+	UpdateDistributorKYCStatus(echo.Context) error
+	UpdateDistributorDetails(echo.Context) error
+	UpdateDistributorMasterDistributor(echo.Context) error
+	UpdateDistributorMPIN(echo.Context) error
 	DeleteDistributor(echo.Context) error
-	GetDistributorsByMasterDistributorIDForDropdown(echo.Context) ([]models.DropdownModel, error)
-	LoginDistributor(echo.Context) (string, error)
-	UpdateBlockStatus(echo.Context) error
-	UpdateKYCStatus(echo.Context) error
-	UpdateMPIN(echo.Context) (int64, error)
 }
 
 type distributorRepository struct {
@@ -52,41 +55,76 @@ func (dr *distributorRepository) CreateDistributor(c echo.Context) error {
 	return dr.db.CreateDistributorQuery(ctx, req)
 }
 
-func (dr *distributorRepository) GetDistributorByID(
+func (dr *distributorRepository) GetDistributorDetailsByDistributorID(
 	c echo.Context,
-) (*models.DistributorModel, error) {
-
+) (*models.GetCompleteDistributorDetailsResponseModel, error) {
 	distributorID := c.Param("distributor_id")
-
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-
-	return dr.db.GetDistributorByIDQuery(ctx, distributorID)
+	return dr.db.GetDistributorDetailsByDistributorIDQuery(ctx, distributorID)
 }
 
-func (dr *distributorRepository) ListDistributors(
+func (dr *distributorRepository) DistributorLogin(
 	c echo.Context,
-) ([]models.GetDistributorResponseModel, error) {
+) (string, error) {
+	var req models.DistributorLoginRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	details, err := dr.db.GetDistributorDetailsForLoginQuery(ctx, req.DistributorID)
+	if err != nil {
+		return "", err
+	}
 
+	if details.DistributorPassword != req.DistributorPassword {
+		return "", fmt.Errorf("incorrect password")
+	}
+
+	if details.IsDistributorBlocked {
+		return "", fmt.Errorf("distributor is blocked")
+	}
+
+	token, err := dr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
+		AdminID:  details.AdminID,
+		UserName: details.DistributorName,
+		UserID:   details.DistributorID,
+		UserRole: "distributor",
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func (dr *distributorRepository) GetDistributorsByAdminID(
+	c echo.Context,
+) ([]models.GetCompleteDistributorDetailsResponseModel, error) {
+	adminID := c.Param("admin_id")
 	limit, offset := parsePagination(c)
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
-	return dr.db.ListDistributorsQuery(ctx, limit, offset)
+	return dr.db.GetDistributorsByAdminIDQuery(
+		ctx,
+		adminID,
+		limit,
+		offset,
+	)
 }
 
-func (dr *distributorRepository) ListDistributorsByMasterDistributorID(
+func (dr *distributorRepository) GetDistributorsByMasterDistributorID(
 	c echo.Context,
-) ([]models.GetDistributorResponseModel, error) {
-
+) ([]models.GetCompleteDistributorDetailsResponseModel, error) {
 	masterDistributorID := c.Param("master_distributor_id")
 	limit, offset := parsePagination(c)
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
-	return dr.db.ListDistributorsByMasterDistributorIDQuery(
+	return dr.db.GetDistributorsByMasterDistributorIDQuery(
 		ctx,
 		masterDistributorID,
 		limit,
@@ -94,149 +132,86 @@ func (dr *distributorRepository) ListDistributorsByMasterDistributorID(
 	)
 }
 
-func (dr *distributorRepository) UpdateDistributor(c echo.Context) error {
-	distributorID := c.Param("distributor_id")
-
-	var req models.UpdateDistributorRequestModel
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
-	defer cancel()
-
-	return dr.db.UpdateDistributorQuery(ctx, distributorID, req)
-}
-
-func (dr *distributorRepository) DeleteDistributor(c echo.Context) error {
-	distributorID := c.Param("distributor_id")
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
-	defer cancel()
-
-	return dr.db.DeleteDistributorQuery(ctx, distributorID)
-}
-
-func (dr *distributorRepository) GetDistributorsByMasterDistributorIDForDropdown(
+func (dr *distributorRepository) GetDistributorsForDropdownByMasterDistributorID(
 	c echo.Context,
-) ([]models.DropdownModel, error) {
-
+) ([]models.GetDistributorForDropdownModel, error) {
 	masterDistributorID := c.Param("master_distributor_id")
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
-
-	return dr.db.GetDistributorsByMasterDistributorIDForDropdownQuery(
+	return dr.db.GetDistributorsForDropdownByMasterDistributorIDQuery(
 		ctx,
 		masterDistributorID,
 	)
 }
 
-func (dr *distributorRepository) LoginDistributor(c echo.Context) (string, error) {
-	var req models.LoginDistributorModel
-	if err := bindAndValidate(c, &req); err != nil {
-		return "", err
-	}
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
+func (dr *distributorRepository) UpdateDistributorPassword(c echo.Context) error {
+	var req models.UpdateDistributorPasswordRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
-	res, err := dr.db.GetDistributorByIDQuery(ctx, req.DistributorID)
-	if err != nil {
-		return "", err
-	}
-	if res.Password != req.DistributorPassword || res.IsBlocked {
-		return "", fmt.Errorf("incorrect password")
-	}
-	return dr.jwtUtils.GenerateToken(ctx, models.AccessTokenClaims{
-		AdminID:  res.AdminID,
-		UserID:   res.DistributorID,
-		UserName: res.Name,
-		UserRole: "distributor",
-	})
+	return dr.db.UpdateDistributorPasswordQuery(ctx, req)
 }
 
-func (dr *distributorRepository) UpdateBlockStatus(
+func (dr *distributorRepository) UpdateDistributorWallet(c echo.Context) error {
+	var req models.UpdateDistributorWalletRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return dr.db.UpdateDistributorWalletQuery(ctx, req)
+}
+
+func (dr *distributorRepository) UpdateDistributorBlockStatus(c echo.Context) error {
+	var req models.UpdateDistributorBlockStatusRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return dr.db.UpdateDistributorBlockStatusQuery(ctx, req)
+}
+
+func (dr *distributorRepository) UpdateDistributorKYCStatus(c echo.Context) error {
+	var req models.UpdateDistributorKYCStatusRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return dr.db.UpdateDistributorKYCStatusQuery(ctx, req)
+}
+
+func (dr *distributorRepository) UpdateDistributorDetails(c echo.Context) error {
+	var req models.UpdateDistributorDetailsRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return dr.db.UpdateDistributorDetailsQuery(ctx, req)
+}
+
+func (dr *distributorRepository) UpdateDistributorMasterDistributor(c echo.Context) error {
+	var req models.UpdateDistributorMasterDistributorRequestModel
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return dr.db.UpdateDistributorMasterDistributorQuery(ctx, req)
+}
+
+func (dr *distributorRepository) DeleteDistributor(
 	c echo.Context,
 ) error {
 
 	distributorID := c.Param("distributor_id")
 	if distributorID == "" {
-		return fmt.Errorf("distributor_id is required")
+		return fmt.Errorf("distributor id is required")
 	}
 
-	var req struct {
-		IsBlocked bool `json:"is_blocked" validate:"required"`
-	}
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
-	return dr.db.UpdateDistributorBlockStatusQuery(
-		ctx,
-		distributorID,
-		req.IsBlocked,
-	)
+	return dr.db.DeleteDistributorQuery(ctx, distributorID)
 }
 
-func (dr *distributorRepository) UpdateKYCStatus(
+func (dr *distributorRepository) UpdateDistributorMPIN(
 	c echo.Context,
 ) error {
 
-	distributorID := c.Param("distributor_id")
-	if distributorID == "" {
-		return fmt.Errorf("distributor_id is required")
-	}
-
-	var req struct {
-		KYCStatus bool `json:"kyc_status" validate:"required"`
-	}
+	var req models.UpdateDistributorMPINRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
-	return dr.db.UpdateDistributorKYCStatusQuery(
-		ctx,
-		distributorID,
-		req.KYCStatus,
-	)
-}
-
-func (dr *distributorRepository) UpdateMPIN(
-	c echo.Context,
-) (int64, error) {
-
-	distributorID := c.Param("distributor_id")
-	if distributorID == "" {
-		return 0, fmt.Errorf("distributor_id is required")
-	}
-
-	var req struct {
-		MPIN int64 `json:"mpin" validate:"required,min=1000,max=9999"`
-	}
-	if err := bindAndValidate(c, &req); err != nil {
-		return 0, err
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return dr.db.UpdateDistributorMPINQuery(
-		ctx,
-		distributorID,
-		req.MPIN,
-	)
+	return dr.db.UpdateDistributorMPINQuery(ctx, req)
 }

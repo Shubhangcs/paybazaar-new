@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -11,7 +12,6 @@ func (db *Database) CreateAdminQuery(
 	ctx context.Context,
 	req models.CreateAdminRequestModel,
 ) error {
-
 	query := `
 		INSERT INTO admins (
 			admin_name,
@@ -25,29 +25,27 @@ func (db *Database) CreateAdminQuery(
 			@admin_password
 		)
 	`
-
-	_, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"admin_name":     req.AdminName,
 		"admin_email":    req.AdminEmail,
 		"admin_phone":    req.AdminPhone,
 		"admin_password": req.AdminPassword,
-	})
-
-	return err
+	}); err != nil {
+		return fmt.Errorf("failed to create admin")
+	}
+	return nil
 }
 
-func (db *Database) GetAdminByIDQuery(
+func (db *Database) GetAdminDetailsByAdminID(
 	ctx context.Context,
 	adminID string,
-) (*models.AdminModel, error) {
-
+) (*models.GetCompleteAdminDetailsResponseModel, error) {
 	query := `
 		SELECT
 			admin_id,
 			admin_name,
 			admin_email,
 			admin_phone,
-			admin_password,
 			admin_wallet_balance,
 			is_admin_blocked,
 			created_at,
@@ -55,71 +53,57 @@ func (db *Database) GetAdminByIDQuery(
 		FROM admins
 		WHERE admin_id = @admin_id;
 	`
-
-	row := db.pool.QueryRow(
+	var res models.GetCompleteAdminDetailsResponseModel
+	if err := db.pool.QueryRow(
 		ctx,
 		query,
 		pgx.NamedArgs{
 			"admin_id": adminID,
 		},
-	)
-
-	var admin models.AdminModel
-	err := row.Scan(
-		&admin.AdminID,
-		&admin.AdminName,
-		&admin.AdminEmail,
-		&admin.AdminPhone,
-		&admin.AdminPassword,
-		&admin.AdminWalletBalance,
-		&admin.IsAdminBlocked,
-		&admin.CreatedAt,
-		&admin.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, err
+	).Scan(
+		&res.AdminID,
+		&res.AdminName,
+		&res.AdminEmail,
+		&res.AdminPhone,
+		&res.AdminWalletBalance,
+		&res.IsAdminBlocked,
+		&res.CreatedAt,
+		&res.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch admin details")
 	}
-
-	return &admin, nil
+	return &res, nil
 }
 
-func (db *Database) GetAdminByEmailQuery(
+func (db *Database) GetAdminDetailsForLogin(
 	ctx context.Context,
-	email string,
-) (*models.AdminModel, error) {
-
+	adminID string,
+) (*models.GetAdminDetailsForLoginModel, error) {
 	query := `
 		SELECT
 			admin_id,
 			admin_name,
-			admin_email,
-			admin_phone,
 			admin_password,
 			is_admin_blocked
 		FROM admins
-		WHERE admin_email = @admin_email
+		WHERE admin_id = @admin_id;
 	`
-
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"admin_email": email,
-	})
-
-	var admin models.AdminModel
-	err := row.Scan(
-		&admin.AdminID,
-		&admin.AdminName,
-		&admin.AdminEmail,
-		&admin.AdminPhone,
-		&admin.AdminPassword,
-		&admin.IsAdminBlocked,
-	)
-
-	if err != nil {
-		return nil, err
+	var res models.GetAdminDetailsForLoginModel
+	if err := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"admin_id": adminID,
+		},
+	).Scan(
+		&res.AdminID,
+		&res.AdminName,
+		&res.AdminPassword,
+		&res.IsAdminBlocked,
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch admin details")
 	}
-
-	return &admin, nil
+	return &res, nil
 }
 
 func (db *Database) DeleteAdminQuery(
@@ -137,58 +121,150 @@ func (db *Database) DeleteAdminQuery(
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete admin")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid admin id or admin not found")
 	}
 
 	return nil
 }
 
-func (db *Database) UpdateAdminQuery(
+func (db *Database) UpdateAdminDetailsQuery(
 	ctx context.Context,
-	adminID string,
-	req models.UpdateAdminRequestModel,
+	req models.UpdateAdminDetailsRequestModel,
 ) error {
-
 	query := `
 		UPDATE admins
 		SET
-			admin_name = COALESCE(@admin_name, admin_name),
+			admin_name  = COALESCE(@admin_name, admin_name),
 			admin_phone = COALESCE(@admin_phone, admin_phone),
-			admin_password = COALESCE(@admin_password, admin_password),
-			admin_wallet_balance = COALESCE(@wallet_balance, admin_wallet_balance),
-			is_admin_blocked = COALESCE(@is_admin_blocked, is_admin_blocked),
-			updated_at = NOW()
+			admin_email = COALESCE(@admin_email, admin_email),
+			updated_at  = NOW()
 		WHERE admin_id = @admin_id
 	`
-
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"admin_id":         adminID,
-		"admin_name":       req.AdminName,
-		"admin_phone":      req.AdminPhone,
-		"admin_password":   req.AdminPassword,
-		"wallet_balance":   req.WalletBalance,
-		"is_admin_blocked": req.IsAdminBlocked,
+		"admin_id":    req.AdminID,
+		"admin_name":  req.AdminName,
+		"admin_phone": req.AdminPhone,
+		"admin_email": req.AdminEmail,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update admin")
 	}
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid admin id or admin not found")
 	}
-
 	return nil
 }
 
-func (db *Database) ListAdminsQuery(
+func (db *Database) UpdateAdminPasswordQuery(
 	ctx context.Context,
-	limit, offset int,
-) ([]models.GetAdminResponseModel, error) {
+	req models.UpdateAdminPasswordRequestModel,
+) error {
 
+	getAdminOldPasswordQuery := `
+		SELECT admin_password FROM admins WHERE admin_id = @admin_id;
+	`
+
+	var oldPassword string
+	if err := db.pool.QueryRow(
+		ctx,
+		getAdminOldPasswordQuery,
+		pgx.NamedArgs{
+			"admin_id": req.AdminID,
+		},
+	).Scan(&oldPassword); err != nil {
+		return fmt.Errorf("failed to fetch old password")
+	}
+
+	if oldPassword != req.OldPassword {
+		return fmt.Errorf("incorrect old password")
+	}
+
+	updateAdminPasswordQuery := `
+		UPDATE admins
+		SET admin_password = @new_admin_password,
+		updated_at = NOW()
+		WHERE admin_id = @admin_id;
+	`
+
+	if _, err := db.pool.Exec(
+		ctx,
+		updateAdminPasswordQuery,
+		pgx.NamedArgs{
+			"admin_id":           req.AdminID,
+			"new_admin_password": req.NewPassword,
+		},
+	); err != nil {
+		return fmt.Errorf("failed to update admin password")
+	}
+	return nil
+}
+
+func (db *Database) UpdateAdminWalletQuery(
+	ctx context.Context,
+	req models.UpdateAdminWalletRequestModel,
+) error {
+	query := `
+		UPDATE admins 
+		SET admin_wallet_balance = admin_wallet_balance + @amount,
+		updated_at = NOW()
+		WHERE admin_id = @admin_id;
+	`
+	tag, err := db.pool.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"admin_id": req.AdminID,
+			"amount":   req.Amount,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update admin wallet")
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invalid admin id or admin not found")
+	}
+	return nil
+}
+
+func (db *Database) UpdateAdminBlockStatusQuery(
+	ctx context.Context,
+	req models.UpdateAdminBlockStatusRequestModel,
+) error {
+	query := `
+		UPDATE admins
+		SET is_admin_blocked = @admin_block_status,
+		updated_at = NOW()
+		WHERE admin_id = @admin_id;
+	`
+
+	tag, err := db.pool.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"admin_id":           req.AdminID,
+			"admin_block_status": req.BlockStatus,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update admin block status")
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invalid admin id or admin not found")
+	}
+	return nil
+}
+
+func (db *Database) GetAllAdminsQuery(
+	ctx context.Context,
+	offset, limit int,
+) ([]models.GetCompleteAdminDetailsResponseModel, error) {
 	query := `
 		SELECT
 			admin_id,
@@ -209,14 +285,14 @@ func (db *Database) ListAdminsQuery(
 		"offset": offset,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch admins")
 	}
 	defer rows.Close()
 
-	var list []models.GetAdminResponseModel
+	var list []models.GetCompleteAdminDetailsResponseModel
 
 	for rows.Next() {
-		var admin models.GetAdminResponseModel
+		var admin models.GetCompleteAdminDetailsResponseModel
 		err := rows.Scan(
 			&admin.AdminID,
 			&admin.AdminName,
@@ -228,17 +304,17 @@ func (db *Database) ListAdminsQuery(
 			&admin.UpdatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch admin details")
 		}
 		list = append(list, admin)
 	}
 
-	return list, nil
+	return list, rows.Err()
 }
 
 func (db *Database) GetAllAdminsForDropdownQuery(
 	ctx context.Context,
-) ([]models.DropdownModel, error) {
+) ([]models.GetAdminDetailsForDropdownModel, error) {
 
 	query := `
 		SELECT
@@ -250,147 +326,22 @@ func (db *Database) GetAllAdminsForDropdownQuery(
 
 	rows, err := db.pool.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch admin details")
 	}
 	defer rows.Close()
 
-	var list []models.DropdownModel
+	var list []models.GetAdminDetailsForDropdownModel
 
 	for rows.Next() {
-		var d models.DropdownModel
+		var d models.GetAdminDetailsForDropdownModel
 		if err := rows.Scan(
-			&d.ID,
-			&d.Name,
+			&d.AdminID,
+			&d.AdminName,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch admin details")
 		}
 		list = append(list, d)
 	}
 
 	return list, nil
-}
-
-func (db *Database) UpdateAdminBlockStatusQuery(
-	ctx context.Context,
-	adminID string,
-	isBlocked bool,
-) error {
-
-	query := `
-		UPDATE admins
-		SET
-			is_admin_blocked = @is_blocked,
-			updated_at = NOW()
-		WHERE admin_id = @admin_id
-	`
-
-	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"admin_id":   adminID,
-		"is_blocked": isBlocked,
-	})
-	if err != nil {
-		return err
-	}
-
-	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
-	}
-
-	return nil
-}
-
-func (db *Database) AdminWalletTopupQuery(
-	ctx context.Context,
-	req models.AdminWalletTopupModel,
-) (float64, error) {
-
-	tx, err := db.pool.Begin(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback(ctx)
-
-	// 1. Get current balance (lock row)
-	var beforeBalance float64
-	getBalanceQuery := `
-		SELECT admin_wallet_balance
-		FROM admins
-		WHERE admin_id = @admin_id
-		FOR UPDATE;
-	`
-
-	if err := tx.QueryRow(
-		ctx,
-		getBalanceQuery,
-		pgx.NamedArgs{
-			"admin_id": req.AdminID,
-		},
-	).Scan(&beforeBalance); err != nil {
-		return 0, err
-	}
-
-	// 2. Update wallet balance
-	var afterBalance float64
-	updateWalletQuery := `
-		UPDATE admins
-		SET admin_wallet_balance = admin_wallet_balance + @amount
-		WHERE admin_id = @admin_id
-		RETURNING admin_wallet_balance;
-	`
-
-	if err := tx.QueryRow(
-		ctx,
-		updateWalletQuery,
-		pgx.NamedArgs{
-			"amount":   req.Amount,
-			"admin_id": req.AdminID,
-		},
-	).Scan(&afterBalance); err != nil {
-		return 0, err
-	}
-
-	// 3. Insert wallet transaction
-	insertTransactionQuery := `
-		INSERT INTO wallet_transactions (
-			user_id,
-			reference_id,
-			credit_amount,
-			before_balance,
-			after_balance,
-			transaction_reason,
-			remarks
-		) VALUES (
-			@user_id,
-			@reference_id,
-			@credit_amount,
-			@before_balance,
-			@after_balance,
-			@transaction_reason,
-			@remarks
-		);
-	`
-
-	_, err = tx.Exec(
-		ctx,
-		insertTransactionQuery,
-		pgx.NamedArgs{
-			"user_id":            req.AdminID,
-			"reference_id":       "NONE",
-			"credit_amount":      req.Amount,
-			"before_balance":     beforeBalance,
-			"after_balance":      afterBalance,
-			"transaction_reason": "TOPUP",
-			"remarks":            "Admin wallet topup",
-		},
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	// 4. Commit transaction
-	if err := tx.Commit(ctx); err != nil {
-		return 0, err
-	}
-
-	return afterBalance, nil
 }

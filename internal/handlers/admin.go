@@ -32,8 +32,8 @@ func (ah *adminHandler) CreateAdminRequest(c echo.Context) error {
 	)
 }
 
-func (ah *adminHandler) UpdateAdminRequest(c echo.Context) error {
-	if err := ah.adminRepository.UpdateAdmin(c); err != nil {
+func (ah *adminHandler) UpdateAdminDetailsRequest(c echo.Context) error {
+	if err := ah.adminRepository.UpdateAdminDetails(c); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
 			models.ResponseModel{Status: "failed", Message: err.Error()},
@@ -42,12 +42,54 @@ func (ah *adminHandler) UpdateAdminRequest(c echo.Context) error {
 
 	return c.JSON(
 		http.StatusOK,
-		models.ResponseModel{Status: "success", Message: "admin updated successfully"},
+		models.ResponseModel{Status: "success", Message: "admin details updated successfully"},
 	)
 }
 
-func (ah *adminHandler) GetAdminByIDRequest(c echo.Context) error {
-	admin, err := ah.adminRepository.GetAdminByID(c)
+func (ah *adminHandler) UpdateAdminPasswordRequest(c echo.Context) error {
+	if err := ah.adminRepository.UpdateAdminPassword(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "admin password updated successfully"},
+	)
+}
+
+func (ah *adminHandler) UpdateAdminWalletRequest(c echo.Context) error {
+	if err := ah.adminRepository.UpdateAdminWallet(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "admin wallet updated successfully"},
+	)
+}
+
+func (ah *adminHandler) UpdateAdminBlockStatusRequest(c echo.Context) error {
+	if err := ah.adminRepository.UpdateAdminBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "admin block status updated successfully"},
+	)
+}
+
+func (ah *adminHandler) GetAdminDetailsByAdminIDRequest(c echo.Context) error {
+	admin, err := ah.adminRepository.GetAdminDetailsByAdminID(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusNotFound,
@@ -59,14 +101,14 @@ func (ah *adminHandler) GetAdminByIDRequest(c echo.Context) error {
 		http.StatusOK,
 		models.ResponseModel{
 			Status:  "success",
-			Message: "admin fetched successfully",
+			Message: "admin details fetched successfully",
 			Data:    map[string]any{"admin": admin},
 		},
 	)
 }
 
-func (ah *adminHandler) ListAdminsRequest(c echo.Context) error {
-	admins, err := ah.adminRepository.ListAdmins(c)
+func (ah *adminHandler) GetAllAdminsRequest(c echo.Context) error {
+	admins, err := ah.adminRepository.GetAllAdmins(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
@@ -79,6 +121,25 @@ func (ah *adminHandler) ListAdminsRequest(c echo.Context) error {
 		models.ResponseModel{
 			Status:  "success",
 			Message: "admins fetched successfully",
+			Data:    map[string]any{"admins": admins},
+		},
+	)
+}
+
+func (ah *adminHandler) GetAdminsForDropdownRequest(c echo.Context) error {
+	admins, err := ah.adminRepository.GetAdminsForDropdown(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "dropdown admins fetched successfully",
 			Data:    map[string]any{"admins": admins},
 		},
 	)
@@ -98,27 +159,8 @@ func (ah *adminHandler) DeleteAdminRequest(c echo.Context) error {
 	)
 }
 
-func (ah *adminHandler) GetAdminsForDropdownRequest(c echo.Context) error {
-	admins, err := ah.adminRepository.GetAdminsForDropdown(c)
-	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{Status: "failed", Message: err.Error()},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "admins fetched successfully",
-			Data:    map[string]any{"admins": admins},
-		},
-	)
-}
-
-func (ah *adminHandler) LoginAdminRequest(c echo.Context) error {
-	token, err := ah.adminRepository.LoginAdmin(c)
+func (ah *adminHandler) AdminLoginRequest(c echo.Context) error {
+	token, err := ah.adminRepository.AdminLogin(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusUnauthorized,
@@ -133,38 +175,5 @@ func (ah *adminHandler) LoginAdminRequest(c echo.Context) error {
 			Message: "login successful",
 			Data:    map[string]any{"access_token": token},
 		},
-	)
-}
-
-func (ah *adminHandler) AdminWalletTopupRequest(c echo.Context) error {
-	res, err := ah.adminRepository.AdminWalletTopup(c)
-	if err != nil {
-		return c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseModel{Status: "failed", Message: err.Error()},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "admin wallet topup successful",
-			Data:    map[string]any{"balance": res},
-		},
-	)
-}
-
-func (ah *adminHandler) UpdateAdminBlockStatusRequest(c echo.Context) error {
-	if err := ah.adminRepository.UpdateAdminBlockStatus(c); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{Status: "failed", Message: err.Error()},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{Status: "success", Message: "admin block status updated successfully"},
 	)
 }
