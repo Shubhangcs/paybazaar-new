@@ -62,6 +62,11 @@ type UpdateRetailerMPINRequestModel struct {
 	NewMPIN    int64  `json:"new_mpin" validate:"required,min=1000,max=9999"`
 }
 
+type UpdateRetailerDistributorRequestModel struct {
+	RetailerID    string `json:"retailer_id" validate:"required"`
+	DistributorID string `json:"distributor_id" validate:"required"`
+}
+
 type RetailerLoginRequestModel struct {
 	RetailerID       string `json:"retailer_id" validate:"required"`
 	RetailerPassword string `json:"retailer_password" validate:"required,strpwd"`
@@ -98,4 +103,9 @@ type GetCompleteRetailerDetailsResponseModel struct {
 	IsBlocked     bool      `json:"is_blocked"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type GetRetailerForDropdownModel struct {
+	RetailerID   string `json:"retailer_id"`
+	RetailerName string `json:"retailer_name"`
 }

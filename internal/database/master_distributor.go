@@ -69,7 +69,7 @@ func (db *Database) CreateMasterDistributorQuery(
 		"business_type": req.BusinessType,
 		"gst":           req.GSTNumber,
 	}); err != nil {
-		return fmt.Errorf("failed to create master distributor")
+		return fmt.Errorf("failed to create master distributor: %w",err)
 	}
 
 	return nil
