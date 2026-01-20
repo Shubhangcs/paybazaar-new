@@ -8,26 +8,26 @@ import (
 	"github.com/levion-studio/paybazaar/pkg"
 )
 
-func (r *routes) RetailerBeneficiaryRoutes(
+func (r *routes) PayoutBeneficiaryRoutes(
 	db *database.Database,
 	jwtUtils *pkg.JwtUtils,
 ) {
 
-	retailerBeneficiaryRepo := repositories.NewRetailerBeneficiaryRepository(db)
-	retailerBeneficiaryHandler := handlers.NewRetailerBeneficiaryHandler(
-		retailerBeneficiaryRepo,
+	payoutBeneficiaryRepo := repositories.NewPayoutBeneficiaryRepository(db)
+	payoutBeneficiaryHandler := handlers.NewPayoutBeneficiaryHandler(
+		payoutBeneficiaryRepo,
 	)
 
 	rb := r.Router.Group(
-		"/retailer-beneficiary",
+		"/payout_beneficiary",
 		middlewares.AuthorizationMiddleware(jwtUtils),
 	)
 
-	rb.POST("/create", retailerBeneficiaryHandler.CreateRetailerBeneficiary)
-	rb.GET("/get/all", retailerBeneficiaryHandler.ListRetailerBeneficiaries)
-	rb.GET("/get/:beneficiary_id", retailerBeneficiaryHandler.GetRetailerBeneficiaryByID)
-	rb.PUT("/update/:beneficiary_id", retailerBeneficiaryHandler.UpdateRetailerBeneficiary)
-	rb.PUT("/update/:beneficiary_id/verify", retailerBeneficiaryHandler.UpdateRetailerBeneficiaryVerification)
-	rb.DELETE("/delete/:beneficiary_id", retailerBeneficiaryHandler.DeleteRetailerBeneficiary)
-	rb.GET("/mobile/:mobile_number", retailerBeneficiaryHandler.GetBeneficiariesByMobileNumber)
+	rb.POST("/create", payoutBeneficiaryHandler.CreatePayoutBeneficiary, middlewares.RequireRoles("retailer", "admin"))
+	rb.GET("/get/all/:payout_id", payoutBeneficiaryHandler.ListPayoutBeneficiaries, middlewares.RequireRoles("retailer", "admin"))
+	rb.GET("/get/:beneficiary_id", payoutBeneficiaryHandler.GetPayoutBeneficiaryByID, middlewares.RequireRoles("retailer", "admin"))
+	rb.PUT("/update/:beneficiary_id", payoutBeneficiaryHandler.UpdatePayoutBeneficiary, middlewares.RequireRoles("retailer", "admin"))
+	rb.PUT("/update/:beneficiary_id/verify", payoutBeneficiaryHandler.UpdatePayoutBeneficiaryVerification, middlewares.RequireRoles("retailer", "admin"))
+	rb.DELETE("/delete/:beneficiary_id", payoutBeneficiaryHandler.DeletePayoutBeneficiary, middlewares.RequireRoles("retailer", "admin"))
+	rb.GET("/mobile/:mobile_number", payoutBeneficiaryHandler.GetBeneficiariesByMobileNumber, middlewares.RequireRoles("retailer", "admin"))
 }

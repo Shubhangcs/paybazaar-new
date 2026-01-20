@@ -10,33 +10,33 @@ import (
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
-type RetailerBeneficiaryInterface interface {
-	CreateRetailerBeneficiary(echo.Context) error
-	GetRetailerBeneficiaryByID(echo.Context) (*models.GetRetailerBeneficiaryResponseModel, error)
-	ListRetailerBeneficiaries(echo.Context) ([]models.GetRetailerBeneficiaryResponseModel, error)
-	UpdateRetailerBeneficiary(echo.Context) error
-	UpdateRetailerBeneficiaryVerification(echo.Context) error
-	DeleteRetailerBeneficiary(echo.Context) error
-	GetRetailerBeneficiariesByMobileNumber(echo.Context) ([]models.GetRetailerBeneficiaryResponseModel, error)
+type PayoutBeneficiaryInterface interface {
+	CreatePayoutBeneficiary(echo.Context) error
+	GetPayoutBeneficiaryByID(echo.Context) (*models.GetPayoutBeneficiaryResponseModel, error)
+	ListPayoutBeneficiaries(echo.Context) ([]models.GetPayoutBeneficiaryResponseModel, error)
+	UpdatePayoutBeneficiary(echo.Context) error
+	UpdatePayoutBeneficiaryVerification(echo.Context) error
+	DeletePayoutBeneficiary(echo.Context) error
+	GetPayoutBeneficiariesByMobileNumber(echo.Context) ([]models.GetPayoutBeneficiaryResponseModel, error)
 }
 
-type retailerBeneficiaryRepository struct {
+type payoutBeneficiaryRepository struct {
 	db *database.Database
 }
 
-func NewRetailerBeneficiaryRepository(
+func NewPayoutBeneficiaryRepository(
 	db *database.Database,
-) *retailerBeneficiaryRepository {
-	return &retailerBeneficiaryRepository{
+) *payoutBeneficiaryRepository {
+	return &payoutBeneficiaryRepository{
 		db: db,
 	}
 }
 
-func (rb *retailerBeneficiaryRepository) CreateRetailerBeneficiary(
+func (rb *payoutBeneficiaryRepository) CreatePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
-	var req models.CreateRetailerBeneficiaryModel
+	var req models.CreatePayoutBeneficiaryModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
@@ -47,13 +47,13 @@ func (rb *retailerBeneficiaryRepository) CreateRetailerBeneficiary(
 	)
 	defer cancel()
 
-	_, err := rb.db.CreateRetailerBeneficiaryQuery(ctx, req)
+	_, err := rb.db.CreatePayoutBeneficiaryQuery(ctx, req)
 	return err
 }
 
-func (rb *retailerBeneficiaryRepository) GetRetailerBeneficiaryByID(
+func (rb *payoutBeneficiaryRepository) GetPayoutBeneficiaryByID(
 	c echo.Context,
-) (*models.GetRetailerBeneficiaryResponseModel, error) {
+) (*models.GetPayoutBeneficiaryResponseModel, error) {
 
 	beneficiaryID, err := parseInt64Param(c, "beneficiary_id")
 	if err != nil {
@@ -66,16 +66,16 @@ func (rb *retailerBeneficiaryRepository) GetRetailerBeneficiaryByID(
 	)
 	defer cancel()
 
-	return rb.db.GetRetailerBeneficiaryByIDQuery(ctx, beneficiaryID)
+	return rb.db.GetPayoutBeneficiaryByIDQuery(ctx, beneficiaryID)
 }
 
-func (rb *retailerBeneficiaryRepository) ListRetailerBeneficiaries(
+func (rb *payoutBeneficiaryRepository) ListPayoutBeneficiaries(
 	c echo.Context,
-) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+) ([]models.GetPayoutBeneficiaryResponseModel, error) {
 
-	retailerID := c.QueryParam("retailer_id")
-	if retailerID == "" {
-		return nil, echo.NewHTTPError(400, "retailer_id is required")
+	payoutID := c.Param("payout_id")
+	if payoutID == "" {
+		return nil, echo.NewHTTPError(400, "payout_id is required")
 	}
 
 	limit, offset := parsePagination(c)
@@ -86,15 +86,15 @@ func (rb *retailerBeneficiaryRepository) ListRetailerBeneficiaries(
 	)
 	defer cancel()
 
-	return rb.db.GetRetailerBeneficiariesByRetailerIDQuery(
+	return rb.db.GetPayoutBeneficiariesByRetailerIDQuery(
 		ctx,
-		retailerID,
+		payoutID,
 		limit,
 		offset,
 	)
 }
 
-func (rb *retailerBeneficiaryRepository) UpdateRetailerBeneficiary(
+func (rb *payoutBeneficiaryRepository) UpdatePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
@@ -103,7 +103,7 @@ func (rb *retailerBeneficiaryRepository) UpdateRetailerBeneficiary(
 		return err
 	}
 
-	var req models.UpdateRetailerBeneficiaryModel
+	var req models.UpdatePayoutBeneficiaryModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
@@ -114,10 +114,10 @@ func (rb *retailerBeneficiaryRepository) UpdateRetailerBeneficiary(
 	)
 	defer cancel()
 
-	return rb.db.UpdateRetailerBeneficiaryQuery(ctx, beneficiaryID, req)
+	return rb.db.UpdatePayoutBeneficiaryQuery(ctx, beneficiaryID, req)
 }
 
-func (rb *retailerBeneficiaryRepository) UpdateRetailerBeneficiaryVerification(
+func (rb *payoutBeneficiaryRepository) UpdatePayoutBeneficiaryVerification(
 	c echo.Context,
 ) error {
 
@@ -139,14 +139,14 @@ func (rb *retailerBeneficiaryRepository) UpdateRetailerBeneficiaryVerification(
 	)
 	defer cancel()
 
-	return rb.db.UpdateRetailerBeneficiaryVerificationQuery(
+	return rb.db.UpdatePayoutBeneficiaryVerificationQuery(
 		ctx,
 		beneficiaryID,
 		req.IsVerified,
 	)
 }
 
-func (rb *retailerBeneficiaryRepository) DeleteRetailerBeneficiary(
+func (rb *payoutBeneficiaryRepository) DeletePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
@@ -161,12 +161,12 @@ func (rb *retailerBeneficiaryRepository) DeleteRetailerBeneficiary(
 	)
 	defer cancel()
 
-	return rb.db.DeleteRetailerBeneficiaryQuery(ctx, beneficiaryID)
+	return rb.db.DeletePayoutBeneficiaryQuery(ctx, beneficiaryID)
 }
 
-func (rb *retailerBeneficiaryRepository) GetRetailerBeneficiariesByMobileNumber(
+func (rb *payoutBeneficiaryRepository) GetPayoutBeneficiariesByMobileNumber(
 	c echo.Context,
-) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+) ([]models.GetPayoutBeneficiaryResponseModel, error) {
 
 	mobileNumber := c.Param("mobile_number")
 	if mobileNumber == "" {
@@ -181,7 +181,7 @@ func (rb *retailerBeneficiaryRepository) GetRetailerBeneficiariesByMobileNumber(
 	)
 	defer cancel()
 
-	return rb.db.GetRetailerBeneficiariesByMobileNumberQuery(
+	return rb.db.GetPayoutBeneficiariesByMobileNumberQuery(
 		ctx,
 		mobileNumber,
 		limit,

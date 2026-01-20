@@ -1,6 +1,7 @@
 package models
 
 type CreatePayoutRequestModel struct {
+	AdminID                  string  `json:"admin_id" validate:"required"`
 	RetailerID               string  `json:"retailer_id" validate:"required"`
 	MobileNumber             string  `json:"mobile_number" validate:"required"`
 	BeneficiaryBankName      string  `json:"beneficiary_bank_name" validate:"required"`
@@ -9,8 +10,8 @@ type CreatePayoutRequestModel struct {
 	BeneficiaryIFSCCode      string  `json:"beneficiary_ifsc_code" validate:"required"`
 	Amount                   float64 `json:"amount" validate:"required"`
 	TransferType             string  `json:"transfer_type" validate:"required"`
-	MPIN                     int64   `json:"mpin"`
-	PartnerRequestID         string  `json:"partnerreqid,omitempty"`
+	MPIN                     int64   `json:"mpin" validate:"required"`
+	PartnerRequestID         string  `json:"partner_req_id,omitempty"`
 }
 
 type PayoutAPIResponseModel struct {

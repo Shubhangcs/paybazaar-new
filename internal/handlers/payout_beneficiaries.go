@@ -8,23 +8,23 @@ import (
 	"github.com/levion-studio/paybazaar/internal/repositories"
 )
 
-type RetailerBeneficiaryHandler struct {
-	repo repositories.RetailerBeneficiaryInterface
+type PayoutBeneficiaryHandler struct {
+	repo repositories.PayoutBeneficiaryInterface
 }
 
-func NewRetailerBeneficiaryHandler(
-	repo repositories.RetailerBeneficiaryInterface,
-) *RetailerBeneficiaryHandler {
-	return &RetailerBeneficiaryHandler{
+func NewPayoutBeneficiaryHandler(
+	repo repositories.PayoutBeneficiaryInterface,
+) *PayoutBeneficiaryHandler {
+	return &PayoutBeneficiaryHandler{
 		repo: repo,
 	}
 }
 
-func (h *RetailerBeneficiaryHandler) CreateRetailerBeneficiary(
+func (h *PayoutBeneficiaryHandler) CreatePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
-	if err := h.repo.CreateRetailerBeneficiary(c); err != nil {
+	if err := h.repo.CreatePayoutBeneficiary(c); err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
@@ -37,11 +37,11 @@ func (h *RetailerBeneficiaryHandler) CreateRetailerBeneficiary(
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) GetRetailerBeneficiaryByID(
+func (h *PayoutBeneficiaryHandler) GetPayoutBeneficiaryByID(
 	c echo.Context,
 ) error {
 
-	data, err := h.repo.GetRetailerBeneficiaryByID(c)
+	data, err := h.repo.GetPayoutBeneficiaryByID(c)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, models.ResponseModel{
 			Status:  "failed",
@@ -50,16 +50,17 @@ func (h *RetailerBeneficiaryHandler) GetRetailerBeneficiaryByID(
 	}
 
 	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status: "success",
-		Data:   data,
+		Message: "bene fetched successfully",
+		Status:  "success",
+		Data:    data,
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) ListRetailerBeneficiaries(
+func (h *PayoutBeneficiaryHandler) ListPayoutBeneficiaries(
 	c echo.Context,
 ) error {
 
-	data, err := h.repo.ListRetailerBeneficiaries(c)
+	data, err := h.repo.ListPayoutBeneficiaries(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
@@ -68,16 +69,17 @@ func (h *RetailerBeneficiaryHandler) ListRetailerBeneficiaries(
 	}
 
 	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status: "success",
-		Data:   data,
+		Message: "bene fetched successfully",
+		Status:  "success",
+		Data:    data,
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) UpdateRetailerBeneficiary(
+func (h *PayoutBeneficiaryHandler) UpdatePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
-	if err := h.repo.UpdateRetailerBeneficiary(c); err != nil {
+	if err := h.repo.UpdatePayoutBeneficiary(c); err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
@@ -90,11 +92,11 @@ func (h *RetailerBeneficiaryHandler) UpdateRetailerBeneficiary(
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) UpdateRetailerBeneficiaryVerification(
+func (h *PayoutBeneficiaryHandler) UpdatePayoutBeneficiaryVerification(
 	c echo.Context,
 ) error {
 
-	if err := h.repo.UpdateRetailerBeneficiaryVerification(c); err != nil {
+	if err := h.repo.UpdatePayoutBeneficiaryVerification(c); err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
@@ -107,11 +109,11 @@ func (h *RetailerBeneficiaryHandler) UpdateRetailerBeneficiaryVerification(
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) DeleteRetailerBeneficiary(
+func (h *PayoutBeneficiaryHandler) DeletePayoutBeneficiary(
 	c echo.Context,
 ) error {
 
-	if err := h.repo.DeleteRetailerBeneficiary(c); err != nil {
+	if err := h.repo.DeletePayoutBeneficiary(c); err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{
 			Status:  "failed",
 			Message: err.Error(),
@@ -124,11 +126,11 @@ func (h *RetailerBeneficiaryHandler) DeleteRetailerBeneficiary(
 	})
 }
 
-func (h *RetailerBeneficiaryHandler) GetBeneficiariesByMobileNumber(
+func (h *PayoutBeneficiaryHandler) GetBeneficiariesByMobileNumber(
 	c echo.Context,
 ) error {
 
-	list, err := h.repo.GetRetailerBeneficiariesByMobileNumber(c)
+	list, err := h.repo.GetPayoutBeneficiariesByMobileNumber(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusBadRequest,

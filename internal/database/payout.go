@@ -3,220 +3,131 @@ package database
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
-func (db *Database) VerifyMPINAndKycQuery(
+func (db *Database) ValidateRequestQuery(
 	ctx context.Context,
-	retailerID string,
-	mpin int64,
+	req models.CreatePayoutRequestModel,
+	retailerCommision float64,
 ) (bool, error) {
-
-	var isValid bool
-
 	query := `
 		SELECT EXISTS (
-			SELECT 1
-			FROM retailers
-			WHERE
-				retailer_id = @retailer_id
-				AND retailer_mpin = @mpin::INTEGER
-				AND retailer_kyc_status = TRUE
+			SELECT 1 FROM retailers
+			WHERE retailer_id=@retailer_id AND
+			retailer_mpin=@retailer_mpin AND
+			retailer_kyc_status=TRUE AND
+			retailer_wallet_balance >= (@amount + @retailer_commision);
 		);
 	`
-
-	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"retailer_id": retailerID,
-		"mpin":        mpin,
-	}).Scan(&isValid); err != nil {
+	var isValid bool
+	if err := db.pool.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"retailer_id":        req.RetailerID,
+			"retailer_mpin":      req.MPIN,
+			"amount":             req.Amount,
+			"retailer_commision": retailerCommision,
+		},
+	).Scan(&isValid); err != nil {
 		return false, err
 	}
-	fmt.Println(isValid)
-
 	return isValid, nil
 }
 
-func (db *Database) CheckRetailerWalletBalance(
+func (db *Database) GetPayoutCommisionQuery(
 	ctx context.Context,
 	retailerID string,
-	amount float64,
-	commision float64,
-) (bool, error) {
-
-	var walletBalance float64
-
-	query := `
-		SELECT retailer_wallet_balance
-		FROM retailers
-		WHERE retailer_id = @retailer_id;
-	`
-
-	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"retailer_id": retailerID,
-	}).Scan(&walletBalance); err != nil {
-		return false, err
-	}
-
-	requiredAmount := amount + commision
-
-	if walletBalance >= requiredAmount {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func defaultPayoutCommision() *models.GetCommisionResponseModel {
-	return &models.GetCommisionResponseModel{
-		TotalCommision:             1.20,
-		AdminCommision:             0.35,
-		MasterDistributorCommision: 0.05,
-		DistributorCommision:       0.20,
-		RetailerCommision:          0.60,
-	}
-}
-
-func (db *Database) getCommisionQuery(
-	ctx context.Context,
-	retailerID string,
+	service string,
 ) (*models.GetCommisionResponseModel, error) {
 
-	var c models.GetCommisionResponseModel
-	const service = "PAYOUT"
-
-	query := `
-		SELECT
-			total_commision,
-			admin_commision,
-			master_distributor_commision,
-			distributor_commision,
-			retailer_commision
-		FROM commisions
-		WHERE user_id = @user_id
-		  AND service = @service
-		LIMIT 1;
-	`
-
-	/* -------------------------------------------------------
-	   1. Retailer commission (PAYOUT)
-	------------------------------------------------------- */
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"user_id": retailerID,
-		"service": service,
-	}).Scan(
-		&c.TotalCommision,
-		&c.AdminCommision,
-		&c.MasterDistributorCommision,
-		&c.DistributorCommision,
-		&c.RetailerCommision,
+	var (
+		distributorID string
+		mdID          string
+		comm          models.GetCommisionResponseModel
 	)
 
-	if err == nil {
-		return &c, nil
-	}
-
-	/* -------------------------------------------------------
-	   2. Resolve distributor & MD
-	------------------------------------------------------- */
-	var distributorID, mdID string
-	hierarchyQuery := `
+	err := db.pool.QueryRow(ctx, `
 		SELECT
-			d.distributor_id,
+			r.distributor_id,
 			d.master_distributor_id
 		FROM retailers r
-		JOIN distributors d ON r.distributor_id = d.distributor_id
+		JOIN distributors d
+			ON d.distributor_id = r.distributor_id
 		WHERE r.retailer_id = @retailer_id;
-	`
-
-	err = db.pool.QueryRow(ctx, hierarchyQuery, pgx.NamedArgs{
+	`, pgx.NamedArgs{
 		"retailer_id": retailerID,
 	}).Scan(&distributorID, &mdID)
 
 	if err != nil {
-		return defaultPayoutCommision(), nil
+		return nil, fmt.Errorf("invalid retailer hierarchy")
 	}
 
-	/* -------------------------------------------------------
-	   3. Distributor commission (PAYOUT)
-	------------------------------------------------------- */
-	err = db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"user_id": distributorID,
-		"service": service,
-	}).Scan(
-		&c.TotalCommision,
-		&c.AdminCommision,
-		&c.MasterDistributorCommision,
-		&c.DistributorCommision,
-		&c.RetailerCommision,
-	)
-
-	if err == nil {
-		return &c, nil
+	userIDs := []string{
+		retailerID,
+		distributorID,
+		mdID,
 	}
 
-	/* -------------------------------------------------------
-	   4. Master Distributor commission (PAYOUT)
-	------------------------------------------------------- */
-	err = db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"user_id": mdID,
-		"service": service,
-	}).Scan(
-		&c.TotalCommision,
-		&c.AdminCommision,
-		&c.MasterDistributorCommision,
-		&c.DistributorCommision,
-		&c.RetailerCommision,
-	)
+	query := `
+		SELECT
+			commision_id,
+			user_id,
+			service,
+			total_commision,
+			admin_commision,
+			master_distributor_commision,
+			distributor_commision,
+			retailer_commision,
+			created_at,
+			updated_at
+		FROM commisions
+		WHERE user_id = @user_id
+		AND service = @service;
+	`
 
-	if err == nil {
-		return &c, nil
+	for _, userID := range userIDs {
+		err = db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+			"user_id": userID,
+			"service": service,
+		}).Scan(
+			&comm.CommisionID,
+			&comm.UserID,
+			&comm.Service,
+			&comm.TotalCommision,
+			&comm.AdminCommision,
+			&comm.MasterDistributorCommision,
+			&comm.DistributorCommision,
+			&comm.RetailerCommision,
+			&comm.CreatedAt,
+			&comm.UpdatedAt,
+		)
+
+		if err == nil {
+			return &comm, nil
+		}
 	}
 
-	/* -------------------------------------------------------
-	   5. Default PAYOUT commission
-	------------------------------------------------------- */
-	return defaultPayoutCommision(), nil
+	return &models.GetCommisionResponseModel{
+		UserID:                     retailerID,
+		Service:                    service,
+		TotalCommision:             1.20,
+		AdminCommision:             0.30,
+		MasterDistributorCommision: 0.10,
+		DistributorCommision:       0.20,
+		RetailerCommision:          0.60,
+	}, nil
 }
 
-func (db *Database) GetPayoutCommisionSplit(
+func (db *Database) PayoutPendingOrSuccessQuery(
 	ctx context.Context,
-	retailerID string,
-	amount float64,
-) (*models.GetCommisionResponseModel, error) {
-
-	// 1. Get commission percentages (your existing logic)
-	c, err := db.getCommisionQuery(ctx, retailerID)
-	if err != nil {
-		return nil, err
-	}
-
-	// 2. Helper: percent → amount
-	calc := func(percent float64) float64 {
-		return round2((amount * percent) / 100)
-	}
-
-	// 3. Overwrite percentage values with actual amounts
-	c.TotalCommision = calc(c.TotalCommision)
-	c.AdminCommision = calc(c.AdminCommision)
-	c.MasterDistributorCommision = calc(c.MasterDistributorCommision)
-	c.DistributorCommision = calc(c.DistributorCommision)
-	c.RetailerCommision = calc(c.RetailerCommision)
-
-	return c, nil
-}
-
-func round2(v float64) float64 {
-	return math.Round(v*100) / 100
-}
-
-func (db *Database) CreatePayoutQuery(
-	ctx context.Context,
-	req models.CreatePayoutRequestModel,
-	res models.PayoutAPIResponseModel,
-	commision models.GetCommisionResponseModel,
+	payoutReq models.CreatePayoutRequestModel,
+	comm models.GetCommisionResponseModel,
+	adminID string,
+	status string, // must be PENDING or SUCCESS
 ) error {
 
 	tx, err := db.pool.Begin(ctx)
@@ -225,21 +136,32 @@ func (db *Database) CreatePayoutQuery(
 	}
 	defer tx.Rollback(ctx)
 
-	/* -------------------------------------------------------
-	   1. Decide payout status
-	------------------------------------------------------- */
-	status := "FAILED"
-	if res.Status == 1 || res.Status == 2 {
-		status = "SUCCESS"
+	// --------------------------------------------------
+	// 1️⃣ Fetch Distributor & Master Distributor IDs
+	// --------------------------------------------------
+	var distributorID, mdID string
+	err = tx.QueryRow(ctx, `
+		SELECT r.distributor_id, d.master_distributor_id
+		FROM retailers r
+		JOIN distributors d ON d.distributor_id = r.distributor_id
+		WHERE r.retailer_id = @rid;
+	`, pgx.NamedArgs{
+		"rid": payoutReq.RetailerID,
+	}).Scan(&distributorID, &mdID)
+
+	if err != nil {
+		return fmt.Errorf("invalid retailer hierarchy")
 	}
 
-	/* -------------------------------------------------------
-	   2. Insert payout_service (always)
-	------------------------------------------------------- */
-	_, err = tx.Exec(ctx, `
-		INSERT INTO payout_service (
+	// --------------------------------------------------
+	// 2️⃣ Insert payout transaction (WITH STATUS)
+	// --------------------------------------------------
+	var payoutTxnID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO payout_transactions (
 			partner_request_id,
 			operator_transaction_id,
+			payout_transaction_status,
 			retailer_id,
 			order_id,
 			mobile_number,
@@ -248,187 +170,295 @@ func (db *Database) CreatePayoutQuery(
 			beneficiary_account_number,
 			beneficiary_ifsc_code,
 			amount,
-			transfer_type
+			transfer_type,
+			admin_commision,
+			master_distributor_commision,
+			distributor_commision,
+			retailer_commision
 		) VALUES (
-			@partner_request_id,
-			@operator_txn_id,
-			@retailer_id,
-			@order_id,
+			@partner,
+			@operator_txn,
+			@status,
+			@retailer,
+			@order,
 			@mobile,
 			@bank,
 			@name,
 			@account,
 			@ifsc,
 			@amount,
-			@type
-		);
+			@type,
+			@admin_comm,
+			@md_comm,
+			@dis_comm,
+			@ret_comm
+		)
+		RETURNING payout_transaction_id;
 	`, pgx.NamedArgs{
-		"partner_request_id": res.PartnerRequestID,
-		"operator_txn_id":    res.OperatorTransactionID,
-		"retailer_id":        req.RetailerID,
-		"order_id":           res.OrderID,
-		"mobile":             req.MobileNumber,
-		"bank":               req.BeneficiaryBankName,
-		"name":               req.BeneficiaryName,
-		"account":            req.BeneficiaryAccountNumber,
-		"ifsc":               req.BeneficiaryIFSCCode,
-		"amount":             req.Amount,
-		"type":               req.TransferType,
-	})
+		"partner":      payoutReq.PartnerRequestID,
+		"operator_txn": "", // fill later when operator responds
+		"status":       status, // PENDING or SUCCESS
+		"retailer":     payoutReq.RetailerID,
+		"order":        payoutReq.PartnerRequestID,
+		"mobile":       payoutReq.MobileNumber,
+		"bank":         payoutReq.BeneficiaryBankName,
+		"name":         payoutReq.BeneficiaryName,
+		"account":      payoutReq.BeneficiaryAccountNumber,
+		"ifsc":         payoutReq.BeneficiaryIFSCCode,
+		"amount":       payoutReq.Amount,
+		"type":         payoutReq.TransferType,
+		"admin_comm":   comm.AdminCommision,
+		"md_comm":      comm.MasterDistributorCommision,
+		"dis_comm":     comm.DistributorCommision,
+		"ret_comm":     comm.RetailerCommision,
+	}).Scan(&payoutTxnID)
+
 	if err != nil {
 		return err
 	}
 
-	/* -------------------------------------------------------
-	   3. If FAILED → stop here
-	------------------------------------------------------- */
-	if status == "FAILED" {
-		return tx.Commit(ctx)
-	}
+	// --------------------------------------------------
+	// 3️⃣ Deduct Amount + Total Commission from Retailer
+	// --------------------------------------------------
+	totalDebit := payoutReq.Amount + comm.TotalCommision
 
-	/* -------------------------------------------------------
-	   4. Resolve hierarchy
-	------------------------------------------------------- */
-	var distributorID, mdID, adminID string
-	err = tx.QueryRow(ctx, `
-		SELECT
-			d.distributor_id,
-			md.master_distributor_id,
-			md.admin_id
-		FROM retailers r
-		JOIN distributors d ON r.distributor_id = d.distributor_id
-		JOIN master_distributors md ON d.master_distributor_id = md.master_distributor_id
-		WHERE r.retailer_id = @rid;
-	`, pgx.NamedArgs{
-		"rid": req.RetailerID,
-	}).Scan(&distributorID, &mdID, &adminID)
-	if err != nil {
-		return err
-	}
-
-	/* -------------------------------------------------------
-	   5. Deduct retailer (amount + commission)
-	------------------------------------------------------- */
-	var retailerBefore float64
+	var beforeRetailerBalance float64
 	err = tx.QueryRow(ctx, `
 		SELECT retailer_wallet_balance
 		FROM retailers
 		WHERE retailer_id = @id
 		FOR UPDATE;
-	`, pgx.NamedArgs{"id": req.RetailerID}).Scan(&retailerBefore)
+	`, pgx.NamedArgs{"id": payoutReq.RetailerID}).Scan(&beforeRetailerBalance)
+
 	if err != nil {
 		return err
 	}
 
-	totalDebit := req.Amount + commision.TotalCommision
-	retailerAfter := retailerBefore - totalDebit
+	afterRetailerBalance := beforeRetailerBalance - totalDebit
 
 	_, err = tx.Exec(ctx, `
 		UPDATE retailers
-		SET retailer_wallet_balance = @bal, updated_at = NOW()
+		SET retailer_wallet_balance = @bal
 		WHERE retailer_id = @id;
 	`, pgx.NamedArgs{
-		"id":  req.RetailerID,
-		"bal": retailerAfter,
+		"id":  payoutReq.RetailerID,
+		"bal": afterRetailerBalance,
 	})
 	if err != nil {
 		return err
 	}
 
-	/* -------------------------------------------------------
-	   6. Wallet transaction (retailer debit)
-	------------------------------------------------------- */
+	// Retailer debit wallet entry
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions (
 			user_id, reference_id, debit_amount,
 			before_balance, after_balance,
 			transaction_reason, remarks
 		) VALUES (
-			@uid, @ref, @amt,
-			@before, @after,
-			'PAYOUT', 'Payout transaction'
+			@uid, @ref, @amt, @before, @after,
+			'PAYOUT', 'Payout initiated'
 		);
 	`, pgx.NamedArgs{
-		"uid":    req.RetailerID,
-		"ref":    res.OperatorTransactionID,
+		"uid":    payoutReq.RetailerID,
+		"ref":    payoutTxnID,
 		"amt":    totalDebit,
-		"before": retailerBefore,
-		"after":  retailerAfter,
+		"before": beforeRetailerBalance,
+		"after":  afterRetailerBalance,
 	})
 	if err != nil {
 		return err
 	}
 
-	/* -------------------------------------------------------
-	   7. Credit commissions (ADMIN / MD / DIS / RET)
-	------------------------------------------------------- */
-	type credit struct {
-		id     string
-		amount float64
-		table  string
+	// --------------------------------------------------
+	// 4️⃣ Commission Distribution with PAN + TDS
+	// --------------------------------------------------
+	type split struct {
+		UserID string
+		Amount float64
+		Role   string
 	}
 
-	credits := []credit{
-		{adminID, commision.AdminCommision, "admins"},
-		{mdID, commision.MasterDistributorCommision, "master_distributors"},
-		{distributorID, commision.DistributorCommision, "distributors"},
-		{req.RetailerID, commision.RetailerCommision, "retailers"},
+	splits := []split{
+		{adminID, comm.AdminCommision, "ADMIN"},
+		{mdID, comm.MasterDistributorCommision, "MASTER_DISTRIBUTOR"},
+		{distributorID, comm.DistributorCommision, "DISTRIBUTOR"},
+		{payoutReq.RetailerID, comm.RetailerCommision, "RETAILER"},
 	}
 
-	for _, c := range credits {
-		if c.amount <= 0 {
+	tdsRate := 0.02
+
+	for _, s := range splits {
+		if s.Amount <= 0 {
 			continue
 		}
 
-		var before float64
-		err := tx.QueryRow(ctx, `
-			SELECT `+c.table+`_wallet_balance
-			FROM `+c.table+`
-			WHERE `+c.table+`_id = @id
-			FOR UPDATE;
-		`, pgx.NamedArgs{"id": c.id}).Scan(&before)
+		var before, after, tds, net float64
+		var pan string
+
+		switch s.Role {
+
+		case "ADMIN":
+			err = tx.QueryRow(ctx, `
+				SELECT admin_wallet_balance
+				FROM admins WHERE admin_id=@id FOR UPDATE;
+			`, pgx.NamedArgs{"id": s.UserID}).Scan(&before)
+			tds = 0
+			net = s.Amount
+
+		case "MASTER_DISTRIBUTOR":
+			err = tx.QueryRow(ctx, `
+				SELECT master_distributor_pan_number, master_distributor_wallet_balance
+				FROM master_distributors WHERE master_distributor_id=@id FOR UPDATE;
+			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			tds = s.Amount * tdsRate
+			net = s.Amount - tds
+
+		case "DISTRIBUTOR":
+			err = tx.QueryRow(ctx, `
+				SELECT distributor_pan_number, distributor_wallet_balance
+				FROM distributors WHERE distributor_id=@id FOR UPDATE;
+			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			tds = s.Amount * tdsRate
+			net = s.Amount - tds
+
+		case "RETAILER":
+			err = tx.QueryRow(ctx, `
+				SELECT retailer_pan_number, retailer_wallet_balance
+				FROM retailers WHERE retailer_id=@id FOR UPDATE;
+			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			tds = s.Amount * tdsRate
+			net = s.Amount - tds
+		}
+
 		if err != nil {
 			return err
 		}
 
-		after := before + c.amount
+		after = before + net
 
-		_, err = tx.Exec(ctx, `
-			UPDATE `+c.table+`
-			SET `+c.table+`_wallet_balance = @bal, updated_at = NOW()
-			WHERE `+c.table+`_id = @id;
-		`, pgx.NamedArgs{
-			"id":  c.id,
-			"bal": after,
-		})
+		var update string
+		switch s.Role {
+		case "ADMIN":
+			update = `UPDATE admins SET admin_wallet_balance=@bal WHERE admin_id=@id`
+		case "MASTER_DISTRIBUTOR":
+			update = `UPDATE master_distributors SET master_distributor_wallet_balance=@bal WHERE master_distributor_id=@id`
+		case "DISTRIBUTOR":
+			update = `UPDATE distributors SET distributor_wallet_balance=@bal WHERE distributor_id=@id`
+		case "RETAILER":
+			update = `UPDATE retailers SET retailer_wallet_balance=@bal WHERE retailer_id=@id`
+		}
+
+		_, err = tx.Exec(ctx, update, pgx.NamedArgs{"id": s.UserID, "bal": after})
 		if err != nil {
 			return err
 		}
 
+		// Wallet credit entry
 		_, err = tx.Exec(ctx, `
 			INSERT INTO wallet_transactions (
 				user_id, reference_id, credit_amount,
 				before_balance, after_balance,
 				transaction_reason, remarks
 			) VALUES (
-				@uid, @ref, @amt,
-				@before, @after,
-				'COMMISSION', 'Payout commission'
+				@uid, @ref, @amt, @before, @after,
+				'PAYOUT', 'Commission credited'
 			);
 		`, pgx.NamedArgs{
-			"uid":    c.id,
-			"ref":    res.OperatorTransactionID,
-			"amt":    c.amount,
+			"uid":    s.UserID,
+			"ref":    payoutTxnID,
+			"amt":    net,
 			"before": before,
 			"after":  after,
 		})
 		if err != nil {
 			return err
 		}
+
+		// TDS entry (except admin)
+		if s.Role != "ADMIN" {
+			_, err = tx.Exec(ctx, `
+				INSERT INTO tds_commision (
+					transaction_id, user_id, user_name,
+					commision, tds, paid_commision,
+					pan_number, status
+				) VALUES (
+					@txn, @uid, @role,
+					@comm, @tds, @paid,
+					@pan, 'DEDUCTED'
+				);
+			`, pgx.NamedArgs{
+				"txn":  payoutTxnID,
+				"uid":  s.UserID,
+				"role": s.Role,
+				"comm": s.Amount,
+				"tds":  tds,
+				"paid": net,
+				"pan":  pan,
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	/* -------------------------------------------------------
-	   8. Commit
-	------------------------------------------------------- */
+	// --------------------------------------------------
+	// 5️⃣ Commit Transaction
+	// --------------------------------------------------
 	return tx.Commit(ctx)
+}
+
+
+func (db *Database) PayoutFailedQuery(
+	ctx context.Context,
+	req models.CreatePayoutRequestModel,
+) error {
+
+	_, err := db.pool.Exec(ctx, `
+		INSERT INTO payout_transactions (
+			partner_request_id,
+			operator_transaction_id,
+			payout_transaction_status,
+			retailer_id,
+			order_id,
+			mobile_number,
+			beneficiary_bank_name,
+			beneficiary_name,
+			beneficiary_account_number,
+			beneficiary_ifsc_code,
+			amount,
+			transfer_type,
+			admin_commision,
+			master_distributor_commision,
+			distributor_commision,
+			retailer_commision
+		) VALUES (
+			@partner_req_id,
+			@operator_txn_id,
+			'FAILED',
+			@retailer_id,
+			@order_id,
+			@mobile_number,
+			@bank_name,
+			@beneficiary_name,
+			@account_number,
+			@ifsc,
+			@amount,
+			@transfer_type,
+			0, 0, 0, 0
+		);
+	`, pgx.NamedArgs{
+		"partner_req_id":   req.PartnerRequestID,
+		"operator_txn_id":  "", // empty or failure code from operator
+		"retailer_id":      req.RetailerID,
+		"order_id":         req.PartnerRequestID,
+		"mobile_number":    req.MobileNumber,
+		"bank_name":        req.BeneficiaryBankName,
+		"beneficiary_name": req.BeneficiaryName,
+		"account_number":   req.BeneficiaryAccountNumber,
+		"ifsc":             req.BeneficiaryIFSCCode,
+		"amount":           req.Amount,
+		"transfer_type":    req.TransferType,
+	})
+
+	return err
 }

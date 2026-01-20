@@ -15,11 +15,9 @@ func (r *routes) PayoutRoutes(
 
 	payoutRepo := repositories.NewPayoutRepository(db, jwtUtils)
 	payoutHandler := handlers.NewPayoutHandler(payoutRepo)
-
 	pr := r.Router.Group(
 		"/payout",
 		middlewares.AuthorizationMiddleware(jwtUtils),
 	)
-
 	pr.POST("/create", payoutHandler.CreatePayout)
 }

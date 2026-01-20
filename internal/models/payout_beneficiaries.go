@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type CreateRetailerBeneficiaryModel struct {
+type CreatePayoutBeneficiaryModel struct {
 	RetailerID      string `json:"retailer_id" validate:"required"`
 	MobileNumber    string `json:"mobile_number" validate:"required"`
 	BankName        string `json:"bank_name" validate:"required"`
@@ -12,7 +12,7 @@ type CreateRetailerBeneficiaryModel struct {
 	Phone           string `json:"phone" validate:"required"`
 }
 
-type UpdateRetailerBeneficiaryModel struct {
+type UpdatePayoutBeneficiaryModel struct {
 	BankName        *string `json:"bank_name,omitempty"`
 	BeneficiaryName *string `json:"beneficiary_name,omitempty"`
 	AccountNumber   *string `json:"account_number,omitempty"`
@@ -20,7 +20,14 @@ type UpdateRetailerBeneficiaryModel struct {
 	Phone           *string `json:"phone,omitempty"`
 }
 
-type GetRetailerBeneficiaryResponseModel struct {
+type UpdatePayoutVerificationRequestModel struct {
+	RetailerID    string `json:"retailer_id"`
+	PhoneNumber   string `json:"retailer_phone_number"`
+	AccountNumber string `json:"account_number"`
+	IFSCCode      string `json:"ifsc_code"`
+}
+
+type GetPayoutBeneficiaryResponseModel struct {
 	BeneficiaryID   int64     `json:"beneficiary_id"`
 	RetailerID      string    `json:"retailer_id"`
 	MobileNumber    string    `json:"mobile_number"`

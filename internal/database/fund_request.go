@@ -9,10 +9,6 @@ import (
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
-/* =========================================================
-   CREATE FUND REQUEST
-========================================================= */
-
 func (db *Database) CreateFundRequestQuery(
 	ctx context.Context,
 	req models.CreateFundRequestModel,
@@ -56,7 +52,6 @@ func (db *Database) CreateFundRequestQuery(
 
 	return id, err
 }
-
 
 func (db *Database) GetFundRequestQuery(
 	ctx context.Context,
@@ -105,7 +100,6 @@ func (db *Database) GetFundRequestQuery(
 
 	return &fr, nil
 }
-
 
 func (db *Database) GetAllFundRequestsQuery(
 	ctx context.Context,
@@ -165,7 +159,6 @@ func (db *Database) GetAllFundRequestsQuery(
 
 	return list, rows.Err()
 }
-
 
 func (db *Database) getFundRequestsByUser(
 	ctx context.Context,
@@ -263,7 +256,6 @@ func (db *Database) GetFundRequestsByRequestToIDQuery(
 	return db.getFundRequestsByUser(ctx, "request_to_id", req, limit, offset)
 }
 
-
 func (db *Database) RejectFundRequestQuery(
 	ctx context.Context,
 	fundRequestID int64,
@@ -294,7 +286,6 @@ func (db *Database) RejectFundRequestQuery(
 
 	return nil
 }
-
 
 func (db *Database) AcceptFundRequestQuery(
 	ctx context.Context,

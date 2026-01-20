@@ -7,13 +7,13 @@ import (
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
-func (db *Database) CreateRetailerBeneficiaryQuery(
+func (db *Database) CreatePayoutBeneficiaryQuery(
 	ctx context.Context,
-	req models.CreateRetailerBeneficiaryModel,
+	req models.CreatePayoutBeneficiaryModel,
 ) (int64, error) {
 
 	query := `
-		INSERT INTO retailer_beneficiaries (
+		INSERT INTO payout_beneficiaries (
 			retailer_id,
 			mobile_number,
 			beneficiary_bank_name,
@@ -47,10 +47,10 @@ func (db *Database) CreateRetailerBeneficiaryQuery(
 	return beneficiaryID, err
 }
 
-func (db *Database) GetRetailerBeneficiaryByIDQuery(
+func (db *Database) GetPayoutBeneficiaryByIDQuery(
 	ctx context.Context,
 	beneficiaryID int64,
-) (*models.GetRetailerBeneficiaryResponseModel, error) {
+) (*models.GetPayoutBeneficiaryResponseModel, error) {
 
 	query := `
 		SELECT
@@ -65,11 +65,11 @@ func (db *Database) GetRetailerBeneficiaryByIDQuery(
 			is_beneficiary_verified,
 			created_at,
 			updated_at
-		FROM retailer_beneficiaries
+		FROM payout_beneficiaries
 		WHERE beneficiary_id = @id;
 	`
 
-	var b models.GetRetailerBeneficiaryResponseModel
+	var b models.GetPayoutBeneficiaryResponseModel
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
 		"id": beneficiaryID,
 	}).Scan(
@@ -93,11 +93,11 @@ func (db *Database) GetRetailerBeneficiaryByIDQuery(
 	return &b, nil
 }
 
-func (db *Database) GetRetailerBeneficiariesByRetailerIDQuery(
+func (db *Database) GetPayoutBeneficiariesByRetailerIDQuery(
 	ctx context.Context,
 	retailerID string,
 	limit, offset int,
-) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+) ([]models.GetPayoutBeneficiaryResponseModel, error) {
 
 	query := `
 		SELECT
@@ -112,7 +112,7 @@ func (db *Database) GetRetailerBeneficiariesByRetailerIDQuery(
 			is_beneficiary_verified,
 			created_at,
 			updated_at
-		FROM retailer_beneficiaries
+		FROM payout_beneficiaries
 		WHERE retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
@@ -128,10 +128,10 @@ func (db *Database) GetRetailerBeneficiariesByRetailerIDQuery(
 	}
 	defer rows.Close()
 
-	var list []models.GetRetailerBeneficiaryResponseModel
+	var list []models.GetPayoutBeneficiaryResponseModel
 
 	for rows.Next() {
-		var b models.GetRetailerBeneficiaryResponseModel
+		var b models.GetPayoutBeneficiaryResponseModel
 		if err := rows.Scan(
 			&b.BeneficiaryID,
 			&b.RetailerID,
@@ -153,11 +153,11 @@ func (db *Database) GetRetailerBeneficiariesByRetailerIDQuery(
 	return list, rows.Err()
 }
 
-func (db *Database) GetRetailerBeneficiariesByMobileNumberQuery(
+func (db *Database) GetPayoutBeneficiariesByMobileNumberQuery(
 	ctx context.Context,
 	mobileNumber string,
 	limit, offset int,
-) ([]models.GetRetailerBeneficiaryResponseModel, error) {
+) ([]models.GetPayoutBeneficiaryResponseModel, error) {
 
 	query := `
 		SELECT
@@ -172,7 +172,7 @@ func (db *Database) GetRetailerBeneficiariesByMobileNumberQuery(
 			is_beneficiary_verified,
 			created_at,
 			updated_at
-		FROM retailer_beneficiaries
+		FROM payout_beneficiaries
 		WHERE mobile_number = @mobile_number
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
@@ -188,10 +188,10 @@ func (db *Database) GetRetailerBeneficiariesByMobileNumberQuery(
 	}
 	defer rows.Close()
 
-	var list []models.GetRetailerBeneficiaryResponseModel
+	var list []models.GetPayoutBeneficiaryResponseModel
 
 	for rows.Next() {
-		var b models.GetRetailerBeneficiaryResponseModel
+		var b models.GetPayoutBeneficiaryResponseModel
 		if err := rows.Scan(
 			&b.BeneficiaryID,
 			&b.RetailerID,
@@ -213,14 +213,14 @@ func (db *Database) GetRetailerBeneficiariesByMobileNumberQuery(
 	return list, rows.Err()
 }
 
-func (db *Database) UpdateRetailerBeneficiaryQuery(
+func (db *Database) UpdatePayoutBeneficiaryQuery(
 	ctx context.Context,
 	beneficiaryID int64,
-	req models.UpdateRetailerBeneficiaryModel,
+	req models.UpdatePayoutBeneficiaryModel,
 ) error {
 
 	query := `
-		UPDATE retailer_beneficiaries
+		UPDATE payout_beneficiaries
 		SET
 			beneficiary_bank_name = COALESCE(@bank_name, beneficiary_bank_name),
 			beneficiary_name = COALESCE(@name, beneficiary_name),
@@ -250,14 +250,14 @@ func (db *Database) UpdateRetailerBeneficiaryQuery(
 	return nil
 }
 
-func (db *Database) UpdateRetailerBeneficiaryVerificationQuery(
+func (db *Database) UpdatePayoutBeneficiaryVerificationQuery(
 	ctx context.Context,
 	beneficiaryID int64,
 	isVerified bool,
 ) error {
 
 	query := `
-		UPDATE retailer_beneficiaries
+		UPDATE payout_beneficiaries
 		SET
 			is_beneficiary_verified = @verified,
 			updated_at = NOW()
@@ -279,13 +279,13 @@ func (db *Database) UpdateRetailerBeneficiaryVerificationQuery(
 	return nil
 }
 
-func (db *Database) DeleteRetailerBeneficiaryQuery(
+func (db *Database) DeletePayoutBeneficiaryQuery(
 	ctx context.Context,
 	beneficiaryID int64,
 ) error {
 
 	tag, err := db.pool.Exec(ctx, `
-		DELETE FROM retailer_beneficiaries
+		DELETE FROM payout_beneficiaries
 		WHERE beneficiary_id = @id;
 	`, pgx.NamedArgs{
 		"id": beneficiaryID,

@@ -208,18 +208,47 @@ func (db *Database) UpdateAdminWalletQuery(
 	ctx context.Context,
 	req models.UpdateAdminWalletRequestModel,
 ) error {
-	query := `
-		UPDATE admins 
-		SET admin_wallet_balance = admin_wallet_balance + @amount,
-		updated_at = NOW()
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// 1️⃣ Get current wallet balance
+	var beforeBalance float64
+	getBalanceQuery := `
+		SELECT admin_wallet_balance
+		FROM admins
 		WHERE admin_id = @admin_id;
 	`
-	tag, err := db.pool.Exec(
+
+	if err := tx.QueryRow(
 		ctx,
-		query,
+		getBalanceQuery,
 		pgx.NamedArgs{
 			"admin_id": req.AdminID,
-			"amount":   req.Amount,
+		},
+	).Scan(&beforeBalance); err != nil {
+		return fmt.Errorf("failed to fetch admin wallet balance")
+	}
+
+	afterBalance := beforeBalance + req.Amount
+
+	// 2️⃣ Update admin wallet
+	updateWalletQuery := `
+		UPDATE admins
+		SET admin_wallet_balance = @after_balance,
+		    updated_at = NOW()
+		WHERE admin_id = @admin_id;
+	`
+
+	tag, err := tx.Exec(
+		ctx,
+		updateWalletQuery,
+		pgx.NamedArgs{
+			"admin_id":      req.AdminID,
+			"after_balance": afterBalance,
 		},
 	)
 	if err != nil {
@@ -229,6 +258,49 @@ func (db *Database) UpdateAdminWalletQuery(
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("invalid admin id or admin not found")
 	}
+
+	// 3️⃣ Insert wallet transaction record
+	insertTransactionQuery := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			credit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@credit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks
+		);
+	`
+
+	if _, err := tx.Exec(
+		ctx,
+		insertTransactionQuery,
+		pgx.NamedArgs{
+			"user_id":            req.AdminID,
+			"reference_id":       req.AdminID, // ✅ admin id as reference
+			"credit_amount":      req.Amount,
+			"before_balance":     beforeBalance,
+			"after_balance":      afterBalance,
+			"transaction_reason": "TOPUP",
+			"remarks":            "Admin wallet topup",
+		},
+	); err != nil {
+		return fmt.Errorf("failed to insert wallet transaction")
+	}
+
+	// 4️⃣ Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit wallet transaction")
+	}
+
 	return nil
 }
 

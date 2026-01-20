@@ -12,10 +12,17 @@ CREATE TABLE
         beneficiary_ifsc_code TEXT NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
         transfer_type TEXT NOT NULL CHECK (transfer_type IN ('IMPS', 'NEFT')),
+        admin_commision NUMERIC(20,2) NOT NULL,
+        master_distributor_commision NUMERIC(20,2) NOT NULL,
+        distributor_commision NUMERIC(20,2) NOT NULL,
+        retailer_commision NUMERIC(20,2) NOT NULL,
+        payout_transaction_status TEXT NOT NULL CHECK (payout_transaction_status IN ("SUCCESS" , "PENDING" , "FAILED")),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         FOREIGN KEY (retailer_id) REFERENCES retailers (retailer_id) ON DELETE CASCADE
     );
+
+
 
 CREATE TABLE
     IF NOT EXISTS payout_beneficiaries (

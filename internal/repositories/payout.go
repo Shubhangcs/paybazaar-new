@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -35,72 +34,22 @@ func NewPayoutRepository(db *database.Database, jwtUtils *pkg.JwtUtils) *payoutR
 
 func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	var payoutRequest models.CreatePayoutRequestModel
-
-	if err := bindAndValidate(c, &payoutRequest); err != nil {
-		return err
-	}
-
-	// 🔐 Retailer ID MUST come from JWT
-	claims, ok := c.Get("user").(*models.AccessTokenClaims)
-	if !ok || claims.UserID == "" {
-		return fmt.Errorf("unauthorized")
-	}
-	payoutRequest.RetailerID = claims.UserID
-
-	// Amount validation
-	if payoutRequest.Amount < 1000 || payoutRequest.Amount > 25000 {
-		return fmt.Errorf("failed to payout invalid amount")
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
+	commision, err := pr.db.GetPayoutCommisionQuery(ctx, payoutRequest.RetailerID, "PAYOUT")
 
-	// MPIN + KYC check
-	isValid, err := pr.db.VerifyMPINAndKycQuery(
-		ctx,
-		payoutRequest.RetailerID,
-		payoutRequest.MPIN,
-	)
+	isValid, err := pr.db.ValidateRequestQuery(ctx, payoutRequest, commision.RetailerCommision)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(isValid)
 	if !isValid {
-		return fmt.Errorf("invalid mpin or incomplete kyc")
+		return fmt.Errorf("incorrect mpin or kyc status or insufficient balance")
 	}
 
-	// Commission split
-	commision, err := pr.db.GetPayoutCommisionSplit(
-		ctx,
-		payoutRequest.RetailerID,
-		payoutRequest.Amount,
-	)
-	if err != nil {
-		return err
+	if payoutRequest.Amount < 1000 || payoutRequest.Amount > 25000 {
+		return fmt.Errorf("invalid amount")
 	}
-
-	// Wallet balance check
-	hasBalance, err := pr.db.CheckRetailerWalletBalance(
-		ctx,
-		payoutRequest.RetailerID,
-		payoutRequest.Amount,
-		commision.TotalCommision,
-	)
-	if err != nil {
-		return err
-	}
-
-	if !hasBalance {
-		return fmt.Errorf("insufficient balance")
-	}
-
-	// Generate partner request ID
-	partnerReqID := uuid.New()
-	payoutRequest.PartnerRequestID = partnerReqID.String()
 
 	// ---------------- API CALL ----------------
 
@@ -155,6 +104,18 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return fmt.Errorf("invalid payout gateway response")
 	}
 
+	if res.Status == 1 {
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, payoutRequest.AdminID, "SUCCESS")
+	}
+
+	if res.Status == 2 {
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, payoutRequest.AdminID, "PENDING")
+	}
+
+	if res.Status == 3 {
+		return pr.db.PayoutFailedQuery(ctx, payoutRequest)
+	}
+
 	// ---------------- DB TRANSACTION ----------------
-	return pr.db.CreatePayoutQuery(ctx, payoutRequest, res, *commision)
+	return fmt.Errorf("invalid payout status")
 }
