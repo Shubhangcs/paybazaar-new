@@ -19,6 +19,7 @@ func (r *routes) DistributorRoutes(db *database.Database, jwtUtils *pkg.JwtUtils
 	drg.PUT("/update/block", disHandler.UpdateDistributorBlockStatusRequest, middlewares.RequireRoles("admin"))
 	drg.PUT("/update/mpin", disHandler.UpdateDistributorMPINRequest, middlewares.RequireRoles("distributor"))
 	drg.PUT("/update/details", disHandler.UpdateDistributorDetailsRequest, middlewares.RequireRoles("admin", "distributor"))
+	drg.PUT("/update/password", disHandler.UpdateDistributorPasswordRequest, middlewares.RequireRoles("distributor"))
 	drg.PUT("/update/md", disHandler.UpdateDistributorMasterDistributorRequest, middlewares.RequireRoles("admin"))
 	drg.DELETE("/delete/:distributor_id", disHandler.DeleteDistributorRequest, middlewares.RequireRoles("admin"))
 	drg.GET("/get/admin/:admin_id", disHandler.GetDistributorsByAdminIDRequest, middlewares.RequireRoles("admin"))
