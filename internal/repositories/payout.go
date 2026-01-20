@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -50,6 +51,9 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	if payoutRequest.Amount < 1000 || payoutRequest.Amount > 25000 {
 		return fmt.Errorf("invalid amount")
 	}
+
+	id := uuid.NewString()
+	payoutRequest.PartnerRequestID = id
 
 	// ---------------- API CALL ----------------
 
@@ -105,11 +109,11 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	}
 
 	if res.Status == 1 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, payoutRequest.AdminID, "SUCCESS")
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, payoutRequest.AdminID, "SUCCESS")
 	}
 
 	if res.Status == 2 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, payoutRequest.AdminID, "PENDING")
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, payoutRequest.AdminID, "PENDING")
 	}
 
 	if res.Status == 3 {

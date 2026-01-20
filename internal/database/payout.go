@@ -126,6 +126,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	ctx context.Context,
 	payoutReq models.CreatePayoutRequestModel,
 	comm models.GetCommisionResponseModel,
+	res models.PayoutAPIResponseModel,
 	adminID string,
 	status string, // must be PENDING or SUCCESS
 ) error {
@@ -196,10 +197,10 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		RETURNING payout_transaction_id;
 	`, pgx.NamedArgs{
 		"partner":      payoutReq.PartnerRequestID,
-		"operator_txn": "", // fill later when operator responds
-		"status":       status, // PENDING or SUCCESS
+		"operator_txn": res.OperatorTransactionID, // fill later when operator responds
+		"status":       status,    // PENDING or SUCCESS
 		"retailer":     payoutReq.RetailerID,
-		"order":        payoutReq.PartnerRequestID,
+		"order":        res.OrderID,
 		"mobile":       payoutReq.MobileNumber,
 		"bank":         payoutReq.BeneficiaryBankName,
 		"name":         payoutReq.BeneficiaryName,
@@ -406,7 +407,6 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
-
 
 func (db *Database) PayoutFailedQuery(
 	ctx context.Context,
