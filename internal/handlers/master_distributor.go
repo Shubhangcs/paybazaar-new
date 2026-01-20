@@ -33,8 +33,8 @@ func (mdh *masterDistributorHandler) CreateMasterDistributorRequest(c echo.Conte
 	)
 }
 
-func (mdh *masterDistributorHandler) GetMasterDistributorByIDRequest(c echo.Context) error {
-	res, err := mdh.masterDistributorRepository.GetMasterDistributorByID(c)
+func (mdh *masterDistributorHandler) GetMasterDistributorDetailsByMasterDistributorIDRequest(c echo.Context) error {
+	res, err := mdh.masterDistributorRepository.GetMasterDistributorDetailsByMasterDistributorID(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusNotFound,
@@ -45,14 +45,14 @@ func (mdh *masterDistributorHandler) GetMasterDistributorByIDRequest(c echo.Cont
 		http.StatusOK,
 		models.ResponseModel{
 			Status:  "success",
-			Message: "master distributor fetched successfully",
+			Message: "master distributor details fetched successfully",
 			Data:    map[string]any{"master_distributor": res},
 		},
 	)
 }
 
-func (mdh *masterDistributorHandler) ListMasterDistributorsRequest(c echo.Context) error {
-	res, err := mdh.masterDistributorRepository.ListMasterDistributors(c)
+func (mdh *masterDistributorHandler) GetMasterDistributorsByAdminIDRequest(c echo.Context) error {
+	res, err := mdh.masterDistributorRepository.GetMasterDistributorsByAdminID(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
@@ -69,8 +69,8 @@ func (mdh *masterDistributorHandler) ListMasterDistributorsRequest(c echo.Contex
 	)
 }
 
-func (mdh *masterDistributorHandler) ListMasterDistributorsByAdminIDRequest(c echo.Context) error {
-	res, err := mdh.masterDistributorRepository.ListMasterDistributorsByAdminID(c)
+func (mdh *masterDistributorHandler) GetMasterDistributorsForDropdownByAdminIDRequest(c echo.Context) error {
+	res, err := mdh.masterDistributorRepository.GetMasterDistributorsForDropdownByAdminID(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
@@ -87,8 +87,8 @@ func (mdh *masterDistributorHandler) ListMasterDistributorsByAdminIDRequest(c ec
 	)
 }
 
-func (mdh *masterDistributorHandler) UpdateMasterDistributorRequest(c echo.Context) error {
-	if err := mdh.masterDistributorRepository.UpdateMasterDistributor(c); err != nil {
+func (mdh *masterDistributorHandler) UpdateMasterDistributorDetailsRequest(c echo.Context) error {
+	if err := mdh.masterDistributorRepository.UpdateMasterDistributorDetails(c); err != nil {
 		return c.JSON(
 			http.StatusBadRequest,
 			models.ResponseModel{Status: "failed", Message: err.Error()},
@@ -96,7 +96,59 @@ func (mdh *masterDistributorHandler) UpdateMasterDistributorRequest(c echo.Conte
 	}
 	return c.JSON(
 		http.StatusOK,
-		models.ResponseModel{Status: "success", Message: "master distributor updated successfully"},
+		models.ResponseModel{Status: "success", Message: "master distributor details updated successfully"},
+	)
+}
+
+func (mdh *masterDistributorHandler) UpdateMasterDistributorPasswordRequest(c echo.Context) error {
+	if err := mdh.masterDistributorRepository.UpdateMasterDistributorPassword(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "master distributor password updated successfully"},
+	)
+}
+
+func (mdh *masterDistributorHandler) UpdateMasterDistributorKYCStatusRequest(c echo.Context) error {
+	if err := mdh.masterDistributorRepository.UpdateMasterDistributorKYCStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "master distributor kyc status updated successfully"},
+	)
+}
+
+func (mdh *masterDistributorHandler) UpdateMasterDistributorMPINRequest(c echo.Context) error {
+	if err := mdh.masterDistributorRepository.UpdateMasterDistributorMPIN(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "master distributor mpin updated successfully"},
+	)
+}
+
+func (mdh *masterDistributorHandler) UpdateMasterDistributorBlockStatusRequest(c echo.Context) error {
+	if err := mdh.masterDistributorRepository.UpdateMasterDistributorBlockStatus(c); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "master distributor block status updated successfully"},
 	)
 }
 
@@ -113,28 +165,8 @@ func (mdh *masterDistributorHandler) DeleteMasterDistributorRequest(c echo.Conte
 	)
 }
 
-func (mdh *masterDistributorHandler) GetMasterDistributorsByAdminIDForDropdownRequest(
-	c echo.Context,
-) error {
-	res, err := mdh.masterDistributorRepository.GetMasterDistributorsByAdminIDForDropdown(c)
-	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{Status: "failed", Message: err.Error()},
-		)
-	}
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "master distributors fetched successfully",
-			Data:    map[string]any{"master_distributors": res},
-		},
-	)
-}
-
-func (mdh *masterDistributorHandler) LoginMasterDistributorRequest(c echo.Context) error {
-	token, err := mdh.masterDistributorRepository.LoginMasterDistributor(c)
+func (mdh *masterDistributorHandler) MasterDistributorLoginRequest(c echo.Context) error {
+	token, err := mdh.masterDistributorRepository.MasterDistributorLogin(c)
 	if err != nil {
 		return c.JSON(
 			http.StatusUnauthorized,
@@ -147,79 +179,6 @@ func (mdh *masterDistributorHandler) LoginMasterDistributorRequest(c echo.Contex
 			Status:  "success",
 			Message: "login successful",
 			Data:    map[string]any{"access_token": token},
-		},
-	)
-}
-
-func (mh *masterDistributorHandler) UpdateBlockStatus(
-	c echo.Context,
-) error {
-
-	if err := mh.masterDistributorRepository.UpdateBlockStatus(c); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "block status updated successfully",
-		},
-	)
-}
-
-func (mh *masterDistributorHandler) UpdateKYCStatus(
-	c echo.Context,
-) error {
-
-	if err := mh.masterDistributorRepository.UpdateKYCStatus(c); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "KYC status updated successfully",
-		},
-	)
-}
-
-func (mh *masterDistributorHandler) UpdateMPIN(
-	c echo.Context,
-) error {
-
-	mpin, err := mh.masterDistributorRepository.UpdateMPIN(c)
-	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "MPIN updated successfully",
-			Data: map[string]int64{
-				"mpin": mpin,
-			},
 		},
 	)
 }

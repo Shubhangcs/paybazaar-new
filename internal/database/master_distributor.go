@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -29,7 +30,6 @@ func (db *Database) CreateMasterDistributorQuery(
 			master_distributor_pincode,
 			master_distributor_business_name,
 			master_distributor_business_type,
-			master_distributor_mpin,
 			master_distributor_gst_number
 		) VALUES (
 			@admin_id,
@@ -37,9 +37,9 @@ func (db *Database) CreateMasterDistributorQuery(
 			@phone,
 			@email,
 			@password,
-			@aadhar_number,
-			@pan_number,
-			@date_of_birth,
+			@aadhar,
+			@pan,
+			@dob,
 			@gender,
 			@city,
 			@state,
@@ -47,20 +47,19 @@ func (db *Database) CreateMasterDistributorQuery(
 			@pincode,
 			@business_name,
 			@business_type,
-			@mpin,
-			@gst_number
-		)
+			@gst
+		);
 	`
 
-	_, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"admin_id":      req.AdminID,
-		"name":          req.Name,
-		"phone":         req.Phone,
-		"email":         req.Email,
-		"password":      req.Password,
-		"aadhar_number": req.AadharNumber,
-		"pan_number":    req.PanNumber,
-		"date_of_birth": req.DateOfBirth,
+		"name":          req.MasterDistributorName,
+		"phone":         req.MasterDistributorPhone,
+		"email":         req.MasterDistributorEmail,
+		"password":      req.MasterDistributorPassword,
+		"aadhar":        req.AadharNumber,
+		"pan":           req.PanNumber,
+		"dob":           req.DateOfBirth,
 		"gender":        req.Gender,
 		"city":          req.City,
 		"state":         req.State,
@@ -68,95 +67,84 @@ func (db *Database) CreateMasterDistributorQuery(
 		"pincode":       req.Pincode,
 		"business_name": req.BusinessName,
 		"business_type": req.BusinessType,
-		"mpin":          req.MPIN,
-		"gst_number":    req.GSTNumber,
-	})
+		"gst":           req.GSTNumber,
+	}); err != nil {
+		return fmt.Errorf("failed to create master distributor")
+	}
 
-	return err
+	return nil
 }
 
-func (db *Database) GetMasterDistributorByIDQuery(
+func (db *Database) GetMasterDistributorDetailsByMasterDistributorIDQuery(
 	ctx context.Context,
-	mdID string,
-) (*models.MasterDistributorModel, error) {
+	masterDistributorID string,
+) (*models.GetCompleteMasterDistributorDetailsResponseModel, error) {
 
 	query := `
 		SELECT
-			m.master_distributor_id,
-			m.admin_id,
-			m.master_distributor_name,
-			m.master_distributor_phone,
-			m.master_distributor_email,
-			m.master_distributor_password,
-			m.master_distributor_aadhar_number,
-			m.master_distributor_pan_number,
-			m.master_distributor_date_of_birth,
-			m.master_distributor_gender,
-			m.master_distributor_city,
-			m.master_distributor_state,
-			m.master_distributor_address,
-			m.master_distributor_pincode,
-			m.master_distributor_business_name,
-			m.master_distributor_business_type,
-			m.master_distributor_mpin,
-			m.master_distributor_kyc_status,
-			m.master_distributor_documents_url,
-			m.master_distributor_gst_number,
-			m.master_distributor_wallet_balance,
-			m.is_master_distributor_blocked,
-			m.created_at,
-			m.updated_at
-		FROM master_distributors m
-		WHERE m.master_distributor_id = @md_id;
+			master_distributor_id,
+			admin_id,
+			master_distributor_name,
+			master_distributor_phone,
+			master_distributor_email,
+			master_distributor_aadhar_number,
+			master_distributor_pan_number,
+			master_distributor_date_of_birth,
+			master_distributor_gender,
+			master_distributor_city,
+			master_distributor_state,
+			master_distributor_address,
+			master_distributor_pincode,
+			master_distributor_business_name,
+			master_distributor_business_type,
+			master_distributor_kyc_status,
+			master_distributor_documents_url,
+			master_distributor_gst_number,
+			master_distributor_wallet_balance,
+			is_master_distributor_blocked,
+			created_at,
+			updated_at
+		FROM master_distributors
+		WHERE master_distributor_id = @md_id;
 	`
 
-	row := db.pool.QueryRow(
-		ctx,
-		query,
-		pgx.NamedArgs{
-			"md_id": mdID,
-		},
-	)
-
-	var md models.MasterDistributorModel
-	err := row.Scan(
-		&md.MasterDistributorID,
-		&md.AdminID,
-		&md.Name,
-		&md.Phone,
-		&md.Email,
-		&md.Password,
-		&md.AadharNumber,
-		&md.PanNumber,
-		&md.DateOfBirth,
-		&md.Gender,
-		&md.City,
-		&md.State,
-		&md.Address,
-		&md.Pincode,
-		&md.BusinessName,
-		&md.BusinessType,
-		&md.MPIN,
-		&md.KYCStatus,
-		&md.DocumentsURL,
-		&md.GSTNumber,
-		&md.WalletBalance,
-		&md.IsBlocked,
-		&md.CreatedAt,
-		&md.UpdatedAt,
-	)
-
-	if err != nil {
-		return nil, err
+	var res models.GetCompleteMasterDistributorDetailsResponseModel
+	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"md_id": masterDistributorID,
+	}).Scan(
+		&res.MasterDistributorID,
+		&res.AdminID,
+		&res.MasterDistributorName,
+		&res.MasterDistributorPhone,
+		&res.MasterDistributorEmail,
+		&res.AadharNumber,
+		&res.PanNumber,
+		&res.DateOfBirth,
+		&res.Gender,
+		&res.City,
+		&res.State,
+		&res.Address,
+		&res.Pincode,
+		&res.BusinessName,
+		&res.BusinessType,
+		&res.KYCStatus,
+		&res.DocumentsURL,
+		&res.GSTNumber,
+		&res.WalletBalance,
+		&res.IsBlocked,
+		&res.CreatedAt,
+		&res.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch master distributor details")
 	}
 
-	return &md, nil
+	return &res, nil
 }
 
-func (db *Database) GetMasterDistributorByEmailQuery(
+func (db *Database) GetMasterDistributorDetailsForLoginQuery(
 	ctx context.Context,
-	email string,
-) (*models.MasterDistributorModel, error) {
+	masterDistributorID string,
+) (*models.GetMasterDistributorDetailsForLoginModel, error) {
 
 	query := `
 		SELECT
@@ -166,33 +154,28 @@ func (db *Database) GetMasterDistributorByEmailQuery(
 			master_distributor_password,
 			is_master_distributor_blocked
 		FROM master_distributors
-		WHERE master_distributor_email = @email
+		WHERE master_distributor_id = @md_id;
 	`
 
-	row := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"email": email,
-	})
-
-	var md models.MasterDistributorModel
-	err := row.Scan(
-		&md.MasterDistributorID,
-		&md.AdminID,
-		&md.Name,
-		&md.Password,
-		&md.IsBlocked,
-	)
-
-	if err != nil {
-		return nil, err
+	var res models.GetMasterDistributorDetailsForLoginModel
+	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"md_id": masterDistributorID,
+	}).Scan(
+		&res.MasterDistributorID,
+		&res.AdminID,
+		&res.MasterDistributorName,
+		&res.Password,
+		&res.IsBlocked,
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch master distributor login details")
 	}
 
-	return &md, nil
+	return &res, nil
 }
 
-func (db *Database) UpdateMasterDistributorQuery(
+func (db *Database) UpdateMasterDistributorDetailsQuery(
 	ctx context.Context,
-	mdID string,
-	req models.UpdateMasterDistributorRequestModel,
+	req models.UpdateMasterDistributorDetailsRequestModel,
 ) error {
 
 	query := `
@@ -200,48 +183,187 @@ func (db *Database) UpdateMasterDistributorQuery(
 		SET
 			master_distributor_name = COALESCE(@name, master_distributor_name),
 			master_distributor_phone = COALESCE(@phone, master_distributor_phone),
-			master_distributor_password = COALESCE(@password, master_distributor_password),
+			master_distributor_email = COALESCE(@email, master_distributor_email),
+
+			master_distributor_aadhar_number = COALESCE(@aadhar, master_distributor_aadhar_number),
+			master_distributor_pan_number = COALESCE(@pan, master_distributor_pan_number),
+			master_distributor_date_of_birth = COALESCE(@dob, master_distributor_date_of_birth),
+			master_distributor_gender = COALESCE(@gender, master_distributor_gender),
+
 			master_distributor_city = COALESCE(@city, master_distributor_city),
 			master_distributor_state = COALESCE(@state, master_distributor_state),
 			master_distributor_address = COALESCE(@address, master_distributor_address),
 			master_distributor_pincode = COALESCE(@pincode, master_distributor_pincode),
+
 			master_distributor_business_name = COALESCE(@business_name, master_distributor_business_name),
 			master_distributor_business_type = COALESCE(@business_type, master_distributor_business_type),
-			master_distributor_mpin = COALESCE(@mpin, master_distributor_mpin),
-			master_distributor_kyc_status = COALESCE(@kyc_status, master_distributor_kyc_status),
+
+			master_distributor_gst_number = COALESCE(@gst, master_distributor_gst_number),
 			master_distributor_documents_url = COALESCE(@documents_url, master_distributor_documents_url),
-			master_distributor_gst_number = COALESCE(@gst_number, master_distributor_gst_number),
-			master_distributor_wallet_balance = COALESCE(@wallet_balance, master_distributor_wallet_balance),
-			is_master_distributor_blocked = COALESCE(@is_blocked, is_master_distributor_blocked),
 			updated_at = NOW()
-		WHERE master_distributor_id = @md_id
+		WHERE master_distributor_id = @md_id;
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"md_id":          mdID,
-		"name":           req.Name,
-		"phone":          req.Phone,
-		"password":       req.Password,
-		"city":           req.City,
-		"state":          req.State,
-		"address":        req.Address,
-		"pincode":        req.Pincode,
-		"business_name":  req.BusinessName,
-		"business_type":  req.BusinessType,
-		"mpin":           req.MPIN,
-		"kyc_status":     req.KYCStatus,
-		"documents_url":  req.DocumentsURL,
-		"gst_number":     req.GSTNumber,
-		"wallet_balance": req.WalletBalance,
-		"is_blocked":     req.IsBlocked,
+		"md_id":         req.MasterDistributorID,
+		"name":          req.MasterDistributorName,
+		"phone":         req.MasterDistributorPhone,
+		"email":         req.MasterDistributorEmail,
+		"aadhar":        req.AadharNumber,
+		"pan":           req.PanNumber,
+		"dob":           req.DateOfBirth,
+		"gender":        req.Gender,
+		"city":          req.City,
+		"state":         req.State,
+		"address":       req.Address,
+		"pincode":       req.Pincode,
+		"business_name": req.BusinessName,
+		"business_type": req.BusinessType,
+		"gst":           req.GSTNumber,
+		"documents_url": req.DocumentsURL,
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update master distributor details")
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invalid master distributor id or not found")
+	}
+	return nil
+}
+
+func (db *Database) UpdateMasterDistributorPasswordQuery(
+	ctx context.Context,
+	req models.UpdateMasterDistributorPasswordRequestModel,
+) error {
+
+	var oldPassword string
+	getQuery := `
+		SELECT master_distributor_password
+		FROM master_distributors
+		WHERE master_distributor_id = @md_id;
+	`
+
+	if err := db.pool.QueryRow(ctx, getQuery, pgx.NamedArgs{
+		"md_id": req.MasterDistributorID,
+	}).Scan(&oldPassword); err != nil {
+		return fmt.Errorf("failed to fetch old password")
+	}
+
+	if oldPassword != req.OldPassword {
+		return fmt.Errorf("incorrect old password")
+	}
+
+	updateQuery := `
+		UPDATE master_distributors
+		SET master_distributor_password = @new_password,
+		    updated_at = NOW()
+		WHERE master_distributor_id = @md_id;
+	`
+
+	if _, err := db.pool.Exec(ctx, updateQuery, pgx.NamedArgs{
+		"md_id":        req.MasterDistributorID,
+		"new_password": req.NewPassword,
+	}); err != nil {
+		return fmt.Errorf("failed to update master distributor password")
+	}
+
+	return nil
+}
+
+func (db *Database) UpdateMasterDistributorBlockStatusQuery(
+	ctx context.Context,
+	req models.UpdateMasterDistributorBlockStatusRequestModel,
+) error {
+
+	query := `
+		UPDATE master_distributors
+		SET is_master_distributor_blocked = @block_status,
+		    updated_at = NOW()
+		WHERE master_distributor_id = @md_id;
+	`
+
+	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"md_id":        req.MasterDistributorID,
+		"block_status": req.BlockStatus,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update master distributor block status")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid master distributor id or not found")
+	}
+
+	return nil
+}
+
+func (db *Database) UpdateMasterDistributorKYCStatusQuery(
+	ctx context.Context,
+	req models.UpdateMasterDistributorKYCStatusRequestModel,
+) error {
+
+	query := `
+		UPDATE master_distributors
+		SET master_distributor_kyc_status = @kyc_status,
+		    updated_at = NOW()
+		WHERE master_distributor_id = @md_id;
+	`
+
+	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"md_id":      req.MasterDistributorID,
+		"kyc_status": req.KYCStatus,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update master distributor kyc status")
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invalid master distributor id or not found")
+	}
+
+	return nil
+}
+
+func (db *Database) UpdateMasterDistributorMPINQuery(
+	ctx context.Context,
+	req models.UpdateMasterDistributorMPINRequestModel,
+) error {
+
+	var existingMPIN int64
+	getQuery := `
+		SELECT master_distributor_mpin
+		FROM master_distributors
+		WHERE master_distributor_id = @md_id;
+	`
+
+	if err := db.pool.QueryRow(ctx, getQuery, pgx.NamedArgs{
+		"md_id": req.MasterDistributorID,
+	}).Scan(&existingMPIN); err != nil {
+		return fmt.Errorf("failed to fetch master distributor mpin")
+	}
+
+	if existingMPIN != req.OldMPIN {
+		return fmt.Errorf("incorrect old mpin")
+	}
+
+	updateQuery := `
+		UPDATE master_distributors
+		SET master_distributor_mpin = @new_mpin,
+		    updated_at = NOW()
+		WHERE master_distributor_id = @md_id;
+	`
+
+	tag, err := db.pool.Exec(ctx, updateQuery, pgx.NamedArgs{
+		"md_id":    req.MasterDistributorID,
+		"new_mpin": req.NewMPIN,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update master distributor mpin")
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("invalid master distributor id or not found")
 	}
 
 	return nil
@@ -249,114 +371,33 @@ func (db *Database) UpdateMasterDistributorQuery(
 
 func (db *Database) DeleteMasterDistributorQuery(
 	ctx context.Context,
-	mdID string,
+	masterDistributorID string,
 ) error {
 
 	query := `
 		DELETE FROM master_distributors
-		WHERE master_distributor_id = @md_id
+		WHERE master_distributor_id = @md_id;
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"md_id": mdID,
+		"md_id": masterDistributorID,
 	})
-
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete master distributor")
 	}
 
 	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return fmt.Errorf("invalid master distributor id or not found")
 	}
 
 	return nil
 }
 
-func (db *Database) ListMasterDistributorsQuery(
-	ctx context.Context,
-	limit, offset int,
-) ([]models.GetMasterDistributorResponseModel, error) {
-
-	query := `
-		SELECT
-			master_distributor_id,
-			admin_id,
-			master_distributor_name,
-			master_distributor_phone,
-			master_distributor_email,
-			master_distributor_aadhar_number,
-			master_distributor_pan_number,
-			master_distributor_date_of_birth,
-			master_distributor_gender,
-			master_distributor_city,
-			master_distributor_state,
-			master_distributor_address,
-			master_distributor_pincode,
-			master_distributor_business_name,
-			master_distributor_business_type,
-			master_distributor_kyc_status,
-			master_distributor_documents_url,
-			master_distributor_gst_number,
-			master_distributor_wallet_balance,
-			is_master_distributor_blocked,
-			created_at,
-			updated_at
-		FROM master_distributors
-		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset
-	`
-
-	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
-		"limit":  limit,
-		"offset": offset,
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var list []models.GetMasterDistributorResponseModel
-
-	for rows.Next() {
-		var md models.GetMasterDistributorResponseModel
-		err := rows.Scan(
-			&md.MasterDistributorID,
-			&md.AdminID,
-			&md.Name,
-			&md.Phone,
-			&md.Email,
-			&md.AadharNumber,
-			&md.PanNumber,
-			&md.DateOfBirth,
-			&md.Gender,
-			&md.City,
-			&md.State,
-			&md.Address,
-			&md.Pincode,
-			&md.BusinessName,
-			&md.BusinessType,
-			&md.KYCStatus,
-			&md.DocumentsURL,
-			&md.GSTNumber,
-			&md.WalletBalance,
-			&md.IsBlocked,
-			&md.CreatedAt,
-			&md.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		list = append(list, md)
-	}
-
-	return list, nil
-}
-
-func (db *Database) ListMasterDistributorsByAdminIDQuery(
+func (db *Database) GetMasterDistributorsByAdminIDQuery(
 	ctx context.Context,
 	adminID string,
 	limit, offset int,
-) ([]models.GetMasterDistributorResponseModel, error) {
+) ([]models.GetCompleteMasterDistributorDetailsResponseModel, error) {
 
 	query := `
 		SELECT
@@ -385,7 +426,7 @@ func (db *Database) ListMasterDistributorsByAdminIDQuery(
 		FROM master_distributors
 		WHERE admin_id = @admin_id
 		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset
+		LIMIT @limit OFFSET @offset;
 	`
 
 	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
@@ -394,20 +435,20 @@ func (db *Database) ListMasterDistributorsByAdminIDQuery(
 		"offset":   offset,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch master distributors by admin id")
 	}
 	defer rows.Close()
 
-	var list []models.GetMasterDistributorResponseModel
+	var list []models.GetCompleteMasterDistributorDetailsResponseModel
 
 	for rows.Next() {
-		var md models.GetMasterDistributorResponseModel
+		var md models.GetCompleteMasterDistributorDetailsResponseModel
 		if err := rows.Scan(
 			&md.MasterDistributorID,
 			&md.AdminID,
-			&md.Name,
-			&md.Phone,
-			&md.Email,
+			&md.MasterDistributorName,
+			&md.MasterDistributorPhone,
+			&md.MasterDistributorEmail,
 			&md.AadharNumber,
 			&md.PanNumber,
 			&md.DateOfBirth,
@@ -426,7 +467,7 @@ func (db *Database) ListMasterDistributorsByAdminIDQuery(
 			&md.CreatedAt,
 			&md.UpdatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan master distributor details")
 		}
 		list = append(list, md)
 	}
@@ -434,10 +475,10 @@ func (db *Database) ListMasterDistributorsByAdminIDQuery(
 	return list, nil
 }
 
-func (db *Database) GetMasterDistributorsByAdminIDForDropdownQuery(
+func (db *Database) GetMasterDistributorsForDropdownByAdminIDQuery(
 	ctx context.Context,
 	adminID string,
-) ([]models.DropdownModel, error) {
+) ([]models.GetMasterDistributorForDropdownModel, error) {
 
 	query := `
 		SELECT
@@ -445,107 +486,29 @@ func (db *Database) GetMasterDistributorsByAdminIDForDropdownQuery(
 			master_distributor_name
 		FROM master_distributors
 		WHERE admin_id = @admin_id
-		ORDER BY master_distributor_name ASC
+		ORDER BY master_distributor_name ASC;
 	`
 
 	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
 		"admin_id": adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch master distributors for dropdown")
 	}
 	defer rows.Close()
 
-	var list []models.DropdownModel
+	var list []models.GetMasterDistributorForDropdownModel
 
 	for rows.Next() {
-		var d models.DropdownModel
+		var md models.GetMasterDistributorForDropdownModel
 		if err := rows.Scan(
-			&d.ID,
-			&d.Name,
+			&md.MasterDistributorID,
+			&md.MasterDistributorName,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan master distributor dropdown data")
 		}
-		list = append(list, d)
+		list = append(list, md)
 	}
 
 	return list, nil
-}
-
-func (db *Database) UpdateMasterDistributorBlockStatusQuery(
-	ctx context.Context,
-	mdID string,
-	isBlocked bool,
-) error {
-
-	query := `
-		UPDATE master_distributors
-		SET
-			is_master_distributor_blocked = @is_blocked,
-			updated_at = NOW()
-		WHERE master_distributor_id = @md_id
-	`
-
-	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"md_id":      mdID,
-		"is_blocked": isBlocked,
-	})
-	if err != nil {
-		return err
-	}
-
-	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
-	}
-
-	return nil
-}
-
-func (db *Database) UpdateMasterDistributorKYCStatusQuery(
-	ctx context.Context,
-	mdID string,
-	kycStatus bool,
-) error {
-
-	query := `
-		UPDATE master_distributors
-		SET
-			master_distributor_kyc_status = @kyc_status,
-			updated_at = NOW()
-		WHERE master_distributor_id = @md_id
-	`
-
-	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"md_id":      mdID,
-		"kyc_status": kycStatus,
-	})
-	if err != nil {
-		return err
-	}
-
-	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
-	}
-
-	return nil
-}
-
-func (db *Database) UpdateMasterDistributorMPINQuery(
-	ctx context.Context,
-	mdID string,
-	mpin int64,
-) (int64, error) {
-	query := `
-		UPDATE master_distributors SET master_distributor_mpin=@mpin
-		WHERE master_distributor_id=@md_id
-		RETURNING master_distributor_mpin;
-	`
-	var newMpin int64
-	if err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"mpin":  mpin,
-		"md_id": mdID,
-	}).Scan(&newMpin); err != nil {
-		return 0, err
-	}
-	return newMpin, nil
 }

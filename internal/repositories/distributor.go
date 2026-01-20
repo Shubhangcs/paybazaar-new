@@ -19,7 +19,6 @@ type DistributorInterface interface {
 	GetDistributorsByMasterDistributorID(echo.Context) ([]models.GetCompleteDistributorDetailsResponseModel, error)
 	GetDistributorsForDropdownByMasterDistributorID(echo.Context) ([]models.GetDistributorForDropdownModel, error)
 	UpdateDistributorPassword(echo.Context) error
-	UpdateDistributorWallet(echo.Context) error
 	UpdateDistributorBlockStatus(echo.Context) error
 	UpdateDistributorKYCStatus(echo.Context) error
 	UpdateDistributorDetails(echo.Context) error
@@ -149,13 +148,6 @@ func (dr *distributorRepository) UpdateDistributorPassword(c echo.Context) error
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorPasswordQuery(ctx, req)
-}
-
-func (dr *distributorRepository) UpdateDistributorWallet(c echo.Context) error {
-	var req models.UpdateDistributorWalletRequestModel
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
-	return dr.db.UpdateDistributorWalletQuery(ctx, req)
 }
 
 func (dr *distributorRepository) UpdateDistributorBlockStatus(c echo.Context) error {

@@ -46,11 +46,6 @@ type UpdateDistributorPasswordRequestModel struct {
 	NewPassword   string `json:"new_password" validate:"required,strpwd"`
 }
 
-type UpdateDistributorWalletRequestModel struct {
-	DistributorID string  `json:"distributor_id" validate:"required"`
-	Amount        float64 `json:"amount" validate:"required,min=1"`
-}
-
 type UpdateDistributorBlockStatusRequestModel struct {
 	DistributorID string `json:"distributor_id" validate:"required"`
 	BlockStatus   bool   `json:"block_status"`

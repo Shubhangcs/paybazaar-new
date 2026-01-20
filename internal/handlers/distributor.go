@@ -176,29 +176,6 @@ func (dh *distributorHandler) UpdateDistributorPasswordRequest(
 	)
 }
 
-func (dh *distributorHandler) UpdateDistributorWalletRequest(
-	c echo.Context,
-) error {
-
-	if err := dh.distributorRepository.UpdateDistributorWallet(c); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "distributor wallet updated successfully",
-		},
-	)
-}
-
 func (dh *distributorHandler) DeleteDistributorRequest(
 	c echo.Context,
 ) error {

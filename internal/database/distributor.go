@@ -218,31 +218,6 @@ func (db *Database) UpdateDistributorPasswordQuery(
 	return nil
 }
 
-func (db *Database) UpdateDistributorWalletQuery(
-	ctx context.Context,
-	req models.UpdateDistributorWalletRequestModel,
-) error {
-
-	query := `
-		UPDATE distributors
-		SET distributor_wallet_balance = distributor_wallet_balance + @amount,
-		    updated_at = NOW()
-		WHERE distributor_id = @distributor_id;
-	`
-
-	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"distributor_id": req.DistributorID,
-		"amount":         req.Amount,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update distributor wallet")
-	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("invalid distributor id or distributor not found")
-	}
-	return nil
-}
-
 func (db *Database) UpdateDistributorBlockStatusQuery(
 	ctx context.Context,
 	req models.UpdateDistributorBlockStatusRequestModel,
