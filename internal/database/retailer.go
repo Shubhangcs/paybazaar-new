@@ -665,3 +665,41 @@ func (db *Database) DeleteRetailerQuery(
 
 	return nil
 }
+
+func (db *Database) GetRetailersForDropdownByDistributorIDQuery(
+	ctx context.Context,
+	distributorID string,
+) ([]models.GetRetailerForDropdownModel, error) {
+
+	query := `
+		SELECT
+			retailer_id,
+			retailer_name
+		FROM retailers
+		WHERE distributor_id = @distributor_id
+		ORDER BY retailer_name ASC;
+	`
+
+	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
+		"distributor_id": distributorID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch retailers for dropdown")
+	}
+	defer rows.Close()
+
+	var list []models.GetRetailerForDropdownModel
+
+	for rows.Next() {
+		var r models.GetRetailerForDropdownModel
+		if err := rows.Scan(
+			&r.RetailerID,
+			&r.RetailerName,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan retailer dropdown data")
+		}
+		list = append(list, r)
+	}
+
+	return list, nil
+}
