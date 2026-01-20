@@ -145,6 +145,9 @@ func (dr *distributorRepository) GetDistributorsForDropdownByMasterDistributorID
 
 func (dr *distributorRepository) UpdateDistributorPassword(c echo.Context) error {
 	var req models.UpdateDistributorPasswordRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorPasswordQuery(ctx, req)
@@ -152,6 +155,9 @@ func (dr *distributorRepository) UpdateDistributorPassword(c echo.Context) error
 
 func (dr *distributorRepository) UpdateDistributorBlockStatus(c echo.Context) error {
 	var req models.UpdateDistributorBlockStatusRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorBlockStatusQuery(ctx, req)
@@ -159,6 +165,9 @@ func (dr *distributorRepository) UpdateDistributorBlockStatus(c echo.Context) er
 
 func (dr *distributorRepository) UpdateDistributorKYCStatus(c echo.Context) error {
 	var req models.UpdateDistributorKYCStatusRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorKYCStatusQuery(ctx, req)
@@ -166,6 +175,9 @@ func (dr *distributorRepository) UpdateDistributorKYCStatus(c echo.Context) erro
 
 func (dr *distributorRepository) UpdateDistributorDetails(c echo.Context) error {
 	var req models.UpdateDistributorDetailsRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorDetailsQuery(ctx, req)
