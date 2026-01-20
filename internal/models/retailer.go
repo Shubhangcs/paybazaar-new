@@ -3,121 +3,99 @@ package models
 import "time"
 
 type CreateRetailerRequestModel struct {
-	DistributorID string `json:"distributor_id" validate:"required"`
-
-	Name     string `json:"name" validate:"required,min=3,max=100"`
-	Phone    string `json:"phone" validate:"required,phone"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,strpwd"`
-
-	AadharNumber string    `json:"aadhar_number" validate:"required,aadhar"`
-	PanNumber    string    `json:"pan_number" validate:"required,pan"`
-	DateOfBirth  time.Time `json:"date_of_birth" validate:"required"`
-	Gender       string    `json:"gender" validate:"required,oneof=MALE FEMALE OTHER"`
-
-	City    string `json:"city" validate:"required"`
-	State   string `json:"state" validate:"required"`
-	Address string `json:"address" validate:"required"`
-	Pincode string `json:"pincode" validate:"required,len=6,numeric"`
-
-	BusinessName string `json:"business_name" validate:"required"`
-	BusinessType string `json:"business_type" validate:"required"`
-
-	GSTNumber string `json:"gst_number" validate:"omitempty,len=15"`
-	MPIN      int    `json:"mpin" validate:"omitempty,min=1000,max=9999"`
+	DistributorID    string    `json:"distributor_id" validate:"required"`
+	RetailerName     string    `json:"retailer_name" validate:"required,min=3,max=100"`
+	RetailerPhone    string    `json:"retailer_phone" validate:"required,phone"`
+	RetailerEmail    string    `json:"retailer_email" validate:"required,email"`
+	RetailerPassword string    `json:"retailer_password" validate:"required,strpwd"`
+	AadharNumber     string    `json:"aadhar_number" validate:"required,aadhar"`
+	PanNumber        string    `json:"pan_number" validate:"required,pan"`
+	DateOfBirth      time.Time `json:"date_of_birth" validate:"required"`
+	Gender           string    `json:"gender" validate:"required,oneof=MALE FEMALE OTHER"`
+	City             string    `json:"city" validate:"required"`
+	State            string    `json:"state" validate:"required"`
+	Address          string    `json:"address" validate:"required"`
+	Pincode          string    `json:"pincode" validate:"required,len=6,numeric"`
+	BusinessName     string    `json:"business_name" validate:"required"`
+	BusinessType     string    `json:"business_type" validate:"required"`
+	GSTNumber        string    `json:"gst_number" validate:"omitempty,len=15"`
 }
 
-type UpdateRetailerRequestModel struct {
-	Name     *string `json:"name" validate:"omitempty,min=3,max=100"`
-	Phone    *string `json:"phone" validate:"omitempty,phone"`
-	Password *string `json:"password" validate:"omitempty,strpwd"`
-
-	City    *string `json:"city"`
-	State   *string `json:"state"`
-	Address *string `json:"address"`
-	Pincode *string `json:"pincode" validate:"omitempty,len=6,numeric"`
-
-	BusinessName *string `json:"business_name"`
-	BusinessType *string `json:"business_type"`
-
-	GSTNumber *string `json:"gst_number" validate:"omitempty,len=15"`
-	MPIN      *int    `json:"mpin" validate:"omitempty,min=1000,max=9999"`
-
-	KYCStatus    *bool   `json:"kyc_status"`
-	DocumentsURL *string `json:"documents_url"`
-
-	IsBlocked     *bool    `json:"is_blocked"`
-	WalletBalance *float64 `json:"wallet_balance" validate:"omitempty,gte=0"`
+type UpdateRetailerDetailsRequestModel struct {
+	RetailerID    string     `json:"retailer_id" validate:"required"`
+	RetailerName  *string    `json:"retailer_name" validate:"omitempty,min=3,max=100"`
+	RetailerPhone *string    `json:"retailer_phone" validate:"omitempty,phone"`
+	RetailerEmail *string    `json:"retailer_email" validate:"omitempty,email"`
+	AadharNumber  *string    `json:"aadhar_number" validate:"omitempty,aadhar"`
+	PanNumber     *string    `json:"pan_number" validate:"omitempty,pan"`
+	DateOfBirth   *time.Time `json:"date_of_birth" validate:"omitempty"`
+	Gender        *string    `json:"gender" validate:"omitempty,oneof=MALE FEMALE OTHER"`
+	City          *string    `json:"city" validate:"omitempty"`
+	State         *string    `json:"state" validate:"omitempty"`
+	Address       *string    `json:"address" validate:"omitempty"`
+	Pincode       *string    `json:"pincode" validate:"omitempty,len=6,numeric"`
+	BusinessName  *string    `json:"business_name" validate:"omitempty"`
+	BusinessType  *string    `json:"business_type" validate:"omitempty"`
+	GSTNumber     *string    `json:"gst_number" validate:"omitempty,len=15"`
+	DocumentsURL  *string    `json:"documents_url" validate:"omitempty"`
 }
 
-type GetRetailerResponseModel struct {
-	RetailerID    string `json:"retailer_id"`
-	DistributorID string `json:"distributor_id"`
-
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-	Email string `json:"email"`
-
-	AadharNumber string    `json:"aadhar_number"`
-	PanNumber    string    `json:"pan_number"`
-	DateOfBirth  time.Time `json:"date_of_birth"`
-	Gender       string    `json:"gender"`
-
-	City    string `json:"city"`
-	State   string `json:"state"`
-	Address string `json:"address"`
-	Pincode string `json:"pincode"`
-
-	BusinessName string `json:"business_name"`
-	BusinessType string `json:"business_type"`
-
-	GSTNumber    string `json:"gst_number"`
-	KYCStatus    bool   `json:"kyc_status"`
-	DocumentsURL string `json:"documents_url"`
-
-	WalletBalance float64 `json:"wallet_balance"`
-	IsBlocked     bool    `json:"is_blocked"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+type UpdateRetailerPasswordRequestModel struct {
+	RetailerID  string `json:"retailer_id" validate:"required"`
+	OldPassword string `json:"old_password" validate:"required,strpwd"`
+	NewPassword string `json:"new_password" validate:"required,strpwd"`
 }
 
-type RetailerModel struct {
-	AdminID       string
-	RetailerID    string
-	DistributorID string
-
-	Name     string
-	Phone    string
-	Email    string
-	Password string
-
-	AadharNumber string
-	PanNumber    string
-	DateOfBirth  time.Time
-	Gender       string
-
-	City    string
-	State   string
-	Address string
-	Pincode string
-
-	BusinessName string
-	BusinessType string
-
-	GSTNumber    string
-	MPIN         int
-	KYCStatus    bool
-	DocumentsURL string
-
-	WalletBalance float64
-	IsBlocked     bool
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
+type UpdateRetailerBlockStatusRequestModel struct {
+	RetailerID  string `json:"retailer_id" validate:"required"`
+	BlockStatus bool   `json:"block_status"`
 }
 
-type LoginRetailerModel struct {
-	RetailerPhoneNumber string `json:"retailer_phone_number" validate:"required,phone"`
-	RetailerPassword    string `json:"retailer_password" validate:"required"`
+type UpdateRetailerKYCStatusRequestModel struct {
+	RetailerID string `json:"retailer_id" validate:"required"`
+	KYCStatus  bool   `json:"kyc_status" validate:"required"`
+}
+
+type UpdateRetailerMPINRequestModel struct {
+	RetailerID string `json:"retailer_id" validate:"required"`
+	OldMPIN    int64  `json:"old_mpin" validate:"required,min=1000,max=9999"`
+	NewMPIN    int64  `json:"new_mpin" validate:"required,min=1000,max=9999"`
+}
+
+type RetailerLoginRequestModel struct {
+	RetailerID       string `json:"retailer_id" validate:"required"`
+	RetailerPassword string `json:"retailer_password" validate:"required,strpwd"`
+}
+
+type GetRetailerDetailsForLoginModel struct {
+	AdminID      string `json:"admin_id"`
+	RetailerID   string `json:"retailer_id"`
+	RetailerName string `json:"retailer_name"`
+	Password     string `json:"password"`
+	IsBlocked    bool   `json:"is_blocked"`
+}
+
+type GetCompleteRetailerDetailsResponseModel struct {
+	RetailerID    string    `json:"retailer_id"`
+	DistributorID string    `json:"distributor_id"`
+	RetailerName  string    `json:"retailer_name"`
+	RetailerPhone string    `json:"retailer_phone"`
+	RetailerEmail string    `json:"retailer_email"`
+	AadharNumber  string    `json:"aadhar_number"`
+	PanNumber     string    `json:"pan_number"`
+	DateOfBirth   time.Time `json:"date_of_birth"`
+	Gender        string    `json:"gender"`
+	City          string    `json:"city"`
+	State         string    `json:"state"`
+	Address       string    `json:"address"`
+	Pincode       string    `json:"pincode"`
+	BusinessName  string    `json:"business_name"`
+	BusinessType  string    `json:"business_type"`
+	GSTNumber     string    `json:"gst_number"`
+	KYCStatus     bool      `json:"kyc_status"`
+	DocumentsURL  *string   `json:"documents_url"`
+	WalletBalance float64   `json:"wallet_balance"`
+	IsBlocked     bool      `json:"is_blocked"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }

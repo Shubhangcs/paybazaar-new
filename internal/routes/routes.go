@@ -38,7 +38,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.DistributorRoutes(cfg.Database, cfg.JWTUtils)
 	routes.FundRequestRoutes(cfg.Database, cfg.JWTUtils)
 	routes.MasterDistributorRoutes(cfg.Database, cfg.JWTUtils)
-	routes.RetailerRoutes(cfg.Database, cfg.JWTUtils)
+	// routes.RetailerRoutes(cfg.Database, cfg.JWTUtils)
 	routes.WalletTransactionRoutes(cfg.Database, cfg.JWTUtils)
 	routes.RevertRoutes(cfg.Database, cfg.JWTUtils)
 	routes.BankRouter(cfg.Database, cfg.JWTUtils)

@@ -98,7 +98,7 @@ type GetCompleteDistributorDetailsResponseModel struct {
 	BusinessType        string    `json:"business_type"`
 	GSTNumber           string    `json:"gst_number"`
 	KYCStatus           bool      `json:"kyc_status"`
-	DocumentsURL        string    `json:"documents_url"`
+	DocumentsURL        *string    `json:"documents_url"`
 	WalletBalance       float64   `json:"wallet_balance"`
 	IsBlocked           bool      `json:"is_blocked"`
 	CreatedAt           time.Time `json:"created_at"`
