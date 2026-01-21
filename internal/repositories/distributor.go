@@ -185,6 +185,9 @@ func (dr *distributorRepository) UpdateDistributorDetails(c echo.Context) error 
 
 func (dr *distributorRepository) UpdateDistributorMasterDistributor(c echo.Context) error {
 	var req models.UpdateDistributorMasterDistributorRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return dr.db.UpdateDistributorMasterDistributorQuery(ctx, req)
