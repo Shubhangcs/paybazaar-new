@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/levion-studio/paybazaar/internal/config"
 	"github.com/levion-studio/paybazaar/internal/database"
+	"github.com/levion-studio/paybazaar/internal/middlewares"
 	"github.com/levion-studio/paybazaar/pkg"
 )
 
@@ -28,6 +29,7 @@ func NewRoutes(cfg Config) *routes {
 	router.Validator = NewValidator()
 	// Common Middlewares
 	router.Use(middleware.CORS())
+	router.Use(middlewares.APILockMiddleware())
 
 	routes := &routes{
 		router,

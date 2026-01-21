@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/levion-studio/paybazaar/internal/app"
 	"github.com/levion-studio/paybazaar/internal/models"
 	"github.com/levion-studio/paybazaar/pkg"
 )
@@ -67,6 +68,30 @@ func RequireRoles(allowedRoles ...string) echo.MiddlewareFunc {
 				Status:  "failed",
 				Message: "you do not have permission to access this resource",
 			})
+		}
+	}
+}
+
+func APILockMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+
+			// Allow health + lock/unlock APIs
+			path := c.Path()
+			if path == "/admin/login" ||
+				path == "/admin/lock" ||
+				path == "/admin/unlock" {
+				return next(c)
+			}
+
+			if app.IsLocked() {
+				return c.JSON(http.StatusServiceUnavailable, map[string]any{
+					"status":  "locked",
+					"message": "System is under maintenance. Please try later.",
+				})
+			}
+
+			return next(c)
 		}
 	}
 }
