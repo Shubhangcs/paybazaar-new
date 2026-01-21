@@ -10,7 +10,7 @@ type CreateFundTransferModel struct {
 }
 
 type GetFundTransferResponseModel struct {
-	FundTransferID       int64       `json:"fund_transfer_id"`
+	FundTransferID       int64     `json:"fund_transfer_id"`
 	FundTransferFromID   string    `json:"fund_transfer_from_id"`
 	FundTransferToID     string    `json:"fund_transfer_on_id"`
 	FundTransferFromName string    `json:"fund_transfer_from_name"`
