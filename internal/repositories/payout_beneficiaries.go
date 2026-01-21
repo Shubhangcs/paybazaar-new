@@ -1,190 +1,72 @@
 package repositories
 
 import (
-	"context"
 	"fmt"
-	"time"
+	"log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
-type PayoutBeneficiaryInterface interface {
-	CreatePayoutBeneficiary(echo.Context) error
-	GetPayoutBeneficiaryByID(echo.Context) (*models.GetPayoutBeneficiaryResponseModel, error)
-	ListPayoutBeneficiaries(echo.Context) ([]models.GetPayoutBeneficiaryResponseModel, error)
-	UpdatePayoutBeneficiary(echo.Context) error
-	UpdatePayoutBeneficiaryVerification(echo.Context) error
-	DeletePayoutBeneficiary(echo.Context) error
-	GetPayoutBeneficiariesByMobileNumber(echo.Context) ([]models.GetPayoutBeneficiaryResponseModel, error)
+type Beneficiary interface {
+	GetBeneficiaries(echo.Context) (*[]models.BeneficiaryModel, error)
+	AddNewBeneficiary(echo.Context) error
+	VerifyBeneficiary(echo.Context) error
+	DeleteBeneficiary(echo.Context) error
 }
 
-type payoutBeneficiaryRepository struct {
-	db *database.Database
+type beneficiaryRepo struct {
+	query *database.Database
 }
 
-func NewPayoutBeneficiaryRepository(
-	db *database.Database,
-) *payoutBeneficiaryRepository {
-	return &payoutBeneficiaryRepository{
-		db: db,
+func NewBeneficiaryRepo(query *database.Database) *beneficiaryRepo {
+	return &beneficiaryRepo{query: query}
+}
+
+func (r *beneficiaryRepo) GetBeneficiaries(e echo.Context) (*[]models.BeneficiaryModel, error) {
+	var phone = e.Param("phone")
+	if phone == "" {
+		return nil, fmt.Errorf("phone number not found")
 	}
-}
-
-func (rb *payoutBeneficiaryRepository) CreatePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	var req models.CreatePayoutBeneficiaryModel
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	_, err := rb.db.CreatePayoutBeneficiaryQuery(ctx, req)
-	return err
-}
-
-func (rb *payoutBeneficiaryRepository) GetPayoutBeneficiaryByID(
-	c echo.Context,
-) (*models.GetPayoutBeneficiaryResponseModel, error) {
-
-	beneficiaryID, err := parseInt64Param(c, "beneficiary_id")
+	res, err := r.query.GetBeneficiaries(phone)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch benificiries")
 	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.GetPayoutBeneficiaryByIDQuery(ctx, beneficiaryID)
+	return res, nil
 }
 
-func (rb *payoutBeneficiaryRepository) ListPayoutBeneficiaries(
-	c echo.Context,
-) ([]models.GetPayoutBeneficiaryResponseModel, error) {
-
-	payoutID := c.Param("payout_id")
-	if payoutID == "" {
-		return nil, echo.NewHTTPError(400, "payout_id is required")
+func (r *beneficiaryRepo) AddNewBeneficiary(e echo.Context) error {
+	req := &models.BeneficiaryModel{}
+	if err := e.Bind(req); err != nil {
+		return err
 	}
-
-	limit, offset := parsePagination(c)
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.GetPayoutBeneficiariesByRetailerIDQuery(
-		ctx,
-		payoutID,
-		limit,
-		offset,
-	)
-}
-
-func (rb *payoutBeneficiaryRepository) UpdatePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	beneficiaryID, err := parseInt64Param(c, "beneficiary_id")
+	err := r.query.AddNewBeneficiary(req)
 	if err != nil {
-		return err
+		log.Println(err)
+		return fmt.Errorf("failed to add benificary")
 	}
-
-	var req models.UpdatePayoutBeneficiaryModel
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.UpdatePayoutBeneficiaryQuery(ctx, beneficiaryID, req)
+	return nil
 }
 
-func (rb *payoutBeneficiaryRepository) UpdatePayoutBeneficiaryVerification(
-	c echo.Context,
-) error {
-
-	beneficiaryID, err := parseInt64Param(c, "beneficiary_id")
-	if err != nil {
-		return err
+func (r *beneficiaryRepo) VerifyBeneficiary(e echo.Context) error {
+	beneficiaryId := e.Param("ben_id")
+	if beneficiaryId == "" {
+		return fmt.Errorf("beneficiary id not found")
 	}
-
-	var req struct {
-		IsVerified bool `json:"is_verified" validate:"required"`
+	if err := r.query.VerifyBenificary(beneficiaryId); err != nil {
+		return fmt.Errorf("failed to verify beneficiary")
 	}
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.UpdatePayoutBeneficiaryVerificationQuery(
-		ctx,
-		beneficiaryID,
-		req.IsVerified,
-	)
+	return nil
 }
 
-func (rb *payoutBeneficiaryRepository) DeletePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	beneficiaryID, err := parseInt64Param(c, "beneficiary_id")
-	if err != nil {
-		return err
+func (r *beneficiaryRepo) DeleteBeneficiary(e echo.Context) error {
+	beneficiaryId := e.Param("ben_id")
+	if beneficiaryId == "" {
+		return fmt.Errorf("beneficiary id not found")
 	}
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.DeletePayoutBeneficiaryQuery(ctx, beneficiaryID)
-}
-
-func (rb *payoutBeneficiaryRepository) GetPayoutBeneficiariesByMobileNumber(
-	c echo.Context,
-) ([]models.GetPayoutBeneficiaryResponseModel, error) {
-
-	mobileNumber := c.Param("mobile_number")
-	if mobileNumber == "" {
-		return nil, fmt.Errorf("mobile_number is required")
+	if err := r.query.DeleteBeneficiary(beneficiaryId); err != nil {
+		return fmt.Errorf("failed to delete beneficiary")
 	}
-
-	limit, offset := parsePagination(c)
-
-	ctx, cancel := context.WithTimeout(
-		c.Request().Context(),
-		30*time.Second,
-	)
-	defer cancel()
-
-	return rb.db.GetPayoutBeneficiariesByMobileNumberQuery(
-		ctx,
-		mobileNumber,
-		limit,
-		offset,
-	)
+	return nil
 }

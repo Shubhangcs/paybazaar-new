@@ -8,144 +8,44 @@ import (
 	"github.com/levion-studio/paybazaar/internal/repositories"
 )
 
-type PayoutBeneficiaryHandler struct {
-	repo repositories.PayoutBeneficiaryInterface
+type beneficiaryHandler struct {
+	repo repositories.Beneficiary
 }
 
-func NewPayoutBeneficiaryHandler(
-	repo repositories.PayoutBeneficiaryInterface,
-) *PayoutBeneficiaryHandler {
-	return &PayoutBeneficiaryHandler{
-		repo: repo,
-	}
+func NewBeneficiaryHandler(repo repositories.Beneficiary) *beneficiaryHandler {
+	return &beneficiaryHandler{repo: repo}
 }
 
-func (h *PayoutBeneficiaryHandler) CreatePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	if err := h.repo.CreatePayoutBeneficiary(c); err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "beneficiary created successfully",
-	})
-}
-
-func (h *PayoutBeneficiaryHandler) GetPayoutBeneficiaryByID(
-	c echo.Context,
-) error {
-
-	data, err := h.repo.GetPayoutBeneficiaryByID(c)
+func (bh *beneficiaryHandler) GetBeneficiaries(c echo.Context) error {
+	res, err := bh.repo.GetBeneficiaries(c)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{Message: err.Error(), Status: "falied"})
 	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Message: "bene fetched successfully",
-		Status:  "success",
-		Data:    data,
-	})
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries fetched successfully", Status: "success", Data: map[string]any{
+		"beneficieries": res,
+	}})
 }
 
-func (h *PayoutBeneficiaryHandler) ListPayoutBeneficiaries(
-	c echo.Context,
-) error {
-
-	data, err := h.repo.ListPayoutBeneficiaries(c)
+func (bh *beneficiaryHandler) AddNewBeneficiary(c echo.Context) error {
+	err := bh.repo.AddNewBeneficiary(c)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{Message: err.Error(), Status: "falied"})
 	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Message: "bene fetched successfully",
-		Status:  "success",
-		Data:    data,
-	})
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries added successfully", Status: "success"})
 }
 
-func (h *PayoutBeneficiaryHandler) UpdatePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	if err := h.repo.UpdatePayoutBeneficiary(c); err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "beneficiary updated successfully",
-	})
-}
-
-func (h *PayoutBeneficiaryHandler) UpdatePayoutBeneficiaryVerification(
-	c echo.Context,
-) error {
-
-	if err := h.repo.UpdatePayoutBeneficiaryVerification(c); err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "beneficiary verification updated",
-	})
-}
-
-func (h *PayoutBeneficiaryHandler) DeletePayoutBeneficiary(
-	c echo.Context,
-) error {
-
-	if err := h.repo.DeletePayoutBeneficiary(c); err != nil {
-		return c.JSON(http.StatusBadRequest, models.ResponseModel{
-			Status:  "failed",
-			Message: err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, models.ResponseModel{
-		Status:  "success",
-		Message: "beneficiary deleted successfully",
-	})
-}
-
-func (h *PayoutBeneficiaryHandler) GetBeneficiariesByMobileNumber(
-	c echo.Context,
-) error {
-
-	list, err := h.repo.GetPayoutBeneficiariesByMobileNumber(c)
+func (bh *beneficiaryHandler) VerifyBeneficiary(c echo.Context) error {
+	err := bh.repo.VerifyBeneficiary(c)
 	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{Message: err.Error(), Status: "falied"})
 	}
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries verification successfully", Status: "success"})
+}
 
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status: "success",
-			Data:   list,
-		},
-	)
+func (bh *beneficiaryHandler) DeleteBeneficiary(c echo.Context) error {
+	err := bh.repo.DeleteBeneficiary(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{Message: err.Error(), Status: "falied"})
+	}
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries deleted successfully", Status: "success"})
 }
