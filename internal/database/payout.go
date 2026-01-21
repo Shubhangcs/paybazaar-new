@@ -196,12 +196,13 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 2️⃣ Commission Calculation (SQL – EXACT, NO FLOAT DRIFT)
+	// 2️⃣ Commission Calculation (SQL – FINAL & CORRECT)
 	// --------------------------------------------------
 	var (
-		totalComm  float64
+		totalComm float64
 
 		adminFinal float64
+		adminTDS   float64
 
 		mdComm float64
 		mdTDS  float64
@@ -222,27 +223,38 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 				@amount::NUMERIC                                         AS amount,
 				(@amount::NUMERIC * (@total_comm / 100))                 AS total_comm,
 
-				(@amount::NUMERIC * (@total_comm / 100)) * @admin_ratio AS admin_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @md_ratio    AS md_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @dis_ratio   AS dis_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @ret_ratio   AS ret_comm
+				(@amount::NUMERIC * (@total_comm / 100)) * @admin_ratio AS admin_gross,
+				(@amount::NUMERIC * (@total_comm / 100)) * @md_ratio    AS md_gross,
+				(@amount::NUMERIC * (@total_comm / 100)) * @dis_ratio   AS dis_gross,
+				(@amount::NUMERIC * (@total_comm / 100)) * @ret_ratio   AS ret_gross
 		),
 		tds AS (
 			SELECT
-				*,
-				md_comm  * 0.02 AS md_tds,
-				dis_comm * 0.02 AS dis_tds,
-				ret_comm * 0.02 AS ret_tds
+				total_comm,
+
+				admin_gross,
+				admin_gross * 0.02 AS admin_tds,
+
+				md_gross,
+				md_gross * 0.02 AS md_tds,
+
+				dis_gross,
+				dis_gross * 0.02 AS dis_tds,
+
+				ret_gross,
+				ret_gross * 0.02 AS ret_tds
 			FROM calc
 		)
 		SELECT
 			total_comm,
 
-			admin_comm + md_tds + dis_tds + ret_tds AS admin_final,
+			-- FINAL ADMIN CREDIT
+			(admin_gross - admin_tds + md_tds + dis_tds + ret_tds) AS admin_final,
+			admin_tds,
 
-			md_comm, md_tds, (md_comm - md_tds)   AS md_net,
-			dis_comm, dis_tds, (dis_comm - dis_tds) AS dis_net,
-			ret_comm, ret_tds, (ret_comm - ret_tds) AS ret_net
+			md_gross,  md_tds,  (md_gross  - md_tds)  AS md_net,
+			dis_gross, dis_tds, (dis_gross - dis_tds) AS dis_net,
+			ret_gross, ret_tds, (ret_gross - ret_tds) AS ret_net
 		FROM tds
 	`, pgx.NamedArgs{
 		"amount": payoutReq.Amount,
@@ -256,6 +268,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		&totalComm,
 
 		&adminFinal,
+		&adminTDS,
 
 		&mdComm, &mdTDS, &mdNet,
 		&disComm, &disTDS, &disNet,
@@ -355,7 +368,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 5️⃣ Admin Credit (commission + ALL TDS)
+	// 5️⃣ Admin Credit (after own TDS + others TDS)
 	// --------------------------------------------------
 	_, err = tx.Exec(ctx,
 		`UPDATE admins SET admin_wallet_balance = admin_wallet_balance + @amt WHERE admin_id = @id`,
@@ -373,7 +386,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		) VALUES (
 			@uid, @ref,
 			@amt, @before, @after,
-			'PAYOUT', 'Admin commission + TDS'
+			'PAYOUT', 'Admin commission (TDS adjusted)'
 		)
 	`, pgx.NamedArgs{
 		"uid": u.AdminID,
@@ -398,7 +411,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission')`,
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission (TDS deducted)')`,
 		pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdNet, "before": u.MDBal, "after": u.MDBal + mdNet},
 	)
 	if err != nil { return err }
@@ -412,7 +425,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission')`,
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission (TDS deducted)')`,
 		pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disNet, "before": u.DisBal, "after": u.DisBal + disNet},
 	)
 	if err != nil { return err }
@@ -426,7 +439,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission')`,
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission (TDS deducted)')`,
 		pgx.NamedArgs{"uid": u.RetID, "ref": payoutTxnID, "amt": retNet, "before": u.RetBal - totalDebit, "after": (u.RetBal - totalDebit) + retNet},
 	)
 	if err != nil { return err }
@@ -434,8 +447,6 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
-
-
 
 func (db *Database) PayoutFailedQuery(
 	ctx context.Context,
