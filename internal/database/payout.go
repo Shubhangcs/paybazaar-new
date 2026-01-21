@@ -401,7 +401,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
 		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission')`,
-		pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdNet, "before": u.MDBal, "after": u.MDBal + mdNet},
+		pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdTDS, "before": u.MDBal, "after": u.MDBal + mdNet},
 	)
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
 		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission')`,
-		pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disNet, "before": u.DisBal, "after": u.DisBal + disNet},
+		pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disTDS, "before": u.DisBal, "after": u.DisBal + disNet},
 	)
 	if err != nil {
 		return err
@@ -437,7 +437,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	_, err = tx.Exec(ctx,
 		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
 		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission')`,
-		pgx.NamedArgs{"uid": u.RetID, "ref": payoutTxnID, "amt": retNet, "before": u.RetBal - totalDebit, "after": (u.RetBal - totalDebit) + retNet},
+		pgx.NamedArgs{"uid": u.RetID, "ref": payoutTxnID, "amt": retTDS, "before": u.RetBal - totalDebit, "after": (u.RetBal - totalDebit) + retNet},
 	)
 	if err != nil {
 		return err
