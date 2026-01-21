@@ -71,7 +71,7 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		"ifsc":               payoutRequest.BeneficiaryIFSCCode,
 		"bank_name":          payoutRequest.BeneficiaryBankName,
 		"beneficiary_name":   payoutRequest.BeneficiaryName,
-		"amount":             payoutRequest.Amount,
+		"amount":             fmt.Sprintf("%.2f", payoutRequest.Amount),
 		"transfer_type":      payoutRequest.TransferType,
 		"partner_request_id": payoutRequest.PartnerRequestID,
 	})
