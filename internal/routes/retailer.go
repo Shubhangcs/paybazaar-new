@@ -25,5 +25,6 @@ func (r *routes) RetailerRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	rrg.GET("/get/retailer/:retailer_id", retHandler.GetRetailerDetailsByRetailerIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor", "retailer"))
 	rrg.GET("/get/md/:master_distributor_id", retHandler.GetRetailersByMasterDistributorIDRequest, middlewares.RequireRoles("admin", "master_distributor"))
 	rrg.GET("/get/distributor/:distributor_id", retHandler.GetRetailersByDistributorIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
+	rrg.GET("/get/admin/:admin_id", retHandler.GetRetailersByAdminIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
 	rrg.GET("/get/dropdown/:distributor_id", retHandler.GetRetailersForDropdownByDistributorIDRequest, middlewares.RequireRoles("admin", "master_distributor", "distributor"))
 }

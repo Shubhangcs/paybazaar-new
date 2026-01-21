@@ -63,10 +63,10 @@ func (db *Database) CreateFundTransferQuery(
 	toAfter := toBefore + req.Amount
 
 	var transferID int64
-	insertTransferQuery := `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO fund_transfers (
-			fund_transferer_id,
-			fund_receiver_id,
+			fund_transfer_by_id,
+			fund_treanfer_to_id,
 			amount,
 			fund_transfer_status,
 			remarks
@@ -77,10 +77,8 @@ func (db *Database) CreateFundTransferQuery(
 			'PENDING',
 			@remarks
 		)
-		RETURNING fund_transfer_id;
-	`
-
-	err = tx.QueryRow(ctx, insertTransferQuery, pgx.NamedArgs{
+		RETURNING fund_transfer_id
+	`, pgx.NamedArgs{
 		"from_id": req.FromID,
 		"to_id":   req.ToID,
 		"amount":  req.Amount,
@@ -135,10 +133,10 @@ func (db *Database) CreateFundTransferQuery(
 			@after,
 			'FUND_TRANSFER',
 			@remarks
-		);
+		)
 	`
 
-	// Debit → FROM user
+	// Debit FROM user
 	_, err = tx.Exec(ctx, insertTxn, pgx.NamedArgs{
 		"uid":    req.FromID,
 		"ref":    refID,
@@ -154,7 +152,7 @@ func (db *Database) CreateFundTransferQuery(
 		return err
 	}
 
-	// Credit → TO user
+	// Credit TO user
 	_, err = tx.Exec(ctx, insertTxn, pgx.NamedArgs{
 		"uid":    req.ToID,
 		"ref":    refID,
@@ -193,8 +191,8 @@ func (db *Database) GetFundTransfersByFromIDQuery(
 	query := `
 		SELECT
 			ft.fund_transfer_id,
-			ft.fund_transferer_id,
-			ft.fund_receiver_id,
+			ft.fund_transfer_by_id,
+			ft.fund_treanfer_to_id,
 
 			COALESCE(
 				a.admin_name,
@@ -215,17 +213,17 @@ func (db *Database) GetFundTransfersByFromIDQuery(
 			ft.created_at
 		FROM fund_transfers ft
 
-		LEFT JOIN admins a ON ft.fund_transferer_id = a.admin_id
-		LEFT JOIN master_distributors md ON ft.fund_transferer_id = md.master_distributor_id
-		LEFT JOIN distributors d ON ft.fund_transferer_id = d.distributor_id
-		LEFT JOIN retailers r ON ft.fund_transferer_id = r.retailer_id
+		LEFT JOIN admins a ON ft.fund_transfer_by_id = a.admin_id
+		LEFT JOIN master_distributors md ON ft.fund_transfer_by_id = md.master_distributor_id
+		LEFT JOIN distributors d ON ft.fund_transfer_by_id = d.distributor_id
+		LEFT JOIN retailers r ON ft.fund_transfer_by_id = r.retailer_id
 
-		LEFT JOIN admins a2 ON ft.fund_receiver_id = a2.admin_id
-		LEFT JOIN master_distributors md2 ON ft.fund_receiver_id = md2.master_distributor_id
-		LEFT JOIN distributors d2 ON ft.fund_receiver_id = d2.distributor_id
-		LEFT JOIN retailers r2 ON ft.fund_receiver_id = r2.retailer_id
+		LEFT JOIN admins a2 ON ft.fund_treanfer_to_id = a2.admin_id
+		LEFT JOIN master_distributors md2 ON ft.fund_treanfer_to_id = md2.master_distributor_id
+		LEFT JOIN distributors d2 ON ft.fund_treanfer_to_id = d2.distributor_id
+		LEFT JOIN retailers r2 ON ft.fund_treanfer_to_id = r2.retailer_id
 
-		WHERE ft.fund_transferer_id = @id
+		WHERE ft.fund_transfer_by_id = @id
 	`
 
 	args := pgx.NamedArgs{
@@ -251,7 +249,7 @@ func (db *Database) GetFundTransfersByFromIDQuery(
 
 	query += `
 		ORDER BY ft.created_at DESC
-		LIMIT @limit OFFSET @offset;
+		LIMIT @limit OFFSET @offset
 	`
 
 	rows, err := db.pool.Query(ctx, query, args)
@@ -290,8 +288,8 @@ func (db *Database) GetFundTransfersByToIDQuery(
 	query := `
 		SELECT
 			ft.fund_transfer_id,
-			ft.fund_transferer_id,
-			ft.fund_receiver_id,
+			ft.fund_transfer_by_id,
+			ft.fund_treanfer_to_id,
 
 			COALESCE(
 				a.admin_name,
@@ -312,17 +310,17 @@ func (db *Database) GetFundTransfersByToIDQuery(
 			ft.created_at
 		FROM fund_transfers ft
 
-		LEFT JOIN admins a ON ft.fund_transferer_id = a.admin_id
-		LEFT JOIN master_distributors md ON ft.fund_transferer_id = md.master_distributor_id
-		LEFT JOIN distributors d ON ft.fund_transferer_id = d.distributor_id
-		LEFT JOIN retailers r ON ft.fund_transferer_id = r.retailer_id
+		LEFT JOIN admins a ON ft.fund_transfer_by_id = a.admin_id
+		LEFT JOIN master_distributors md ON ft.fund_transfer_by_id = md.master_distributor_id
+		LEFT JOIN distributors d ON ft.fund_transfer_by_id = d.distributor_id
+		LEFT JOIN retailers r ON ft.fund_transfer_by_id = r.retailer_id
 
-		LEFT JOIN admins a2 ON ft.fund_receiver_id = a2.admin_id
-		LEFT JOIN master_distributors md2 ON ft.fund_receiver_id = md2.master_distributor_id
-		LEFT JOIN distributors d2 ON ft.fund_receiver_id = d2.distributor_id
-		LEFT JOIN retailers r2 ON ft.fund_receiver_id = r2.retailer_id
+		LEFT JOIN admins a2 ON ft.fund_treanfer_to_id = a2.admin_id
+		LEFT JOIN master_distributors md2 ON ft.fund_treanfer_to_id = md2.master_distributor_id
+		LEFT JOIN distributors d2 ON ft.fund_treanfer_to_id = d2.distributor_id
+		LEFT JOIN retailers r2 ON ft.fund_treanfer_to_id = r2.retailer_id
 
-		WHERE ft.fund_receiver_id = @id
+		WHERE ft.fund_treanfer_to_id = @id
 	`
 
 	args := pgx.NamedArgs{
@@ -348,7 +346,7 @@ func (db *Database) GetFundTransfersByToIDQuery(
 
 	query += `
 		ORDER BY ft.created_at DESC
-		LIMIT @limit OFFSET @offset;
+		LIMIT @limit OFFSET @offset
 	`
 
 	rows, err := db.pool.Query(ctx, query, args)
@@ -377,3 +375,4 @@ func (db *Database) GetFundTransfersByToIDQuery(
 
 	return results, rows.Err()
 }
+
