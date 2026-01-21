@@ -19,6 +19,6 @@ func (r *routes) CommisionRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) 
 	crg.GET("/get/commision/:user_id/:service", commisionHandler.GetCommisionByUserIDAndServiceRequest, middlewares.RequireRoles("admin"))
 	crg.GET("/get/commision/:user_id", commisionHandler.GetCommisionByUserIDAndServiceRequest, middlewares.RequireRoles("admin"))
 	crg.GET("/get/commisions/:commision_id", commisionHandler.GetCommisionDetailsByCommisionIDRequest, middlewares.RequireRoles("admin"))
-	crg.GET("/get/tds/:user_id", commisionHandler.GetTDSCommisionByUserIDRequest, middlewares.RequireRoles("admin", "retailer"))
+	crg.GET("/get/tds/:user_id", commisionHandler.GetTDSCommisionByUserIDRequest, middlewares.RequireRoles("admin", "retailer" , "master_distributor" , "distributor"))
 	crg.GET("/get/tds", commisionHandler.GetAllTDSCommisionRequest, middlewares.RequireRoles("admin"))
 }
