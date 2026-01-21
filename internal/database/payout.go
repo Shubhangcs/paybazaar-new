@@ -434,3 +434,58 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
+
+func (db *Database) PayoutFailedQuery(
+	ctx context.Context,
+	req models.CreatePayoutRequestModel,
+) error {
+
+	_, err := db.pool.Exec(ctx, `
+		INSERT INTO payout_transactions (
+			partner_request_id,
+			operator_transaction_id,
+			payout_transaction_status,
+			retailer_id,
+			order_id,
+			mobile_number,
+			beneficiary_bank_name,
+			beneficiary_name,
+			beneficiary_account_number,
+			beneficiary_ifsc_code,
+			amount,
+			transfer_type,
+			admin_commision,
+			master_distributor_commision,
+			distributor_commision,
+			retailer_commision
+		) VALUES (
+			@partner_req_id,
+			@operator_txn_id,
+			'FAILED',
+			@retailer_id,
+			@order_id,
+			@mobile_number,
+			@bank_name,
+			@beneficiary_name,
+			@account_number,
+			@ifsc,
+			@amount,
+			@transfer_type,
+			0, 0, 0, 0
+		);
+	`, pgx.NamedArgs{
+		"partner_req_id":   req.PartnerRequestID,
+		"operator_txn_id":  "", // empty or failure code from operator
+		"retailer_id":      req.RetailerID,
+		"order_id":         req.PartnerRequestID,
+		"mobile_number":    req.MobileNumber,
+		"bank_name":        req.BeneficiaryBankName,
+		"beneficiary_name": req.BeneficiaryName,
+		"account_number":   req.BeneficiaryAccountNumber,
+		"ifsc":             req.BeneficiaryIFSCCode,
+		"amount":           req.Amount,
+		"transfer_type":    req.TransferType,
+	})
+
+	return err
+}

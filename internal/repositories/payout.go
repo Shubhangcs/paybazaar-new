@@ -118,11 +118,11 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	}
 
 	if res.Status == 1 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, payoutRequest.AdminID, "SUCCESS")
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, "SUCCESS")
 	}
 
 	if res.Status == 2 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, payoutRequest.AdminID, "PENDING")
+		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, "PENDING")
 	}
 
 	if res.Status == 3 {
