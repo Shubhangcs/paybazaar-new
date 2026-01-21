@@ -139,9 +139,9 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 	defer tx.Rollback(ctx)
 
-	// --------------------------------------------------
-	// 1️⃣ Fetch hierarchy + balances + PAN (LOCKED)
-	// --------------------------------------------------
+	// ==================================================
+	// 1️⃣ FETCH FULL HIERARCHY + BALANCES + PAN (LOCKED)
+	// ==================================================
 	type users struct {
 		AdminID string
 		AdminBal float64
@@ -183,7 +183,9 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		JOIN admins a ON md.admin_id = a.admin_id
 		WHERE r.retailer_id = @rid
 		FOR UPDATE
-	`, pgx.NamedArgs{"rid": payoutReq.RetailerID}).Scan(
+	`, pgx.NamedArgs{
+		"rid": payoutReq.RetailerID,
+	}).Scan(
 		&u.AdminID, &u.AdminBal,
 		&u.MDID, &u.MDPAN, &u.MDBal,
 		&u.DisID, &u.DisPAN, &u.DisBal,
@@ -193,38 +195,27 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		return err
 	}
 
-	// --------------------------------------------------
-	// 2️⃣ Commission Calculation (SQL – EXACT)
-	// --------------------------------------------------
+	// ==================================================
+	// 2️⃣ COMMISSION + TDS CALCULATION (SQL – EXACT)
+	// ==================================================
 	var (
-		totalComm float64
-
-		adminGross float64
+		totalComm  float64
 		adminFinal float64
 
-		mdComm float64
-		mdTDS  float64
-		mdNet  float64
-
-		disComm float64
-		disTDS  float64
-		disNet  float64
-
-		retComm float64
-		retTDS  float64
-		retNet  float64
+		mdComm, mdTDS, mdNet float64
+		disComm, disTDS, disNet float64
+		retComm, retTDS, retNet float64
 	)
 
 	err = tx.QueryRow(ctx, `
 		WITH calc AS (
 			SELECT
-				@amount::NUMERIC AS amount,
-				(@amount::NUMERIC * (@total_comm / 100)) AS total_comm,
+				(@amount::NUMERIC * (@total_comm / 100))                       AS total_comm,
 
-				(@amount::NUMERIC * (@total_comm / 100)) * @admin_ratio AS admin_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @md_ratio    AS md_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @dis_ratio   AS dis_comm,
-				(@amount::NUMERIC * (@total_comm / 100)) * @ret_ratio   AS ret_comm
+				(@amount::NUMERIC * (@total_comm / 100)) * (@admin_pct / 100) AS admin_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * (@md_pct / 100)    AS md_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * (@dis_pct / 100)   AS dis_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * (@ret_pct / 100)   AS ret_comm
 		),
 		tds AS (
 			SELECT
@@ -237,26 +228,24 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		SELECT
 			total_comm,
 
-			admin_comm,
 			admin_comm + md_tds + dis_tds + ret_tds AS admin_final,
 
-			md_comm, md_tds, (md_comm - md_tds),
-			dis_comm, dis_tds, (dis_comm - dis_tds),
-			ret_comm, ret_tds, (ret_comm - ret_tds)
+			md_comm, md_tds,  (md_comm  - md_tds),
+			dis_comm, dis_tds,(dis_comm - dis_tds),
+			ret_comm, ret_tds,(ret_comm - ret_tds)
 		FROM tds
 	`, pgx.NamedArgs{
 		"amount": payoutReq.Amount,
+
 		"total_comm": commission.TotalCommision,
-		"admin_ratio": commission.AdminCommision,
-		"md_ratio": commission.MasterDistributorCommision,
-		"dis_ratio": commission.DistributorCommision,
-		"ret_ratio": commission.RetailerCommision,
+
+		"admin_pct": commission.AdminCommision,
+		"md_pct":    commission.MasterDistributorCommision,
+		"dis_pct":   commission.DistributorCommision,
+		"ret_pct":   commission.RetailerCommision,
 	}).Scan(
 		&totalComm,
-
-		&adminGross,
 		&adminFinal,
-
 		&mdComm, &mdTDS, &mdNet,
 		&disComm, &disTDS, &disNet,
 		&retComm, &retTDS, &retNet,
@@ -265,10 +254,11 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		return err
 	}
 
-	// --------------------------------------------------
-	// 3️⃣ Insert payout transaction (GROSS VALUES)
-	// --------------------------------------------------
+	// ==================================================
+	// 3️⃣ INSERT PAYOUT TRANSACTION (GROSS VALUES)
+	// ==================================================
 	var payoutTxnID string
+
 	err = tx.QueryRow(ctx, `
 		INSERT INTO payout_transactions (
 			partner_request_id,
@@ -288,10 +278,10 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			retailer_commision,
 			payout_transaction_status
 		) VALUES (
-			@partner,@operator,@rid,@order,
-			@mobile,@bank,@name,@account,@ifsc,
-			@amount,@type,
-			@admin,@md,@dis,@ret,
+			@partner, @operator, @rid, @order,
+			@mobile, @bank, @name, @account, @ifsc,
+			@amount, @type,
+			@admin, @md, @dis, @ret,
 			@status
 		)
 		RETURNING payout_transaction_id::TEXT
@@ -307,7 +297,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		"ifsc": payoutReq.BeneficiaryIFSCCode,
 		"amount": payoutReq.Amount,
 		"type": payoutReq.TransferType,
-		"admin": adminGross,
+		"admin": adminFinal,
 		"md": mdComm,
 		"dis": disComm,
 		"ret": retComm,
@@ -317,19 +307,22 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		return err
 	}
 
-	// --------------------------------------------------
-	// 4️⃣ Retailer Debit (amount + total commission)
-	// --------------------------------------------------
+	// ==================================================
+	// 4️⃣ RETAILER DEBIT (AMOUNT + TOTAL COMMISSION)
+	// ==================================================
 	totalDebit := payoutReq.Amount + totalComm
 	if u.RetBal < totalDebit {
 		return fmt.Errorf("insufficient retailer balance")
 	}
 
-	_, err = tx.Exec(ctx,
-		`UPDATE retailers SET retailer_wallet_balance = retailer_wallet_balance - @amt WHERE retailer_id=@id`,
-		pgx.NamedArgs{"amt": totalDebit, "id": u.RetID},
-	)
-	if err != nil { return err }
+	_, err = tx.Exec(ctx, `
+		UPDATE retailers
+		SET retailer_wallet_balance = retailer_wallet_balance - @amt
+		WHERE retailer_id = @id
+	`, pgx.NamedArgs{"amt": totalDebit, "id": u.RetID})
+	if err != nil {
+		return err
+	}
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions (
@@ -337,9 +330,9 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			debit_amount, before_balance, after_balance,
 			transaction_reason, remarks
 		) VALUES (
-			@uid,@ref,
-			@amt,@before,@after,
-			'PAYOUT','Payout + commission debit'
+			@uid, @ref,
+			@amt, @before, @after,
+			'PAYOUT', 'Payout + commission debit'
 		)
 	`, pgx.NamedArgs{
 		"uid": u.RetID,
@@ -348,16 +341,20 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		"before": u.RetBal,
 		"after": u.RetBal - totalDebit,
 	})
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
-	// --------------------------------------------------
-	// 5️⃣ Admin Credit (GROSS + ALL TDS)
-	// --------------------------------------------------
+	// ==================================================
+	// 5️⃣ ADMIN CREDIT (OWN + ALL TDS)
+	// ==================================================
 	_, err = tx.Exec(ctx,
 		`UPDATE admins SET admin_wallet_balance = admin_wallet_balance + @amt WHERE admin_id=@id`,
 		pgx.NamedArgs{"amt": adminFinal, "id": u.AdminID},
 	)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions (
@@ -367,7 +364,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		) VALUES (
 			@uid,@ref,
 			@amt,@before,@after,
-			'PAYOUT','Admin commission + collected TDS'
+			'PAYOUT','Admin commission + TDS'
 		)
 	`, pgx.NamedArgs{
 		"uid": u.AdminID,
@@ -376,123 +373,99 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		"before": u.AdminBal,
 		"after": u.AdminBal + adminFinal,
 	})
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
-	// --------------------------------------------------
-	// 6️⃣ MD, Distributor, Retailer Credits + TDS ENTRIES
-	// --------------------------------------------------
+	// ==================================================
+	// 6️⃣ MD / DISTRIBUTOR / RETAILER CREDIT + TDS ENTRY
+	// ==================================================
+	type tdsEntry struct {
+		UserID string
+		Role   string
+		PAN    string
+		Gross  float64
+		TDS    float64
+		Net    float64
+	}
 
-	// ---- MD ----
-	_, err = tx.Exec(ctx,
-		`UPDATE master_distributors SET master_distributor_wallet_balance = master_distributor_wallet_balance + @amt WHERE master_distributor_id=@id`,
-		pgx.NamedArgs{"amt": mdNet, "id": u.MDID},
-	)
-	if err != nil { return err }
+	entries := []tdsEntry{
+		{u.MDID, "MASTER_DISTRIBUTOR", u.MDPAN, mdComm, mdTDS, mdNet},
+		{u.DisID, "DISTRIBUTOR", u.DisPAN, disComm, disTDS, disNet},
+		{u.RetID, "RETAILER", u.RetPAN, retComm, retTDS, retNet},
+	}
 
-	_, err = tx.Exec(ctx,
-		`INSERT INTO wallet_transactions (user_id,reference_id,credit_amount,before_balance,after_balance,transaction_reason,remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission')`,
-		pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdNet, "before": u.MDBal, "after": u.MDBal + mdNet},
-	)
-	if err != nil { return err }
+	for _, e := range entries {
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO tds_commision (
-			transaction_id,user_id,user_name,
-			commision,tds,paid_commision,
-			pan_number,status
-		) VALUES (
-			@txn,@uid,'MASTER_DISTRIBUTOR',
-			@comm,@tds,@net,
-			@pan,'DEDUCTED'
+		var table, balCol, idCol string
+		switch e.Role {
+		case "MASTER_DISTRIBUTOR":
+			table, balCol, idCol = "master_distributors", "master_distributor_wallet_balance", "master_distributor_id"
+		case "DISTRIBUTOR":
+			table, balCol, idCol = "distributors", "distributor_wallet_balance", "distributor_id"
+		case "RETAILER":
+			table, balCol, idCol = "retailers", "retailer_wallet_balance", "retailer_id"
+		}
+
+		_, err = tx.Exec(ctx,
+			fmt.Sprintf(`UPDATE %s SET %s = %s + @amt WHERE %s=@id`, table, balCol, balCol, idCol),
+			pgx.NamedArgs{"amt": e.Net, "id": e.UserID},
 		)
-	`, pgx.NamedArgs{
-		"txn": payoutTxnID,
-		"uid": u.MDID,
-		"comm": mdComm,
-		"tds": mdTDS,
-		"net": mdNet,
-		"pan": u.MDPAN,
-	})
-	if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
-	// ---- Distributor ----
-	_, err = tx.Exec(ctx,
-		`UPDATE distributors SET distributor_wallet_balance = distributor_wallet_balance + @amt WHERE distributor_id=@id`,
-		pgx.NamedArgs{"amt": disNet, "id": u.DisID},
-	)
-	if err != nil { return err }
-
-	_, err = tx.Exec(ctx,
-		`INSERT INTO wallet_transactions (user_id,reference_id,credit_amount,before_balance,after_balance,transaction_reason,remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission')`,
-		pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disNet, "before": u.DisBal, "after": u.DisBal + disNet},
-	)
-	if err != nil { return err }
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO tds_commision (
-			transaction_id,user_id,user_name,
-			commision,tds,paid_commision,
-			pan_number,status
-		) VALUES (
-			@txn,@uid,'DISTRIBUTOR',
-			@comm,@tds,@net,
-			@pan,'DEDUCTED'
-		)
-	`, pgx.NamedArgs{
-		"txn": payoutTxnID,
-		"uid": u.DisID,
-		"comm": disComm,
-		"tds": disTDS,
-		"net": disNet,
-		"pan": u.DisPAN,
-	})
-	if err != nil { return err }
-
-	// ---- Retailer ----
-	_, err = tx.Exec(ctx,
-		`UPDATE retailers SET retailer_wallet_balance = retailer_wallet_balance + @amt WHERE retailer_id=@id`,
-		pgx.NamedArgs{"amt": retNet, "id": u.RetID},
-	)
-	if err != nil { return err }
-
-	_, err = tx.Exec(ctx,
-		`INSERT INTO wallet_transactions (user_id,reference_id,credit_amount,before_balance,after_balance,transaction_reason,remarks)
-		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission')`,
-		pgx.NamedArgs{
-			"uid": u.RetID,
+		_, err = tx.Exec(ctx, `
+			INSERT INTO wallet_transactions (
+				user_id, reference_id,
+				credit_amount,
+				transaction_reason, remarks
+			) VALUES (
+				@uid,@ref,
+				@amt,
+				'PAYOUT','Commission credit'
+			)
+		`, pgx.NamedArgs{
+			"uid": e.UserID,
 			"ref": payoutTxnID,
-			"amt": retNet,
-			"before": u.RetBal - totalDebit,
-			"after": (u.RetBal - totalDebit) + retNet,
-		},
-	)
-	if err != nil { return err }
+			"amt": e.Net,
+		})
+		if err != nil {
+			return err
+		}
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO tds_commision (
-			transaction_id,user_id,user_name,
-			commision,tds,paid_commision,
-			pan_number,status
-		) VALUES (
-			@txn,@uid,'RETAILER',
-			@comm,@tds,@net,
-			@pan,'DEDUCTED'
-		)
-	`, pgx.NamedArgs{
-		"txn": payoutTxnID,
-		"uid": u.RetID,
-		"comm": retComm,
-		"tds": retTDS,
-		"net": retNet,
-		"pan": u.RetPAN,
-	})
-	if err != nil { return err }
+		_, err = tx.Exec(ctx, `
+			INSERT INTO tds_commision (
+				transaction_id,
+				user_id,
+				user_name,
+				commision,
+				tds,
+				paid_commision,
+				pan_number,
+				status
+			) VALUES (
+				@txn,@uid,@role,
+				@gross,@tds,@net,
+				@pan,'DEDUCTED'
+			)
+		`, pgx.NamedArgs{
+			"txn": payoutTxnID,
+			"uid": e.UserID,
+			"role": e.Role,
+			"gross": e.Gross,
+			"tds": e.TDS,
+			"net": e.Net,
+			"pan": e.PAN,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
+
 
 
 
