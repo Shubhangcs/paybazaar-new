@@ -19,6 +19,8 @@ import (
 
 type PayoutInterface interface {
 	CreatePayout(echo.Context) error
+	GetAllPayouts(echo.Context) ([]models.GetPayoutTransactionModel, error)
+	GetPayoutsByRetailerID(echo.Context) ([]models.GetRetailerPayoutModel, error)
 }
 
 type payoutRepository struct {
@@ -131,4 +133,27 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 
 	// ---------------- DB TRANSACTION ----------------
 	return fmt.Errorf("invalid payout status")
+}
+
+func (pr *payoutRepository) GetAllPayouts(
+	c echo.Context,
+) ([]models.GetPayoutTransactionModel, error) {
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+	defer cancel()
+
+	return pr.db.GetAllPayoutTransactions(ctx)
+}
+
+func (pr *payoutRepository) GetPayoutsByRetailerID(
+	c echo.Context,
+) ([]models.GetRetailerPayoutModel, error) {
+	var retailerID = c.Param("retailer_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+	defer cancel()
+
+	return pr.db.GetPayoutsByRetailerIDOnlyRetailerCommission(
+		ctx,
+		retailerID,
+	)
 }

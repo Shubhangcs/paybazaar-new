@@ -19,5 +19,7 @@ func (r *routes) PayoutRoutes(
 		"/payout",
 		middlewares.AuthorizationMiddleware(jwtUtils),
 	)
-	pr.POST("/create", payoutHandler.CreatePayout)
+	pr.POST("/create", payoutHandler.CreatePayout, middlewares.RequireRoles("retailer"))
+	pr.GET("/get", payoutHandler.GetAllPayoutsRequest, middlewares.RequireRoles("admin"))
+	pr.GET("/get/:retailer_id", payoutHandler.GetPayoutsByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
 }

@@ -597,3 +597,135 @@ func (db *Database) PayoutFailedQuery(
 
 	return err
 }
+
+func (db *Database) GetAllPayoutTransactions(
+	ctx context.Context,
+) ([]models.GetPayoutTransactionModel, error) {
+
+	query := `
+		SELECT
+			payout_transaction_id,
+			partner_request_id,
+			operator_transaction_id,
+			retailer_id,
+			order_id,
+			mobile_number,
+			beneficiary_bank_name,
+			beneficiary_name,
+			beneficiary_account_number,
+			beneficiary_ifsc_code,
+			amount,
+			transfer_type,
+			admin_commision,
+			master_distributor_commision,
+			distributor_commision,
+			retailer_commision,
+			payout_transaction_status,
+			created_at,
+			updated_at
+		FROM payout_transactions
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := db.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.GetPayoutTransactionModel
+
+	for rows.Next() {
+		var r models.GetPayoutTransactionModel
+		if err := rows.Scan(
+			&r.PayoutTransactionID,
+			&r.PartnerRequestID,
+			&r.OperatorTxnID,
+			&r.RetailerID,
+			&r.OrderID,
+			&r.MobileNumber,
+			&r.BeneficiaryBankName,
+			&r.BeneficiaryName,
+			&r.BeneficiaryAccountNo,
+			&r.BeneficiaryIFSCCode,
+			&r.Amount,
+			&r.TransferType,
+			&r.AdminCommision,
+			&r.MasterDistributorCommision,
+			&r.DistributorCommision,
+			&r.RetailerCommision,
+			&r.PayoutStatus,
+			&r.CreatedAt,
+			&r.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}
+
+func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
+	ctx context.Context,
+	retailerID string,
+) ([]models.GetRetailerPayoutModel, error) {
+
+	query := `
+		SELECT
+			payout_transaction_id,
+			partner_request_id,
+			operator_transaction_id,
+			retailer_id,
+			order_id,
+			mobile_number,
+			beneficiary_bank_name,
+			beneficiary_name,
+			beneficiary_account_number,
+			beneficiary_ifsc_code,
+			amount,
+			transfer_type,
+			retailer_commision,
+			payout_transaction_status,
+			created_at,
+			updated_at
+		FROM payout_transactions
+		WHERE retailer_id = $1
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := db.pool.Query(ctx, query, retailerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.GetRetailerPayoutModel
+
+	for rows.Next() {
+		var r models.GetRetailerPayoutModel
+		if err := rows.Scan(
+			&r.PayoutTransactionID,
+			&r.PartnerRequestID,
+			&r.OperatorTxnID,
+			&r.RetailerID,
+			&r.OrderID,
+			&r.MobileNumber,
+			&r.BeneficiaryBankName,
+			&r.BeneficiaryName,
+			&r.AccountNumber,
+			&r.IFSCCode,
+			&r.Amount,
+			&r.TransferType,
+			&r.RetailerCommision,
+			&r.Status,
+			&r.CreatedAt,
+			&r.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}
