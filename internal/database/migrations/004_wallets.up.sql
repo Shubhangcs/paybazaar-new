@@ -34,8 +34,8 @@ CREATE TABLE
 CREATE TABLE
     IF NOT EXISTS fund_transfers (
         fund_transfer_id BIGSERIAL PRIMARY KEY,
-        fund_transfer_by_id TEXT NOT NULL,
-        fund_treanfer_to_id TEXT NOT NULL,
+        fund_transferer_id TEXT NOT NULL,
+        fund_receiver_id TEXT NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
         fund_transfer_status TEXT NOT NULL CHECK (
             fund_transfer_status IN ('PENDING', 'SUCCESS', 'FAILED')

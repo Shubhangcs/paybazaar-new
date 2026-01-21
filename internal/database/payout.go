@@ -159,27 +159,32 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 2️⃣ Commission Calculation (CORRECT LOGIC)
+	// 2️⃣ COMMISSION CALCULATION (MATCHES OLD SYSTEM)
 	// --------------------------------------------------
+
+	// Total commission amount (₹)
+	// Example: 1000 * (1.2 / 100) = 12
 	payoutAmount := payoutReq.Amount
+	totalCommission := payoutAmount * (commission.TotalCommision / 100)
 
-	totalCommission := payoutAmount * commission.TotalCommision / 100
+	// Split commission using FRACTIONS (NOT percentages)
+	adminComm := totalCommission * commission.AdminCommision
+	mdComm := totalCommission * commission.MasterDistributorCommision
+	disComm := totalCommission * commission.DistributorCommision
+	retailerComm := totalCommission * commission.RetailerCommision
 
-	retailerComm := totalCommission * commission.RetailerCommision / 100
-	disComm := totalCommission * commission.DistributorCommision / 100
-	mdComm := totalCommission * commission.MasterDistributorCommision / 100
-	adminComm := totalCommission * commission.AdminCommision / 100
-
+	// TDS 2% (except admin)
 	tdsRate := 0.02
 
-	retailerTDS := retailerComm * tdsRate
-	disTDS := disComm * tdsRate
+	adminTDS := 0.0
 	mdTDS := mdComm * tdsRate
+	disTDS := disComm * tdsRate
+	retailerTDS := retailerComm * tdsRate
 
-	retailerNet := retailerComm - retailerTDS
-	disNet := disComm - disTDS
+	adminNet := adminComm
 	mdNet := mdComm - mdTDS
-	adminNet := adminComm // ❌ no TDS
+	disNet := disComm - disTDS
+	retailerNet := retailerComm - retailerTDS
 
 	// --------------------------------------------------
 	// 3️⃣ Insert payout transaction
@@ -283,13 +288,21 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions (
-			user_id, reference_id,
-			debit_amount, before_balance, after_balance,
-			transaction_reason, remarks
+			user_id,
+			reference_id,
+			debit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
 		) VALUES (
-			@uid, @ref,
-			@amt, @before, @after,
-			'PAYOUT', 'Payout + commission debit'
+			@uid,
+			@ref,
+			@amt,
+			@before,
+			@after,
+			'PAYOUT',
+			'Payout + commission debit'
 		)
 	`, pgx.NamedArgs{
 		"uid":    payoutReq.RetailerID,
@@ -303,7 +316,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 5️⃣ Credit commissions + TDS
+	// 5️⃣ Credit commission wallets + TDS
 	// --------------------------------------------------
 	type credit struct {
 		UserID string
@@ -314,7 +327,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	credits := []credit{
-		{adminID, "ADMIN", adminComm, adminNet, 0},
+		{adminID, "ADMIN", adminComm, adminNet, adminTDS},
 		{mdID, "MASTER_DISTRIBUTOR", mdComm, mdNet, mdTDS},
 		{distributorID, "DISTRIBUTOR", disComm, disNet, disTDS},
 		{payoutReq.RetailerID, "RETAILER", retailerComm, retailerNet, retailerTDS},
@@ -379,20 +392,31 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			update = `UPDATE retailers SET retailer_wallet_balance=@bal WHERE retailer_id=@id`
 		}
 
-		_, err = tx.Exec(ctx, update, pgx.NamedArgs{"id": c.UserID, "bal": after})
+		_, err = tx.Exec(ctx, update, pgx.NamedArgs{
+			"id":  c.UserID,
+			"bal": after,
+		})
 		if err != nil {
 			return err
 		}
 
 		_, err = tx.Exec(ctx, `
 			INSERT INTO wallet_transactions (
-				user_id, reference_id,
-				credit_amount, before_balance, after_balance,
-				transaction_reason, remarks
+				user_id,
+				reference_id,
+				credit_amount,
+				before_balance,
+				after_balance,
+				transaction_reason,
+				remarks
 			) VALUES (
-				@uid, @ref,
-				@amt, @before, @after,
-				'PAYOUT', 'Commission credited'
+				@uid,
+				@ref,
+				@amt,
+				@before,
+				@after,
+				'PAYOUT',
+				'Commission credited'
 			)
 		`, pgx.NamedArgs{
 			"uid":    c.UserID,
@@ -408,13 +432,23 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		if c.Role != "ADMIN" {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO tds_commision (
-					transaction_id, user_id, user_name,
-					commision, tds, paid_commision,
-					pan_number, status
+					transaction_id,
+					user_id,
+					user_name,
+					commision,
+					tds,
+					paid_commision,
+					pan_number,
+					status
 				) VALUES (
-					@txn, @uid, @role,
-					@gross, @tds, @net,
-					@pan, 'DEDUCTED'
+					@txn,
+					@uid,
+					@role,
+					@gross,
+					@tds,
+					@net,
+					@pan,
+					'DEDUCTED'
 				)
 			`, pgx.NamedArgs{
 				"txn":   payoutTxnID,
@@ -433,6 +467,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	return tx.Commit(ctx)
 }
+
 
 func (db *Database) PayoutFailedQuery(
 	ctx context.Context,
