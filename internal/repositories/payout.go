@@ -35,7 +35,7 @@ func NewPayoutRepository(db *database.Database, jwtUtils *pkg.JwtUtils) *payoutR
 
 func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	var payoutRequest models.CreatePayoutRequestModel
-	if err := bindAndValidate(c , &payoutRequest); err != nil {
+	if err := bindAndValidate(c, &payoutRequest); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
@@ -64,11 +64,12 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":          payoutRequest.MobileNumber,
-		"account_number":     payoutRequest.BeneficiaryAccountNumber,
+		"account_no":         payoutRequest.BeneficiaryAccountNumber,
 		"ifsc":               payoutRequest.BeneficiaryIFSCCode,
 		"bank_name":          payoutRequest.BeneficiaryBankName,
 		"beneficiary_name":   payoutRequest.BeneficiaryName,
 		"amount":             payoutRequest.Amount,
+		"transfer_type":      payoutRequest.TransferType,
 		"partner_request_id": payoutRequest.PartnerRequestID,
 	})
 	if err != nil {
