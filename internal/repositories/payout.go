@@ -58,6 +58,9 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	id := uuid.NewString()
 	payoutRequest.PartnerRequestID = id
 
+	fmt.Println(commision)
+	fmt.Println(payoutRequest)
+
 	// ---------------- API CALL ----------------
 
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitpayout/payoutTransfer`
@@ -105,6 +108,8 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	if err := json.Unmarshal(respBytes, &res); err != nil {
 		return err
 	}
+
+	fmt.Println(res)
 
 	// Basic response sanity check
 	if res.Status == 0 {
