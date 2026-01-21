@@ -21,6 +21,7 @@ type PayoutInterface interface {
 	CreatePayout(echo.Context) error
 	GetAllPayouts(echo.Context) ([]models.GetPayoutTransactionModel, error)
 	GetPayoutsByRetailerID(echo.Context) ([]models.GetRetailerPayoutModel, error)
+	GetRetailerPayoutLedgerWithWallet(echo.Context) ([]models.PayoutLedgerWithWalletResponseModel, error)
 }
 
 type payoutRepository struct {
@@ -156,4 +157,11 @@ func (pr *payoutRepository) GetPayoutsByRetailerID(
 		ctx,
 		retailerID,
 	)
+}
+
+func (pr *payoutRepository) GetRetailerPayoutLedgerWithWallet(c echo.Context) ([]models.PayoutLedgerWithWalletResponseModel, error) {
+	var retailerID = c.Param("retailer_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+	defer cancel()
+	return pr.db.GetRetailerPayoutLedgerWithWalletQuery(ctx, retailerID)
 }

@@ -729,3 +729,74 @@ func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
 
 	return results, rows.Err()
 }
+
+func (db *Database) GetRetailerPayoutLedgerWithWalletQuery(
+	ctx context.Context,
+	retailerID string,
+) ([]models.PayoutLedgerWithWalletResponseModel, error) {
+
+	query := `-- SQL ABOVE --`
+
+	rows, err := db.pool.Query(ctx, query, retailerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.PayoutLedgerWithWalletResponseModel
+
+	for rows.Next() {
+		var r models.PayoutLedgerWithWalletResponseModel
+		if err := rows.Scan(
+			&r.PayoutTransactionID,
+			&r.PartnerRequestID,
+			&r.OperatorTransactionID,
+			&r.RetailerID,
+			&r.OrderID,
+			&r.MobileNumber,
+			&r.BeneficiaryBankName,
+			&r.BeneficiaryName,
+			&r.BeneficiaryAccountNumber,
+			&r.BeneficiaryIFSCCode,
+			&r.Amount,
+			&r.TransferType,
+			&r.AdminCommission,
+			&r.MasterDistributorCommission,
+			&r.DistributorCommission,
+			&r.RetailerCommission,
+			&r.PayoutStatus,
+			&r.PayoutCreatedAt,
+			&r.PayoutUpdatedAt,
+
+			&r.TDSCommissionID,
+			&r.TDSTransactionID,
+			&r.TDSUserID,
+			&r.TDSUserName,
+			&r.TDSCommission,
+			&r.TDSAmount,
+			&r.CommissionNet,
+			&r.PANNumber,
+			&r.TDSStatus,
+			&r.TDSCreatedAt,
+
+			&r.WalletTransactionID,
+			&r.WalletUserID,
+			&r.WalletReferenceID,
+			&r.CreditAmount,
+			&r.DebitAmount,
+			&r.BeforeBalance,
+			&r.AfterBalance,
+			&r.TransactionReason,
+			&r.Remarks,
+			&r.WalletCreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		results = append(results, r)
+	}
+
+	return results, rows.Err()
+}
+
+

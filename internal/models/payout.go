@@ -72,3 +72,52 @@ type GetRetailerPayoutModel struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type PayoutLedgerWithWalletResponseModel struct {
+	// ---------- PAYOUT ----------
+	PayoutTransactionID      string  `json:"payout_transaction_id"`
+	PartnerRequestID         string  `json:"partner_request_id"`
+	OperatorTransactionID    string  `json:"operator_transaction_id"`
+	RetailerID               string  `json:"retailer_id"`
+	OrderID                  string  `json:"order_id"`
+	MobileNumber             string  `json:"mobile_number"`
+	BeneficiaryBankName      string  `json:"beneficiary_bank_name"`
+	BeneficiaryName          string  `json:"beneficiary_name"`
+	BeneficiaryAccountNumber string  `json:"beneficiary_account_number"`
+	BeneficiaryIFSCCode      string  `json:"beneficiary_ifsc_code"`
+	Amount                   float64 `json:"amount"`
+	TransferType             string  `json:"transfer_type"`
+
+	AdminCommission             float64 `json:"admin_commision"`
+	MasterDistributorCommission float64 `json:"master_distributor_commision"`
+	DistributorCommission       float64 `json:"distributor_commision"`
+	RetailerCommission          float64 `json:"retailer_commision"`
+
+	PayoutStatus    string    `json:"payout_transaction_status"`
+	PayoutCreatedAt time.Time `json:"payout_created_at"`
+	PayoutUpdatedAt time.Time `json:"payout_updated_at"`
+
+	// ---------- TDS ----------
+	TDSCommissionID  *int64     `json:"tds_commision_id,omitempty"`
+	TDSTransactionID *string    `json:"tds_transaction_id,omitempty"`
+	TDSUserID        *string    `json:"tds_user_id,omitempty"`
+	TDSUserName      *string    `json:"tds_user_name,omitempty"`
+	TDSCommission    *float64   `json:"tds_commision,omitempty"`
+	TDSAmount        *float64   `json:"tds,omitempty"`
+	CommissionNet    *float64   `json:"paid_commision,omitempty"`
+	PANNumber        *string    `json:"pan_number,omitempty"`
+	TDSStatus        *string    `json:"tds_status,omitempty"`
+	TDSCreatedAt     *time.Time `json:"tds_created_at,omitempty"`
+
+	// ---------- WALLET ----------
+	WalletTransactionID *int64     `json:"wallet_transaction_id,omitempty"`
+	WalletUserID        *string    `json:"wallet_user_id,omitempty"`
+	WalletReferenceID   *string    `json:"wallet_reference_id,omitempty"`
+	CreditAmount        *float64   `json:"credit_amount,omitempty"`
+	DebitAmount         *float64   `json:"debit_amount,omitempty"`
+	BeforeBalance       *float64   `json:"before_balance,omitempty"`
+	AfterBalance        *float64   `json:"after_balance,omitempty"`
+	TransactionReason   *string    `json:"transaction_reason,omitempty"`
+	Remarks             *string    `json:"remarks,omitempty"`
+	WalletCreatedAt     *time.Time `json:"wallet_created_at,omitempty"`
+}

@@ -85,3 +85,27 @@ func (ph *payoutHandler) GetPayoutsByRetailerIDRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (ph *payoutHandler) GetRetailerPayoutLedgerWithWalletRequest(c echo.Context) error {
+	res, err := ph.payoutRepo.GetRetailerPayoutLedgerWithWallet(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{
+				Status:  "failed",
+				Message: err.Error(),
+			},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "payout request submitted successfully",
+			Data: map[string]any{
+				"payout_ledger_transactions": res,
+			},
+		},
+	)
+}

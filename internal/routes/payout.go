@@ -22,4 +22,5 @@ func (r *routes) PayoutRoutes(
 	pr.POST("/create", payoutHandler.CreatePayout, middlewares.RequireRoles("retailer"))
 	pr.GET("/get", payoutHandler.GetAllPayoutsRequest, middlewares.RequireRoles("admin"))
 	pr.GET("/get/:retailer_id", payoutHandler.GetPayoutsByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
+	pr.GET("/get/ledger/:retailer_id", payoutHandler.GetRetailerPayoutLedgerWithWalletRequest, middlewares.RequireRoles("retailer"))
 }
