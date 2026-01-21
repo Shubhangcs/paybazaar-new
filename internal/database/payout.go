@@ -196,27 +196,74 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 2️⃣ Commission Calculation (REFERENCE LOGIC)
+	// 2️⃣ Commission Calculation (SQL – EXACT, NO FLOAT DRIFT)
 	// --------------------------------------------------
-	amount := payoutReq.Amount
-	totalComm := amount * (commission.TotalCommision / 100)
+	var (
+		totalComm  float64
 
-	adminComm := totalComm * commission.AdminCommision
-	mdComm := totalComm * commission.MasterDistributorCommision
-	disComm := totalComm * commission.DistributorCommision
-	retComm := totalComm * commission.RetailerCommision
+		adminFinal float64
 
-	tdsRate := 0.02
+		mdComm float64
+		mdTDS  float64
+		mdNet  float64
 
-	mdTDS := mdComm * tdsRate
-	disTDS := disComm * tdsRate
-	retTDS := retComm * tdsRate
+		disComm float64
+		disTDS  float64
+		disNet  float64
 
-	mdNet := mdComm - mdTDS
-	disNet := disComm - disTDS
-	retNet := retComm - retTDS
+		retComm float64
+		retTDS  float64
+		retNet  float64
+	)
 
-	adminFinal := adminComm + mdTDS + disTDS + retTDS
+	err = tx.QueryRow(ctx, `
+		WITH calc AS (
+			SELECT
+				@amount::NUMERIC                                         AS amount,
+				(@amount::NUMERIC * (@total_comm / 100))                 AS total_comm,
+
+				(@amount::NUMERIC * (@total_comm / 100)) * @admin_ratio AS admin_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * @md_ratio    AS md_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * @dis_ratio   AS dis_comm,
+				(@amount::NUMERIC * (@total_comm / 100)) * @ret_ratio   AS ret_comm
+		),
+		tds AS (
+			SELECT
+				*,
+				md_comm  * 0.02 AS md_tds,
+				dis_comm * 0.02 AS dis_tds,
+				ret_comm * 0.02 AS ret_tds
+			FROM calc
+		)
+		SELECT
+			total_comm,
+
+			admin_comm + md_tds + dis_tds + ret_tds AS admin_final,
+
+			md_comm, md_tds, (md_comm - md_tds)   AS md_net,
+			dis_comm, dis_tds, (dis_comm - dis_tds) AS dis_net,
+			ret_comm, ret_tds, (ret_comm - ret_tds) AS ret_net
+		FROM tds
+	`, pgx.NamedArgs{
+		"amount": payoutReq.Amount,
+		"total_comm": commission.TotalCommision,
+
+		"admin_ratio": commission.AdminCommision,
+		"md_ratio":    commission.MasterDistributorCommision,
+		"dis_ratio":   commission.DistributorCommision,
+		"ret_ratio":   commission.RetailerCommision,
+	}).Scan(
+		&totalComm,
+
+		&adminFinal,
+
+		&mdComm, &mdTDS, &mdNet,
+		&disComm, &disTDS, &disNet,
+		&retComm, &retTDS, &retNet,
+	)
+	if err != nil {
+		return err
+	}
 
 	// --------------------------------------------------
 	// 3️⃣ Insert payout transaction
@@ -258,7 +305,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		"name": payoutReq.BeneficiaryName,
 		"account": payoutReq.BeneficiaryAccountNumber,
 		"ifsc": payoutReq.BeneficiaryIFSCCode,
-		"amount": amount,
+		"amount": payoutReq.Amount,
 		"type": payoutReq.TransferType,
 		"admin": adminFinal,
 		"md": mdComm,
@@ -273,16 +320,15 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	// --------------------------------------------------
 	// 4️⃣ Retailer Debit (amount + total commission)
 	// --------------------------------------------------
-	totalDebit := amount + totalComm
+	totalDebit := payoutReq.Amount + totalComm
 	if u.RetBal < totalDebit {
 		return fmt.Errorf("insufficient retailer balance")
 	}
 
-	_, err = tx.Exec(ctx, `
-		UPDATE retailers
-		SET retailer_wallet_balance = retailer_wallet_balance - @amt
-		WHERE retailer_id = @id
-	`, pgx.NamedArgs{"amt": totalDebit, "id": u.RetID})
+	_, err = tx.Exec(ctx,
+		`UPDATE retailers SET retailer_wallet_balance = retailer_wallet_balance - @amt WHERE retailer_id = @id`,
+		pgx.NamedArgs{"amt": totalDebit, "id": u.RetID},
+	)
 	if err != nil {
 		return err
 	}
@@ -311,11 +357,10 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	// --------------------------------------------------
 	// 5️⃣ Admin Credit (commission + ALL TDS)
 	// --------------------------------------------------
-	_, err = tx.Exec(ctx, `
-		UPDATE admins
-		SET admin_wallet_balance = admin_wallet_balance + @amt
-		WHERE admin_id = @id
-	`, pgx.NamedArgs{"amt": adminFinal, "id": u.AdminID})
+	_, err = tx.Exec(ctx,
+		`UPDATE admins SET admin_wallet_balance = admin_wallet_balance + @amt WHERE admin_id = @id`,
+		pgx.NamedArgs{"amt": adminFinal, "id": u.AdminID},
+	)
 	if err != nil {
 		return err
 	}
@@ -342,44 +387,54 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 6️⃣ MD, Distributor, Retailer Credits + TDS Entries
+	// 6️⃣ MD, Distributor, Retailer Credits
 	// --------------------------------------------------
 	// MD
-	_, err = tx.Exec(ctx, `UPDATE master_distributors SET master_distributor_wallet_balance = master_distributor_wallet_balance + @amt WHERE master_distributor_id=@id`,
-		pgx.NamedArgs{"amt": mdNet, "id": u.MDID})
+	_, err = tx.Exec(ctx,
+		`UPDATE master_distributors SET master_distributor_wallet_balance = master_distributor_wallet_balance + @amt WHERE master_distributor_id=@id`,
+		pgx.NamedArgs{"amt": mdNet, "id": u.MDID},
+	)
 	if err != nil { return err }
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission')
-	`, pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdNet, "before": u.MDBal, "after": u.MDBal + mdNet})
+	_, err = tx.Exec(ctx,
+		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','MD commission')`,
+		pgx.NamedArgs{"uid": u.MDID, "ref": payoutTxnID, "amt": mdNet, "before": u.MDBal, "after": u.MDBal + mdNet},
+	)
 	if err != nil { return err }
 
 	// Distributor
-	_, err = tx.Exec(ctx, `UPDATE distributors SET distributor_wallet_balance = distributor_wallet_balance + @amt WHERE distributor_id=@id`,
-		pgx.NamedArgs{"amt": disNet, "id": u.DisID})
+	_, err = tx.Exec(ctx,
+		`UPDATE distributors SET distributor_wallet_balance = distributor_wallet_balance + @amt WHERE distributor_id=@id`,
+		pgx.NamedArgs{"amt": disNet, "id": u.DisID},
+	)
 	if err != nil { return err }
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission')
-	`, pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disNet, "before": u.DisBal, "after": u.DisBal + disNet})
+	_, err = tx.Exec(ctx,
+		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Distributor commission')`,
+		pgx.NamedArgs{"uid": u.DisID, "ref": payoutTxnID, "amt": disNet, "before": u.DisBal, "after": u.DisBal + disNet},
+	)
 	if err != nil { return err }
 
 	// Retailer commission credit
-	_, err = tx.Exec(ctx, `UPDATE retailers SET retailer_wallet_balance = retailer_wallet_balance + @amt WHERE retailer_id=@id`,
-		pgx.NamedArgs{"amt": retNet, "id": u.RetID})
+	_, err = tx.Exec(ctx,
+		`UPDATE retailers SET retailer_wallet_balance = retailer_wallet_balance + @amt WHERE retailer_id=@id`,
+		pgx.NamedArgs{"amt": retNet, "id": u.RetID},
+	)
 	if err != nil { return err }
 
-	_, err = tx.Exec(ctx, `
-		INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission')
-	`, pgx.NamedArgs{"uid": u.RetID, "ref": payoutTxnID, "amt": retNet, "before": u.RetBal - totalDebit, "after": (u.RetBal - totalDebit) + retNet})
+	_, err = tx.Exec(ctx,
+		`INSERT INTO wallet_transactions (user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
+		 VALUES (@uid,@ref,@amt,@before,@after,'PAYOUT','Retailer commission')`,
+		pgx.NamedArgs{"uid": u.RetID, "ref": payoutTxnID, "amt": retNet, "before": u.RetBal - totalDebit, "after": (u.RetBal - totalDebit) + retNet},
+	)
 	if err != nil { return err }
 
 	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
+
 
 
 func (db *Database) PayoutFailedQuery(
