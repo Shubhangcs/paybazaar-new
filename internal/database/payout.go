@@ -28,9 +28,9 @@ func (db *Database) ValidateRequestQuery(
 		ctx,
 		query,
 		pgx.NamedArgs{
-			"retailer_id":        req.RetailerID,
-			"retailer_mpin":      req.MPIN,
-			"amount":             req.Amount + retailerCommision,
+			"retailer_id":   req.RetailerID,
+			"retailer_mpin": req.MPIN,
+			"amount":        req.Amount + retailerCommision,
 		},
 	).Scan(&isValid); err != nil {
 		return false, err
@@ -125,15 +125,12 @@ func (db *Database) GetPayoutCommisionQuery(
 func (db *Database) PayoutPendingOrSuccessQuery(
 	ctx context.Context,
 	payoutReq models.CreatePayoutRequestModel,
-	comm models.GetCommisionResponseModel,
+	commission models.GetCommisionResponseModel,
 	res models.PayoutAPIResponseModel,
 	adminID string,
-	status string, // must be PENDING or SUCCESS
+	status string, // PENDING or SUCCESS
 ) error {
 
-	// --------------------------------------------------
-	// Validate status early
-	// --------------------------------------------------
 	if status != "PENDING" && status != "SUCCESS" {
 		return fmt.Errorf("invalid payout status")
 	}
@@ -158,14 +155,34 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}).Scan(&distributorID, &mdID)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("invalid retailer hierarchy")
-		}
-		return err
+		return fmt.Errorf("invalid retailer hierarchy")
 	}
 
 	// --------------------------------------------------
-	// 2️⃣ Insert payout transaction
+	// 2️⃣ Commission Calculation (CORRECT LOGIC)
+	// --------------------------------------------------
+	payoutAmount := payoutReq.Amount
+
+	totalCommission := payoutAmount * commission.TotalCommision / 100
+
+	retailerComm := totalCommission * commission.RetailerCommision / 100
+	disComm := totalCommission * commission.DistributorCommision / 100
+	mdComm := totalCommission * commission.MasterDistributorCommision / 100
+	adminComm := totalCommission * commission.AdminCommision / 100
+
+	tdsRate := 0.02
+
+	retailerTDS := retailerComm * tdsRate
+	disTDS := disComm * tdsRate
+	mdTDS := mdComm * tdsRate
+
+	retailerNet := retailerComm - retailerTDS
+	disNet := disComm - disTDS
+	mdNet := mdComm - mdTDS
+	adminNet := adminComm // ❌ no TDS
+
+	// --------------------------------------------------
+	// 3️⃣ Insert payout transaction
 	// --------------------------------------------------
 	var payoutTxnID string
 	err = tx.QueryRow(ctx, `
@@ -188,7 +205,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			retailer_commision
 		) VALUES (
 			@partner,
-			@operator_txn,
+			@operator,
 			@status,
 			@retailer,
 			@order_id,
@@ -206,22 +223,22 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		)
 		RETURNING payout_transaction_id
 	`, pgx.NamedArgs{
-		"partner":      payoutReq.PartnerRequestID,
-		"operator_txn": res.OperatorTransactionID,
-		"status":       status,
-		"retailer":     payoutReq.RetailerID,
-		"order_id":     res.OrderID,
-		"mobile":       payoutReq.MobileNumber,
-		"bank":         payoutReq.BeneficiaryBankName,
-		"name":         payoutReq.BeneficiaryName,
-		"account":      payoutReq.BeneficiaryAccountNumber,
-		"ifsc":         payoutReq.BeneficiaryIFSCCode,
-		"amount":       payoutReq.Amount,
-		"type":         payoutReq.TransferType,
-		"admin_comm":   comm.AdminCommision,
-		"md_comm":      comm.MasterDistributorCommision,
-		"dis_comm":     comm.DistributorCommision,
-		"ret_comm":     comm.RetailerCommision,
+		"partner":    payoutReq.PartnerRequestID,
+		"operator":   res.OperatorTransactionID,
+		"status":     status,
+		"retailer":   payoutReq.RetailerID,
+		"order_id":   res.OrderID,
+		"mobile":     payoutReq.MobileNumber,
+		"bank":       payoutReq.BeneficiaryBankName,
+		"name":       payoutReq.BeneficiaryName,
+		"account":    payoutReq.BeneficiaryAccountNumber,
+		"ifsc":       payoutReq.BeneficiaryIFSCCode,
+		"amount":     payoutAmount,
+		"type":       payoutReq.TransferType,
+		"admin_comm": adminComm,
+		"md_comm":    mdComm,
+		"dis_comm":   disComm,
+		"ret_comm":   retailerComm,
 	}).Scan(&payoutTxnID)
 
 	if err != nil {
@@ -229,11 +246,11 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 	}
 
 	// --------------------------------------------------
-	// 3️⃣ Deduct Amount + Total Commission from Retailer
+	// 4️⃣ Deduct payout + total commission from retailer
 	// --------------------------------------------------
-	totalDebit := payoutReq.Amount + comm.TotalCommision
+	totalDebit := payoutAmount + totalCommission
 
-	var beforeRetailerBalance float64
+	var retailerBefore float64
 	err = tx.QueryRow(ctx, `
 		SELECT retailer_wallet_balance
 		FROM retailers
@@ -241,14 +258,14 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		FOR UPDATE
 	`, pgx.NamedArgs{
 		"id": payoutReq.RetailerID,
-	}).Scan(&beforeRetailerBalance)
+	}).Scan(&retailerBefore)
 
 	if err != nil {
 		return err
 	}
 
-	afterRetailerBalance := beforeRetailerBalance - totalDebit
-	if afterRetailerBalance < 0 {
+	retailerAfter := retailerBefore - totalDebit
+	if retailerAfter < 0 {
 		return fmt.Errorf("insufficient retailer wallet balance")
 	}
 
@@ -258,7 +275,7 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		WHERE retailer_id = @id
 	`, pgx.NamedArgs{
 		"id":  payoutReq.RetailerID,
-		"bal": afterRetailerBalance,
+		"bal": retailerAfter,
 	})
 	if err != nil {
 		return err
@@ -266,107 +283,79 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO wallet_transactions (
-			user_id,
-			reference_id,
-			debit_amount,
-			before_balance,
-			after_balance,
-			transaction_reason,
-			remarks
+			user_id, reference_id,
+			debit_amount, before_balance, after_balance,
+			transaction_reason, remarks
 		) VALUES (
-			@uid,
-			@ref,
-			@amt,
-			@before,
-			@after,
-			'PAYOUT',
-			'Payout initiated'
+			@uid, @ref,
+			@amt, @before, @after,
+			'PAYOUT', 'Payout + commission debit'
 		)
 	`, pgx.NamedArgs{
 		"uid":    payoutReq.RetailerID,
 		"ref":    payoutTxnID,
 		"amt":    totalDebit,
-		"before": beforeRetailerBalance,
-		"after":  afterRetailerBalance,
+		"before": retailerBefore,
+		"after":  retailerAfter,
 	})
 	if err != nil {
 		return err
 	}
 
 	// --------------------------------------------------
-	// 4️⃣ Commission Distribution (SAFE)
+	// 5️⃣ Credit commissions + TDS
 	// --------------------------------------------------
-	type split struct {
+	type credit struct {
 		UserID string
-		Amount float64
 		Role   string
+		Gross  float64
+		Net    float64
+		TDS    float64
 	}
 
-	var splits []split
-
-	if adminID != "" && comm.AdminCommision > 0 {
-		splits = append(splits, split{adminID, comm.AdminCommision, "ADMIN"})
+	credits := []credit{
+		{adminID, "ADMIN", adminComm, adminNet, 0},
+		{mdID, "MASTER_DISTRIBUTOR", mdComm, mdNet, mdTDS},
+		{distributorID, "DISTRIBUTOR", disComm, disNet, disTDS},
+		{payoutReq.RetailerID, "RETAILER", retailerComm, retailerNet, retailerTDS},
 	}
 
-	splits = append(splits,
-		split{mdID, comm.MasterDistributorCommision, "MASTER_DISTRIBUTOR"},
-		split{distributorID, comm.DistributorCommision, "DISTRIBUTOR"},
-		split{payoutReq.RetailerID, comm.RetailerCommision, "RETAILER"},
-	)
-
-	tdsRate := 0.02
-
-	for _, s := range splits {
-		if s.UserID == "" || s.Amount <= 0 {
+	for _, c := range credits {
+		if c.UserID == "" || c.Gross <= 0 {
 			continue
 		}
 
-		var before, after, tds, net float64
+		var before float64
 		var pan string
 
-		switch s.Role {
+		switch c.Role {
 
 		case "ADMIN":
-			err = tx.QueryRow(ctx, `
-				SELECT admin_wallet_balance
-				FROM admins
-				WHERE admin_id = @id
-				FOR UPDATE
-			`, pgx.NamedArgs{"id": s.UserID}).Scan(&before)
-
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
-			if err != nil {
-				return err
-			}
-
-			tds = 0
-			net = s.Amount
+			err = tx.QueryRow(ctx,
+				`SELECT admin_wallet_balance FROM admins WHERE admin_id=@id FOR UPDATE`,
+				pgx.NamedArgs{"id": c.UserID},
+			).Scan(&before)
 
 		case "MASTER_DISTRIBUTOR":
-			err = tx.QueryRow(ctx, `
-				SELECT master_distributor_pan_number, master_distributor_wallet_balance
-				FROM master_distributors
-				WHERE master_distributor_id = @id
-				FOR UPDATE
-			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			err = tx.QueryRow(ctx,
+				`SELECT master_distributor_pan_number, master_distributor_wallet_balance
+				 FROM master_distributors WHERE master_distributor_id=@id FOR UPDATE`,
+				pgx.NamedArgs{"id": c.UserID},
+			).Scan(&pan, &before)
 
 		case "DISTRIBUTOR":
-			err = tx.QueryRow(ctx, `
-				SELECT distributor_pan_number, distributor_wallet_balance
-				FROM distributors
-				WHERE distributor_id = @id
-				FOR UPDATE
-			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			err = tx.QueryRow(ctx,
+				`SELECT distributor_pan_number, distributor_wallet_balance
+				 FROM distributors WHERE distributor_id=@id FOR UPDATE`,
+				pgx.NamedArgs{"id": c.UserID},
+			).Scan(&pan, &before)
 
 		case "RETAILER":
-			err = tx.QueryRow(ctx, `
-				SELECT retailer_pan_number, retailer_wallet_balance
-				FROM retailers
-				WHERE retailer_id = @id
-				FOR UPDATE
-			`, pgx.NamedArgs{"id": s.UserID}).Scan(&pan, &before)
+			err = tx.QueryRow(ctx,
+				`SELECT retailer_pan_number, retailer_wallet_balance
+				 FROM retailers WHERE retailer_id=@id FOR UPDATE`,
+				pgx.NamedArgs{"id": c.UserID},
+			).Scan(&pan, &before)
 		}
 
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -376,55 +365,39 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			return err
 		}
 
-		if s.Role != "ADMIN" {
-			tds = s.Amount * tdsRate
-			net = s.Amount - tds
-		}
+		after := before + c.Net
 
-		after = before + net
-
-		var updateQuery string
-		switch s.Role {
+		var update string
+		switch c.Role {
 		case "ADMIN":
-			updateQuery = `UPDATE admins SET admin_wallet_balance=@bal WHERE admin_id=@id`
+			update = `UPDATE admins SET admin_wallet_balance=@bal WHERE admin_id=@id`
 		case "MASTER_DISTRIBUTOR":
-			updateQuery = `UPDATE master_distributors SET master_distributor_wallet_balance=@bal WHERE master_distributor_id=@id`
+			update = `UPDATE master_distributors SET master_distributor_wallet_balance=@bal WHERE master_distributor_id=@id`
 		case "DISTRIBUTOR":
-			updateQuery = `UPDATE distributors SET distributor_wallet_balance=@bal WHERE distributor_id=@id`
+			update = `UPDATE distributors SET distributor_wallet_balance=@bal WHERE distributor_id=@id`
 		case "RETAILER":
-			updateQuery = `UPDATE retailers SET retailer_wallet_balance=@bal WHERE retailer_id=@id`
+			update = `UPDATE retailers SET retailer_wallet_balance=@bal WHERE retailer_id=@id`
 		}
 
-		_, err = tx.Exec(ctx, updateQuery, pgx.NamedArgs{
-			"id":  s.UserID,
-			"bal": after,
-		})
+		_, err = tx.Exec(ctx, update, pgx.NamedArgs{"id": c.UserID, "bal": after})
 		if err != nil {
 			return err
 		}
 
 		_, err = tx.Exec(ctx, `
 			INSERT INTO wallet_transactions (
-				user_id,
-				reference_id,
-				credit_amount,
-				before_balance,
-				after_balance,
-				transaction_reason,
-				remarks
+				user_id, reference_id,
+				credit_amount, before_balance, after_balance,
+				transaction_reason, remarks
 			) VALUES (
-				@uid,
-				@ref,
-				@amt,
-				@before,
-				@after,
-				'PAYOUT',
-				'Commission credited'
+				@uid, @ref,
+				@amt, @before, @after,
+				'PAYOUT', 'Commission credited'
 			)
 		`, pgx.NamedArgs{
-			"uid":    s.UserID,
+			"uid":    c.UserID,
 			"ref":    payoutTxnID,
-			"amt":    net,
+			"amt":    c.Net,
 			"before": before,
 			"after":  after,
 		})
@@ -432,35 +405,25 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 			return err
 		}
 
-		if s.Role != "ADMIN" {
+		if c.Role != "ADMIN" {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO tds_commision (
-					transaction_id,
-					user_id,
-					user_name,
-					commision,
-					tds,
-					paid_commision,
-					pan_number,
-					status
+					transaction_id, user_id, user_name,
+					commision, tds, paid_commision,
+					pan_number, status
 				) VALUES (
-					@txn,
-					@uid,
-					@role,
-					@comm,
-					@tds,
-					@paid,
-					@pan,
-					'DEDUCTED'
+					@txn, @uid, @role,
+					@gross, @tds, @net,
+					@pan, 'DEDUCTED'
 				)
 			`, pgx.NamedArgs{
-				"txn":  payoutTxnID,
-				"uid":  s.UserID,
-				"role": s.Role,
-				"comm": s.Amount,
-				"tds":  tds,
-				"paid": net,
-				"pan":  pan,
+				"txn":   payoutTxnID,
+				"uid":   c.UserID,
+				"role":  c.Role,
+				"gross": c.Gross,
+				"tds":   c.TDS,
+				"net":   c.Net,
+				"pan":   pan,
 			})
 			if err != nil {
 				return err
@@ -468,12 +431,8 @@ func (db *Database) PayoutPendingOrSuccessQuery(
 		}
 	}
 
-	// --------------------------------------------------
-	// 5️⃣ Commit
-	// --------------------------------------------------
 	return tx.Commit(ctx)
 }
-
 
 func (db *Database) PayoutFailedQuery(
 	ctx context.Context,
