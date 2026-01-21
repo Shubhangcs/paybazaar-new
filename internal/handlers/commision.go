@@ -116,3 +116,39 @@ func (ch *commisionHandler) DeleteCommisionRequest(c echo.Context) error {
 		Message: "commision deleted successfully",
 	})
 }
+
+func (ch *commisionHandler) GetAllTDSCommisionRequest(c echo.Context) error {
+	data, err := ch.commisionRepo.GetAllTDSCommision(c)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, models.ResponseModel{
+			Status:  "failed",
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.ResponseModel{
+		Status:  "success",
+		Message: "tds commisions fetched successfully",
+		Data: map[string]any{
+			"tds_commisions": data,
+		},
+	})
+}
+
+func (ch *commisionHandler) GetTDSCommisionByUserIDRequest(c echo.Context) error {
+	data, err := ch.commisionRepo.GetTDSCommisionByUserID(c)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, models.ResponseModel{
+			Status:  "failed",
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, models.ResponseModel{
+		Status:  "success",
+		Message: "tds commisions fetched successfully",
+		Data: map[string]any{
+			"tds_commisions": data,
+		},
+	})
+}

@@ -249,3 +249,109 @@ func (db *Database) DeleteCommisionQuery(
 
 	return nil
 }
+
+func (db *Database) GetAllTDSCommisionQuery(
+	ctx context.Context,
+	limit, offset int,
+) ([]models.GetTDSCommisionResponseModel, error) {
+
+	query := `
+		SELECT
+			tds_commision_id,
+			transaction_id,
+			user_id,
+			user_name,
+			commision,
+			tds,
+			paid_commision,
+			pan_number,
+			status,
+			created_at
+		FROM tds_commision
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2;
+	`
+
+	rows, err := db.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.GetTDSCommisionResponseModel
+
+	for rows.Next() {
+		var r models.GetTDSCommisionResponseModel
+		if err := rows.Scan(
+			&r.TDSCommisionID,
+			&r.TransactionID,
+			&r.UserID,
+			&r.UserName,
+			&r.Commision,
+			&r.TDS,
+			&r.PaidCommision,
+			&r.PANNumber,
+			&r.Status,
+			&r.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
+	return result, rows.Err()
+}
+
+func (db *Database) GetTDSCommisionByUserIDQuery(
+	ctx context.Context,
+	userID string,
+	limit, offset int,
+) ([]models.GetTDSCommisionResponseModel, error) {
+
+	query := `
+		SELECT
+			tds_commision_id,
+			transaction_id,
+			user_id,
+			user_name,
+			commision,
+			tds,
+			paid_commision,
+			pan_number,
+			status,
+			created_at
+		FROM tds_commision
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3;
+	`
+
+	rows, err := db.pool.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.GetTDSCommisionResponseModel
+
+	for rows.Next() {
+		var r models.GetTDSCommisionResponseModel
+		if err := rows.Scan(
+			&r.TDSCommisionID,
+			&r.TransactionID,
+			&r.UserID,
+			&r.UserName,
+			&r.Commision,
+			&r.TDS,
+			&r.PaidCommision,
+			&r.PANNumber,
+			&r.Status,
+			&r.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
+	return result, rows.Err()
+}

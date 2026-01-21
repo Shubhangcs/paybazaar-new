@@ -16,6 +16,8 @@ type CommisionInterface interface {
 	GetCommisionByUserIDAndService(echo.Context) (*models.GetCommisionResponseModel, error)
 	UpdateCommisionDetails(echo.Context) error
 	DeleteCommision(echo.Context) error
+	GetAllTDSCommision(echo.Context) ([]models.GetTDSCommisionResponseModel, error)
+	GetTDSCommisionByUserID(echo.Context) ([]models.GetTDSCommisionResponseModel, error)
 }
 
 type commisionRepository struct {
@@ -114,4 +116,25 @@ func (cr *commisionRepository) DeleteCommision(
 	)
 	defer cancel()
 	return cr.db.DeleteCommisionQuery(ctx, commisionID)
+}
+
+func (cr *commisionRepository) GetAllTDSCommision(c echo.Context) ([]models.GetTDSCommisionResponseModel, error) {
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return cr.db.GetAllTDSCommisionQuery(ctx, limit, offset)
+}
+
+func (cr *commisionRepository) GetTDSCommisionByUserID(c echo.Context) ([]models.GetTDSCommisionResponseModel, error) {
+	var userID = c.Param("user_id")
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		30*time.Second,
+	)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return cr.db.GetTDSCommisionByUserIDQuery(ctx, userID, limit, offset)
 }

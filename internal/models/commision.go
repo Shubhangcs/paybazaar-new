@@ -33,3 +33,17 @@ type GetCommisionResponseModel struct {
 	CreatedAt                  time.Time `json:"created_at"`
 	UpdatedAt                  time.Time `json:"updated_at"`
 }
+
+type GetTDSCommisionResponseModel struct {
+	TDSCommisionID int64     `json:"tds_commision_id"`
+	TransactionID  string    `json:"transaction_id"`
+	UserID         string    `json:"user_id"`
+	UserName       string    `json:"user_name"`
+	Commision      float64   `json:"commision"`
+	TDS            float64   `json:"tds"`
+	PaidCommision  float64   `json:"paid_commision"`
+	PANNumber      string    `json:"pan_number"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
