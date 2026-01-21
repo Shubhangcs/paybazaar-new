@@ -35,6 +35,9 @@ func NewPayoutRepository(db *database.Database, jwtUtils *pkg.JwtUtils) *payoutR
 
 func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 	var payoutRequest models.CreatePayoutRequestModel
+	if err := bindAndValidate(c , &payoutRequest); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	commision, err := pr.db.GetPayoutCommisionQuery(ctx, payoutRequest.RetailerID, "PAYOUT")

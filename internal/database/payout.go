@@ -19,7 +19,7 @@ func (db *Database) ValidateRequestQuery(
 			WHERE retailer_id=@retailer_id AND
 			retailer_mpin=@retailer_mpin AND
 			retailer_kyc_status=TRUE AND
-			retailer_wallet_balance >= (@amount + @retailer_commision);
+			retailer_wallet_balance >= @amount
 		);
 	`
 	var isValid bool
@@ -29,8 +29,7 @@ func (db *Database) ValidateRequestQuery(
 		pgx.NamedArgs{
 			"retailer_id":        req.RetailerID,
 			"retailer_mpin":      req.MPIN,
-			"amount":             req.Amount,
-			"retailer_commision": retailerCommision,
+			"amount":             req.Amount + retailerCommision,
 		},
 	).Scan(&isValid); err != nil {
 		return false, err
