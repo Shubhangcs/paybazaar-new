@@ -79,8 +79,8 @@ func APILockMiddleware() echo.MiddlewareFunc {
 			// Allow health + lock/unlock APIs
 			path := c.Path()
 			if path == "/admin/login" ||
-				path == "/admin/lock" ||
-				path == "/admin/unlock" {
+				path == "/admin/portal/lock" ||
+				path == "/admin/portal/unlock" {
 				return next(c)
 			}
 
