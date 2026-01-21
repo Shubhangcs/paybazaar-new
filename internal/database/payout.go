@@ -735,7 +735,70 @@ func (db *Database) GetRetailerPayoutLedgerWithWalletQuery(
 	retailerID string,
 ) ([]models.PayoutLedgerWithWalletResponseModel, error) {
 
-	query := `-- SQL ABOVE --`
+	query := `
+		SELECT
+    -- ================= PAYOUT =================
+    pt.payout_transaction_id,
+    pt.partner_request_id,
+    pt.operator_transaction_id,
+    pt.retailer_id,
+    pt.order_id,
+    pt.mobile_number,
+    pt.beneficiary_bank_name,
+    pt.beneficiary_name,
+    pt.beneficiary_account_number,
+    pt.beneficiary_ifsc_code,
+    pt.amount,
+    pt.transfer_type,
+    pt.admin_commision,
+    pt.master_distributor_commision,
+    pt.distributor_commision,
+    pt.retailer_commision,
+    pt.payout_transaction_status,
+    pt.created_at AS payout_created_at,
+    pt.updated_at AS payout_updated_at,
+
+    -- ================= RETAILER TDS ONLY =================
+    tc.tds_commision_id,
+    tc.transaction_id,
+    tc.user_id AS tds_user_id,
+    tc.user_name,
+    tc.commision AS tds_commision,
+    tc.tds,
+    tc.paid_commision,
+    tc.pan_number,
+    tc.status AS tds_status,
+    tc.created_at AS tds_created_at,
+
+    -- ================= RETAILER WALLET ONLY =================
+    wt.wallet_transaction_id,
+    wt.user_id AS wallet_user_id,
+    wt.reference_id,
+    wt.credit_amount,
+    wt.debit_amount,
+    wt.before_balance,
+    wt.after_balance,
+    wt.transaction_reason,
+    wt.remarks,
+    wt.created_at AS wallet_created_at
+
+FROM payout_transactions pt
+
+-- 🔒 ONLY retailer TDS
+LEFT JOIN tds_commision tc
+    ON tc.transaction_id = pt.payout_transaction_id::TEXT
+   AND tc.user_id = pt.retailer_id
+
+-- 🔒 ONLY retailer wallet entries
+LEFT JOIN wallet_transactions wt
+    ON wt.reference_id = pt.payout_transaction_id::TEXT
+   AND wt.user_id = pt.retailer_id
+
+WHERE pt.retailer_id = $1
+
+ORDER BY pt.created_at DESC, wt.created_at ASC;
+
+	`
 
 	rows, err := db.pool.Query(ctx, query, retailerID)
 	if err != nil {
