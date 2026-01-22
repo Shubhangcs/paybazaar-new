@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -101,6 +102,7 @@ func (db *Database) GetAdminDetailsForLogin(
 		&res.AdminPassword,
 		&res.IsAdminBlocked,
 	); err != nil {
+		log.Println(err)
 		return nil, fmt.Errorf("failed to fetch admin details")
 	}
 	return &res, nil

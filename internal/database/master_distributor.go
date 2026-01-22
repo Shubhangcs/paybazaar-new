@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -69,7 +70,7 @@ func (db *Database) CreateMasterDistributorQuery(
 		"business_type": req.BusinessType,
 		"gst":           req.GSTNumber,
 	}); err != nil {
-		return fmt.Errorf("failed to create master distributor: %w",err)
+		return fmt.Errorf("failed to create master distributor: %w", err)
 	}
 
 	return nil
@@ -435,6 +436,7 @@ func (db *Database) GetMasterDistributorsByAdminIDQuery(
 		"offset":   offset,
 	})
 	if err != nil {
+		log.Println(err)
 		return nil, fmt.Errorf("failed to fetch master distributors by admin id")
 	}
 	defer rows.Close()
@@ -467,6 +469,7 @@ func (db *Database) GetMasterDistributorsByAdminIDQuery(
 			&md.CreatedAt,
 			&md.UpdatedAt,
 		); err != nil {
+			log.Println(err)
 			return nil, fmt.Errorf("failed to scan master distributor details")
 		}
 		list = append(list, md)
