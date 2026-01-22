@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -117,6 +118,7 @@ func (db *Database) GetCommisionsByUserIDQuery(
 		"user_id": userID,
 	})
 	if err != nil {
+		log.Println(err)
 		return nil, fmt.Errorf("failed to fetch commisions")
 	}
 	defer res.Close()
@@ -137,6 +139,7 @@ func (db *Database) GetCommisionsByUserIDQuery(
 			&commision.CreatedAt,
 			&commision.UpdatedAt,
 		); err != nil {
+			log.Println(err)
 			return nil, fmt.Errorf("failed to fetch commisions")
 		}
 		list = append(list, commision)
