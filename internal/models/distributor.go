@@ -96,7 +96,7 @@ type GetCompleteDistributorDetailsResponseModel struct {
 	Pincode             string    `json:"pincode"`
 	BusinessName        string    `json:"business_name"`
 	BusinessType        string    `json:"business_type"`
-	GSTNumber           string    `json:"gst_number"`
+	GSTNumber           *string    `json:"gst_number"`
 	KYCStatus           bool      `json:"kyc_status"`
 	DocumentsURL        *string   `json:"documents_url"`
 	WalletBalance       float64   `json:"wallet_balance"`
