@@ -214,7 +214,7 @@ func (db *Database) UpdateCommisionQuery(
 		query,
 		pgx.NamedArgs{
 			"admin_commision":              req.AdminCommision,
-			"master_distributor_commision": req.MasterDistributorCommision,
+			"md_commision": req.MasterDistributorCommision,
 			"distributor_commision":        req.DistributorCommision,
 			"retailer_commision":           req.RetailerCommision,
 			"commision_id":                 req.CommisionID,
