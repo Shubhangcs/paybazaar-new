@@ -60,29 +60,38 @@ func (db *Database) GetFundRequestQuery(
 
 	query := `
 		SELECT
-			fund_request_id,
-			requester_id,
-			request_to_id,
-			amount,
-			bank_name,
-			request_date,
-			utr_number,
-			request_status,
-			remarks,
-			reject_remarks,
-			created_at,
-			updated_at
-		FROM fund_requests
-		WHERE fund_request_id = @id;
+			fr.fund_request_id,
+			fr.requester_id,
+			fr.request_to_id,
+			COALESCE(
+				a.admin_name,
+				md.master_distributor_business_name,
+				d.distributor_business_name,
+				r.retailer_business_name
+			) AS requester_business_name,
+			fr.amount,
+			fr.bank_name,
+			fr.request_date,
+			fr.utr_number,
+			fr.request_status,
+			fr.remarks,
+			fr.reject_remarks,
+			fr.created_at,
+			fr.updated_at
+		FROM fund_requests fr
+		LEFT JOIN admins a ON a.admin_id = fr.requester_id
+		LEFT JOIN master_distributors md ON md.master_distributor_id = fr.requester_id
+		LEFT JOIN distributors d ON d.distributor_id = fr.requester_id
+		LEFT JOIN retailers r ON r.retailer_id = fr.requester_id
+		WHERE fr.fund_request_id = @id;
 	`
 
 	var fr models.GetFundRequestResponseModel
-	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"id": fundRequestID,
-	}).Scan(
+	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{"id": fundRequestID}).Scan(
 		&fr.FundRequestID,
 		&fr.RequesterID,
 		&fr.RequestToID,
+		&fr.BusinessName,
 		&fr.Amount,
 		&fr.BankName,
 		&fr.RequestDate,
@@ -101,6 +110,7 @@ func (db *Database) GetFundRequestQuery(
 	return &fr, nil
 }
 
+
 func (db *Database) GetAllFundRequestsQuery(
 	ctx context.Context,
 	limit, offset int,
@@ -108,20 +118,30 @@ func (db *Database) GetAllFundRequestsQuery(
 
 	query := `
 		SELECT
-			fund_request_id,
-			requester_id,
-			request_to_id,
-			amount,
-			bank_name,
-			request_date,
-			utr_number,
-			request_status,
-			remarks,
-			reject_remarks,
-			created_at,
-			updated_at
-		FROM fund_requests
-		ORDER BY created_at DESC
+			fr.fund_request_id,
+			fr.requester_id,
+			fr.request_to_id,
+			COALESCE(
+				a.admin_name,
+				md.master_distributor_business_name,
+				d.distributor_business_name,
+				r.retailer_business_name
+			) AS requester_business_name,
+			fr.amount,
+			fr.bank_name,
+			fr.request_date,
+			fr.utr_number,
+			fr.request_status,
+			fr.remarks,
+			fr.reject_remarks,
+			fr.created_at,
+			fr.updated_at
+		FROM fund_requests fr
+		LEFT JOIN admins a ON a.admin_id = fr.requester_id
+		LEFT JOIN master_distributors md ON md.master_distributor_id = fr.requester_id
+		LEFT JOIN distributors d ON d.distributor_id = fr.requester_id
+		LEFT JOIN retailers r ON r.retailer_id = fr.requester_id
+		ORDER BY fr.created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
 
@@ -142,6 +162,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			&fr.FundRequestID,
 			&fr.RequesterID,
 			&fr.RequestToID,
+			&fr.BusinessName,
 			&fr.Amount,
 			&fr.BankName,
 			&fr.RequestDate,
@@ -160,7 +181,8 @@ func (db *Database) GetAllFundRequestsQuery(
 	return list, rows.Err()
 }
 
-func (db *Database) getFundRequestsByUser(
+
+func (db *Database) getFundRequestsByColumn(
 	ctx context.Context,
 	column string,
 	req models.GetFundRequestFilterRequestModel,
@@ -169,20 +191,30 @@ func (db *Database) getFundRequestsByUser(
 
 	query := fmt.Sprintf(`
 		SELECT
-			fund_request_id,
-			requester_id,
-			request_to_id,
-			amount,
-			bank_name,
-			request_date,
-			utr_number,
-			request_status,
-			remarks,
-			reject_remarks,
-			created_at,
-			updated_at
-		FROM fund_requests
-		WHERE %s = @id
+			fr.fund_request_id,
+			fr.requester_id,
+			fr.request_to_id,
+			COALESCE(
+				a.admin_name,
+				md.master_distributor_business_name,
+				d.distributor_business_name,
+				r.retailer_business_name
+			) AS requester_business_name,
+			fr.amount,
+			fr.bank_name,
+			fr.request_date,
+			fr.utr_number,
+			fr.request_status,
+			fr.remarks,
+			fr.reject_remarks,
+			fr.created_at,
+			fr.updated_at
+		FROM fund_requests fr
+		LEFT JOIN admins a ON a.admin_id = fr.requester_id
+		LEFT JOIN master_distributors md ON md.master_distributor_id = fr.requester_id
+		LEFT JOIN distributors d ON d.distributor_id = fr.requester_id
+		LEFT JOIN retailers r ON r.retailer_id = fr.requester_id
+		WHERE fr.%s = @id
 	`, column)
 
 	args := pgx.NamedArgs{
@@ -192,21 +224,19 @@ func (db *Database) getFundRequestsByUser(
 	}
 
 	if req.StartDate != nil {
-		query += ` AND created_at >= @start_date`
+		query += ` AND fr.created_at >= @start_date`
 		args["start_date"] = *req.StartDate
 	}
-
 	if req.EndDate != nil {
-		query += ` AND created_at <= @end_date`
+		query += ` AND fr.created_at <= @end_date`
 		args["end_date"] = *req.EndDate
 	}
-
 	if req.Status != nil {
-		query += ` AND request_status = @status`
+		query += ` AND fr.request_status = @status`
 		args["status"] = *req.Status
 	}
 
-	query += ` ORDER BY created_at DESC LIMIT @limit OFFSET @offset;`
+	query += ` ORDER BY fr.created_at DESC LIMIT @limit OFFSET @offset`
 
 	rows, err := db.pool.Query(ctx, query, args)
 	if err != nil {
@@ -215,13 +245,13 @@ func (db *Database) getFundRequestsByUser(
 	defer rows.Close()
 
 	var list []models.GetFundRequestResponseModel
-
 	for rows.Next() {
 		var fr models.GetFundRequestResponseModel
 		if err := rows.Scan(
 			&fr.FundRequestID,
 			&fr.RequesterID,
 			&fr.RequestToID,
+			&fr.BusinessName,
 			&fr.Amount,
 			&fr.BankName,
 			&fr.RequestDate,
@@ -240,12 +270,13 @@ func (db *Database) getFundRequestsByUser(
 	return list, rows.Err()
 }
 
+
 func (db *Database) GetFundRequestsByRequesterIDQuery(
 	ctx context.Context,
 	req models.GetFundRequestFilterRequestModel,
 	limit, offset int,
 ) ([]models.GetFundRequestResponseModel, error) {
-	return db.getFundRequestsByUser(ctx, "requester_id", req, limit, offset)
+	return db.getFundRequestsByColumn(ctx, "requester_id", req, limit, offset)
 }
 
 func (db *Database) GetFundRequestsByRequestToIDQuery(
@@ -253,8 +284,9 @@ func (db *Database) GetFundRequestsByRequestToIDQuery(
 	req models.GetFundRequestFilterRequestModel,
 	limit, offset int,
 ) ([]models.GetFundRequestResponseModel, error) {
-	return db.getFundRequestsByUser(ctx, "request_to_id", req, limit, offset)
+	return db.getFundRequestsByColumn(ctx, "request_to_id", req, limit, offset)
 }
+
 
 func (db *Database) RejectFundRequestQuery(
 	ctx context.Context,
