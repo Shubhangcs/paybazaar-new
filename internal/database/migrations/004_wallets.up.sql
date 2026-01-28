@@ -11,6 +11,7 @@ CREATE TABLE
             transaction_reason IN (
                 'FUND_TRANSFER',
                 'FUND_REQUEST',
+                'MOBILE_RECHARGE',
                 'TOPUP',
                 'REVERT',
                 'PAYOUT'

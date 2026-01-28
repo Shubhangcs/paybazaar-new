@@ -36,3 +36,31 @@ CREATE TABLE
         beneficiary_verified BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
+
+CREATE TABLE
+    IF NOT EXISTS mobile_recharge (
+        mobile_recharge_transaction_id BIGSERIAL PRIMARY KEY,
+        retailer_id TEXT NOT NULL REFERENCES retailers (retailer_id) ON DELETE CASCADE,
+        partner_request_id TEXT NOT NULL,
+        mobile_number TEXT NOT NULL,
+        operator_name TEXT NOT NULL,
+        circle_name TEXT NOT NULL,
+        operator_code INTEGER NOT NULL,
+        circle_code INTEGER NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
+        commision NUMERIC (20,2) NOT NULL,
+        recharge_type INTEGER NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
+    );
+
+CREATE TABLE
+    IF NOT EXISTS mobile_recharge_circles (
+        circle_code INTEGER NOT NULL,
+        circle_name TEXT NOT NULL
+    );
+
+CREATE TABLE
+    IF NOT EXISTS mobile_recharge_operators (
+        operator_code INTEGER NOT NULL,
+        operator_name TEXT NOT NULL
+    );
