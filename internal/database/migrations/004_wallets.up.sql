@@ -12,6 +12,7 @@ CREATE TABLE
                 'FUND_TRANSFER',
                 'FUND_REQUEST',
                 'MOBILE_RECHARGE',
+                'MOBILE_RECHARGE_COMMISION',
                 'TOPUP',
                 'REVERT',
                 'PAYOUT'

@@ -70,10 +70,11 @@ func (db *Database) GetAllMobileRechargeCirclesQuery(
 func (db *Database) CreateMobileRechargeQuery(
 	ctx context.Context,
 	req models.CreateMobileRechargeRequestModel,
-) {
+) error {
 	if req.Amount <= 99 {
-		db.mobileRechargeWithoutCommision(ctx, req)
+		return db.mobileRechargeWithoutCommision(ctx, req)
 	}
+	return db.mobileRechargeWithCommision(ctx, req)
 }
 
 func (db *Database) mobileRechargeWithoutCommision(
@@ -197,6 +198,29 @@ func (db *Database) mobileRechargeWithoutCommision(
 func (db *Database) mobileRechargeWithCommision(
 	ctx context.Context,
 	req models.CreateMobileRechargeRequestModel,
-) {
-	
+) error {
+	getAdminBeforeBalanceQuery := `
+		SELECT admin_wallet_balance AS admin_before_balance
+		FROM admins AS ad
+		JOIN master_distributors AS md
+			ON md.admin_id = ad.admin_id
+		JOIN distributors AS d
+			ON d.master_distributor_id = md.master_distributor_id
+		JOIN retailers AS r
+			ON r.distributor_id = d.distributor_id
+		WHERE r.retailer_id = @retailer_id;
+	`
+
+	deductAdminAmountAndGetAfterBalanceQuery := `
+		UPDATE admins AS ad
+		SET ad.admin_wallet_balance = ad.admin_wallet_balance - 1
+		JOIN master_distributors AS md
+			ON md.admin_id = ad.admin_id
+		JOIN distributors AS d
+			ON d.master_distributor_id = md.master_distributor_id
+		JOIN retailers AS r
+			ON r.distributor_id = d.distributor_id
+		WHERE r.retailer_id = @retailer_id
+		RETURNING ad.admin_wallet_balance as admin_after_balance;
+	`
 }
