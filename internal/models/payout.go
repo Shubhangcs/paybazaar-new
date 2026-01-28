@@ -27,9 +27,13 @@ type GetPayoutTransactionModel struct {
 	PayoutTransactionID string `json:"payout_transaction_id"`
 	PartnerRequestID    string `json:"partner_request_id"`
 	OperatorTxnID       string `json:"operator_transaction_id"`
+
 	RetailerID          string `json:"retailer_id"`
-	OrderID             string `json:"order_id"`
-	MobileNumber        string `json:"mobile_number"`
+	RetailerName        string `json:"retailer_name"`
+	RetailerBusinessName string `json:"retailer_business_name"`
+
+	OrderID      string `json:"order_id"`
+	MobileNumber string `json:"mobile_number"`
 
 	BeneficiaryBankName  string `json:"beneficiary_bank_name"`
 	BeneficiaryName      string `json:"beneficiary_name"`
@@ -53,9 +57,12 @@ type GetRetailerPayoutModel struct {
 	PayoutTransactionID string `json:"payout_transaction_id"`
 	PartnerRequestID    string `json:"partner_request_id"`
 	OperatorTxnID       string `json:"operator_transaction_id"`
-	RetailerID          string `json:"retailer_id"`
-	OrderID             string `json:"order_id"`
 
+	RetailerID          string `json:"retailer_id"`
+	RetailerName        string `json:"retailer_name"`
+	RetailerBusinessName string `json:"retailer_business_name"`
+
+	OrderID      string `json:"order_id"`
 	MobileNumber string `json:"mobile_number"`
 
 	BeneficiaryBankName string `json:"beneficiary_bank_name"`
@@ -75,10 +82,14 @@ type GetRetailerPayoutModel struct {
 
 type PayoutLedgerWithWalletResponseModel struct {
 	// ---------- PAYOUT ----------
-	PayoutTransactionID      string  `json:"payout_transaction_id"`
-	PartnerRequestID         string  `json:"partner_request_id"`
-	OperatorTransactionID    string  `json:"operator_transaction_id"`
-	RetailerID               string  `json:"retailer_id"`
+	PayoutTransactionID   string  `json:"payout_transaction_id"`
+	PartnerRequestID      string  `json:"partner_request_id"`
+	OperatorTransactionID string  `json:"operator_transaction_id"`
+
+	RetailerID           string  `json:"retailer_id"`
+	RetailerName         *string `json:"retailer_name,omitempty"`
+	RetailerBusinessName *string `json:"retailer_business_name,omitempty"`
+
 	OrderID                  string  `json:"order_id"`
 	MobileNumber             string  `json:"mobile_number"`
 	BeneficiaryBankName      string  `json:"beneficiary_bank_name"`

@@ -10,15 +10,17 @@ type CreateRevertRequest struct {
 }
 
 type GetRevertTransactionResponseModel struct {
-	RevertTransactionID int       `json:"revert_transaction_id"`
-	RevertFromID        string    `json:"revert_from_id"`
-	RevertOnID          string    `json:"revert_on_id"`
-	RevertFromName      string    `json:"revert_from_name"`
-	RevertOnName        string    `json:"revert_on_name"`
-	Amount              float64   `json:"amount"`
-	Remarks             string    `json:"remarks"`
-	CreatedAT           time.Time `json:"created_at"`
+	RevertTransactionID   int       `json:"revert_transaction_id"`
+	RevertFromID          string    `json:"revert_from_id"`
+	RevertOnID            string    `json:"revert_on_id"`
+	RevertFromName        string    `json:"revert_from_name"`
+	RevertOnName          string    `json:"revert_on_name"`
+	RevertOnBusinessName  string    `json:"revert_on_business_name"`
+	Amount                float64   `json:"amount"`
+	Remarks               string    `json:"remarks"`
+	CreatedAT             time.Time `json:"created_at"`
 }
+
 
 type GetRevertTransactionFilterRequestModel struct {
 	StartDate *time.Time `json:"start_date,omitempty"`

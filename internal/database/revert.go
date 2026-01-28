@@ -246,6 +246,13 @@ func (db *Database) GetRevertTransactionsByFromIDQuery(
 				r2.retailer_name
 			) AS revert_on_name,
 
+			-- On Business Name
+			COALESCE(
+				md2.master_distributor_business_name,
+				d2.distributor_business_name,
+				r2.retailer_business_name
+			) AS revert_on_business_name,
+
 			rt.amount,
 			rt.remarks,
 			rt.created_at
@@ -308,6 +315,7 @@ func (db *Database) GetRevertTransactionsByFromIDQuery(
 			&r.RevertOnID,
 			&r.RevertFromName,
 			&r.RevertOnName,
+			&r.RevertOnBusinessName,
 			&r.Amount,
 			&r.Remarks,
 			&r.CreatedAT,
@@ -319,6 +327,7 @@ func (db *Database) GetRevertTransactionsByFromIDQuery(
 
 	return results, rows.Err()
 }
+
 
 func (db *Database) GetRevertTransactionsByOnIDQuery(
 	ctx context.Context,
@@ -345,6 +354,12 @@ func (db *Database) GetRevertTransactionsByOnIDQuery(
 				d2.distributor_name,
 				r2.retailer_name
 			) AS revert_on_name,
+
+			COALESCE(
+				md2.master_distributor_business_name,
+				d2.distributor_business_name,
+				r2.retailer_business_name
+			) AS revert_on_business_name,
 
 			rt.amount,
 			rt.remarks,
@@ -406,6 +421,7 @@ func (db *Database) GetRevertTransactionsByOnIDQuery(
 			&r.RevertOnID,
 			&r.RevertFromName,
 			&r.RevertOnName,
+			&r.RevertOnBusinessName,
 			&r.Amount,
 			&r.Remarks,
 			&r.CreatedAT,
@@ -417,3 +433,4 @@ func (db *Database) GetRevertTransactionsByOnIDQuery(
 
 	return results, rows.Err()
 }
+

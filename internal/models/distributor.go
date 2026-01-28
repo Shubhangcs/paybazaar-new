@@ -86,6 +86,7 @@ type GetCompleteDistributorDetailsResponseModel struct {
 	DistributorName     string    `json:"distributor_name"`
 	DistributorPhone    string    `json:"distributor_phone"`
 	DistributorEmail    string    `json:"distributor_email"`
+	DistributorPassword string    `json:"distributor_password"`
 	AadharNumber        string    `json:"aadhar_number"`
 	PanNumber           string    `json:"pan_number"`
 	DateOfBirth         time.Time `json:"date_of_birth"`
@@ -96,7 +97,7 @@ type GetCompleteDistributorDetailsResponseModel struct {
 	Pincode             string    `json:"pincode"`
 	BusinessName        string    `json:"business_name"`
 	BusinessType        string    `json:"business_type"`
-	GSTNumber           *string    `json:"gst_number"`
+	GSTNumber           *string   `json:"gst_number"`
 	KYCStatus           bool      `json:"kyc_status"`
 	DocumentsURL        *string   `json:"documents_url"`
 	WalletBalance       float64   `json:"wallet_balance"`

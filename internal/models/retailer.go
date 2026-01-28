@@ -81,28 +81,29 @@ type GetRetailerDetailsForLoginModel struct {
 }
 
 type GetCompleteRetailerDetailsResponseModel struct {
-	RetailerID    string    `json:"retailer_id"`
-	DistributorID string    `json:"distributor_id"`
-	RetailerName  string    `json:"retailer_name"`
-	RetailerPhone string    `json:"retailer_phone"`
-	RetailerEmail string    `json:"retailer_email"`
-	AadharNumber  string    `json:"aadhar_number"`
-	PanNumber     string    `json:"pan_number"`
-	DateOfBirth   time.Time `json:"date_of_birth"`
-	Gender        string    `json:"gender"`
-	City          string    `json:"city"`
-	State         string    `json:"state"`
-	Address       string    `json:"address"`
-	Pincode       string    `json:"pincode"`
-	BusinessName  string    `json:"business_name"`
-	BusinessType  string    `json:"business_type"`
-	GSTNumber     string    `json:"gst_number"`
-	KYCStatus     bool      `json:"kyc_status"`
-	DocumentsURL  *string   `json:"documents_url"`
-	WalletBalance float64   `json:"wallet_balance"`
-	IsBlocked     bool      `json:"is_blocked"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	RetailerID       string    `json:"retailer_id"`
+	DistributorID    string    `json:"distributor_id"`
+	RetailerName     string    `json:"retailer_name"`
+	RetailerPhone    string    `json:"retailer_phone"`
+	RetailerEmail    string    `json:"retailer_email"`
+	RetailerPassword string    `json:"retailer_password"`
+	AadharNumber     string    `json:"aadhar_number"`
+	PanNumber        string    `json:"pan_number"`
+	DateOfBirth      time.Time `json:"date_of_birth"`
+	Gender           string    `json:"gender"`
+	City             string    `json:"city"`
+	State            string    `json:"state"`
+	Address          string    `json:"address"`
+	Pincode          string    `json:"pincode"`
+	BusinessName     string    `json:"business_name"`
+	BusinessType     string    `json:"business_type"`
+	GSTNumber        string    `json:"gst_number"`
+	KYCStatus        bool      `json:"kyc_status"`
+	DocumentsURL     *string   `json:"documents_url"`
+	WalletBalance    float64   `json:"wallet_balance"`
+	IsBlocked        bool      `json:"is_blocked"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type GetRetailerForDropdownModel struct {

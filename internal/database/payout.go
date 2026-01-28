@@ -604,27 +604,30 @@ func (db *Database) GetAllPayoutTransactions(
 
 	query := `
 		SELECT
-			payout_transaction_id,
-			partner_request_id,
-			operator_transaction_id,
-			retailer_id,
-			order_id,
-			mobile_number,
-			beneficiary_bank_name,
-			beneficiary_name,
-			beneficiary_account_number,
-			beneficiary_ifsc_code,
-			amount,
-			transfer_type,
-			admin_commision,
-			master_distributor_commision,
-			distributor_commision,
-			retailer_commision,
-			payout_transaction_status,
-			created_at,
-			updated_at
-		FROM payout_transactions
-		ORDER BY created_at DESC;
+			pt.payout_transaction_id,
+			pt.partner_request_id,
+			pt.operator_transaction_id,
+			pt.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			pt.order_id,
+			pt.mobile_number,
+			pt.beneficiary_bank_name,
+			pt.beneficiary_name,
+			pt.beneficiary_account_number,
+			pt.beneficiary_ifsc_code,
+			pt.amount,
+			pt.transfer_type,
+			pt.admin_commision,
+			pt.master_distributor_commision,
+			pt.distributor_commision,
+			pt.retailer_commision,
+			pt.payout_transaction_status,
+			pt.created_at,
+			pt.updated_at
+		FROM payout_transactions pt
+		LEFT JOIN retailers r ON r.retailer_id = pt.retailer_id
+		ORDER BY pt.created_at DESC;
 	`
 
 	rows, err := db.pool.Query(ctx, query)
@@ -642,6 +645,8 @@ func (db *Database) GetAllPayoutTransactions(
 			&r.PartnerRequestID,
 			&r.OperatorTxnID,
 			&r.RetailerID,
+			&r.RetailerName,
+			&r.RetailerBusinessName,
 			&r.OrderID,
 			&r.MobileNumber,
 			&r.BeneficiaryBankName,
@@ -666,6 +671,7 @@ func (db *Database) GetAllPayoutTransactions(
 	return results, rows.Err()
 }
 
+
 func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
 	ctx context.Context,
 	retailerID string,
@@ -673,25 +679,28 @@ func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
 
 	query := `
 		SELECT
-			payout_transaction_id,
-			partner_request_id,
-			operator_transaction_id,
-			retailer_id,
-			order_id,
-			mobile_number,
-			beneficiary_bank_name,
-			beneficiary_name,
-			beneficiary_account_number,
-			beneficiary_ifsc_code,
-			amount,
-			transfer_type,
-			retailer_commision,
-			payout_transaction_status,
-			created_at,
-			updated_at
-		FROM payout_transactions
-		WHERE retailer_id = $1
-		ORDER BY created_at DESC;
+			pt.payout_transaction_id,
+			pt.partner_request_id,
+			pt.operator_transaction_id,
+			pt.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			pt.order_id,
+			pt.mobile_number,
+			pt.beneficiary_bank_name,
+			pt.beneficiary_name,
+			pt.beneficiary_account_number,
+			pt.beneficiary_ifsc_code,
+			pt.amount,
+			pt.transfer_type,
+			pt.retailer_commision,
+			pt.payout_transaction_status,
+			pt.created_at,
+			pt.updated_at
+		FROM payout_transactions pt
+		JOIN retailers r ON r.retailer_id = pt.retailer_id
+		WHERE pt.retailer_id = $1
+		ORDER BY pt.created_at DESC;
 	`
 
 	rows, err := db.pool.Query(ctx, query, retailerID)
@@ -709,6 +718,8 @@ func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
 			&r.PartnerRequestID,
 			&r.OperatorTxnID,
 			&r.RetailerID,
+			&r.RetailerName,
+			&r.RetailerBusinessName,
 			&r.OrderID,
 			&r.MobileNumber,
 			&r.BeneficiaryBankName,
@@ -729,6 +740,7 @@ func (db *Database) GetPayoutsByRetailerIDOnlyRetailerCommission(
 
 	return results, rows.Err()
 }
+
 
 func (db *Database) GetRetailerPayoutLedgerWithWalletQuery(
 	ctx context.Context,
