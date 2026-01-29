@@ -47,7 +47,7 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		"mobile_no":      req.MobileNumber,
 		"operator_code":  req.OperatorCode,
 		"amount":         req.Amount,
-		"partner_req_id": req.PartnerRequestID,
+		"partner_request_id": req.PartnerRequestID,
 		"circle":         req.CircleCode,
 		"recharge_type":  1,
 	})
