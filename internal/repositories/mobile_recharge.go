@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -39,6 +40,7 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	req.PartnerRequestID = uuid.NewString()
 	apiUrl := `https://v2bapi.rechargkit.biz/recharge/prepaid`
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":      req.MobileNumber,
