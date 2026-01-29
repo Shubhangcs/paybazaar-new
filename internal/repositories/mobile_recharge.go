@@ -99,19 +99,25 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 	defer cancel()
 	if apiResponse.Status == 1 {
 		req.Status = "SUCCESS"
-		mrr.db.CreateMobileRechargeSuccessOrPendingQuery(ctx, req)
+		if err := mrr.db.CreateMobileRechargeSuccessOrPendingQuery(ctx, req); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	if apiResponse.Status == 2 {
 		req.Status = "PENDING"
-		mrr.db.CreateMobileRechargeSuccessOrPendingQuery(ctx, req)
+		if err := mrr.db.CreateMobileRechargeSuccessOrPendingQuery(ctx, req); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	if apiResponse.Status == 3 {
 		req.Status = "FAILED"
-		mrr.db.CreateMobileRechargeFailedQuery(ctx, req)
+		if err := mrr.db.CreateMobileRechargeFailedQuery(ctx, req); err != nil {
+			return err
+		}
 		return fmt.Errorf("failed to recharge: %s", apiResponse.Message)
 	}
 	return fmt.Errorf("invalid status from recharge kit")
