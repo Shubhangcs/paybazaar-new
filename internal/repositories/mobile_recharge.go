@@ -45,7 +45,7 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 
 	log.Println(req)
 
-	apiUrl := `https://v2bapi.rechargkit.biz/recharge/prepaid`
+	apiUrl := `https://v2a.rechargkit.biz/recharge/prepaid`
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":          req.MobileNumber,
 		"operator_code":      req.OperatorCode,
@@ -58,7 +58,7 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 
-	fmt.Println(reqBody)
+	fmt.Println(string(reqBody))
 
 	apiRequest, err := http.NewRequest(
 		http.MethodPost,
