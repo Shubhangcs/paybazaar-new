@@ -58,8 +58,6 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 
-	fmt.Println(string(reqBody))
-
 	apiRequest, err := http.NewRequest(
 		http.MethodPost,
 		apiUrl,
@@ -92,8 +90,6 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
 		return err
 	}
-
-	log.Println(string(respBytes))
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
 	defer cancel()

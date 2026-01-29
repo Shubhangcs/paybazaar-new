@@ -242,7 +242,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -355,7 +355,7 @@ func (db *Database) mobileRechargeWithCommision(
 	var transactionID string
 	if err := tx.QueryRow(ctx, insertToMobileRechargeTableQuery, pgx.NamedArgs{
 		"retailer_id":        req.RetailerID,
-		"partner_request_id": req.PartnerRequestID, // FIXED TYPO
+		"partner_request_id": req.PartnerRequestID,
 		"mobile_number":      fmt.Sprintf("%d", req.MobileNumber),
 		"operator_name":      req.OperatorName,
 		"circle_name":        req.CircleName,
@@ -494,8 +494,17 @@ func (db *Database) GetAllMobileRechargesQuery(
 		); err != nil {
 			return nil, err
 		}
-		// Convert string to int64
 		fmt.Sscanf(mobileNumber, "%d", &recharge.MobileNumber)
+		if recharge.Status == "PENDING" {
+			newStatus, err := db.RechargeStatusCheck(recharge.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
+				return nil, err
+			}
+			recharge.Status = newStatus
+		}
 		history = append(history, recharge)
 	}
 	return history, res.Err()
@@ -559,7 +568,36 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 		}
 		// Convert string to int64
 		fmt.Sscanf(mobileNumber, "%d", &recharge.MobileNumber)
+		if recharge.Status == "PENDING" {
+			newStatus, err := db.RechargeStatusCheck(recharge.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
+				return nil, err
+			}
+			recharge.Status = newStatus
+		}
 		history = append(history, recharge)
 	}
 	return history, res.Err()
+}
+
+func (db *Database) UpdateRechargeStatus(
+	ctx context.Context,
+	status string,
+	transactionID int,
+) error {
+	query := `
+		UPDATE mobile_recharge 
+		SET status = @status
+		WHERE mobile_recharge_transaction_id=@transaction_id;
+	`
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"status":         status,
+		"transaction_id": transactionID,
+	}); err != nil {
+		return err
+	}
+	return nil
 }
