@@ -260,14 +260,14 @@ func (db *Database) mobileRechargeWithCommision(
 	defer tx.Rollback(ctx)
 
 	getAdminBeforeBalanceQuery := `
-		SELECT admin_wallet_balance AS admin_before_balance, admin_id
-		FROM admins AS ad
-		JOIN master_distributors AS md
-			ON md.admin_id = ad.admin_id
-		JOIN distributors AS d
-			ON d.master_distributor_id = md.master_distributor_id
-		JOIN retailers AS r
-			ON r.distributor_id = d.distributor_id
+		SELECT ad.admin_wallet_balance, ad.admin_id
+		FROM retailers AS r
+		LEFT JOIN distributors AS d
+    		ON r.distributor_id = d.distributor_id
+		LEFT JOIN master_distributors AS md
+    		ON d.master_distributor_id = md.master_distributor_id
+		LEFT JOIN admins AS ad
+    		ON md.admin_id = ad.admin_id
 		WHERE r.retailer_id = @retailer_id;
 	`
 	var adminBeforeBalance float64
@@ -283,15 +283,15 @@ func (db *Database) mobileRechargeWithCommision(
 
 	deductAdminAmountAndGetAfterBalanceQuery := `
 		UPDATE admins AS ad
-		SET ad.admin_wallet_balance = ad.admin_wallet_balance - @commision
-		JOIN master_distributors AS md
-			ON md.admin_id = ad.admin_id
+		SET admin_wallet_balance = admin_wallet_balance - @commision
+		FROM master_distributors AS md
 		JOIN distributors AS d
-			ON d.master_distributor_id = md.master_distributor_id
+    		ON d.master_distributor_id = md.master_distributor_id
 		JOIN retailers AS r
-			ON r.distributor_id = d.distributor_id
+    		ON r.distributor_id = d.distributor_id
 		WHERE r.retailer_id = @retailer_id
-		RETURNING ad.admin_wallet_balance as admin_after_balance;
+    		AND md.admin_id = ad.admin_id
+		RETURNING ad.admin_wallet_balance AS admin_after_balance;
 	`
 	var adminAfterBalance float64
 	if err := tx.QueryRow(ctx, deductAdminAmountAndGetAfterBalanceQuery, pgx.NamedArgs{
