@@ -42,14 +42,15 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 	req.PartnerRequestID = uuid.NewString()
+
 	apiUrl := `https://v2bapi.rechargkit.biz/recharge/prepaid`
 	reqBody, err := json.Marshal(map[string]any{
-		"mobile_no":      req.MobileNumber,
-		"operator_code":  req.OperatorCode,
-		"amount":         req.Amount,
+		"mobile_no":          req.MobileNumber,
+		"operator_code":      req.OperatorCode,
+		"amount":             req.Amount,
 		"partner_request_id": req.PartnerRequestID,
-		"circle":         req.CircleCode,
-		"recharge_type":  1,
+		"circle":             req.CircleCode,
+		"recharge_type":      "1",
 	})
 	if err != nil {
 		return err
