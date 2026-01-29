@@ -4,7 +4,7 @@ import "time"
 
 type CreateMobileRechargeRequestModel struct {
 	RetailerID       string  `json:"retailer_id"`
-	MobileNumber     string  `json:"mobile_number" validate:"required,phone"`
+	MobileNumber     int64   `json:"mobile_number" validate:"required,phone"`
 	OperatorCode     int     `json:"operator_code" validate:"required"`
 	OperatorName     string  `json:"operator_name" validate:"required"`
 	Amount           float64 `json:"amount" validate:"required"`
@@ -52,10 +52,4 @@ type GetMobileRechargePlansResponseModel struct {
 	Message  string `json:"msg"`
 	Status   int    `json:"status"`
 	PlanData any    `json:"planData"`
-}
-
-type PlanDataModel struct {
-	CircleCode int    `json:"circle_id"`
-	ID         string `json:"_id"`
-	Plans      []any  `json:"plan"`
 }
