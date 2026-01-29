@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -86,6 +87,8 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
 		return err
 	}
+
+	log.Println(string(respBytes))
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
 	defer cancel()
