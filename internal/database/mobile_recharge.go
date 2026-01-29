@@ -500,10 +500,12 @@ func (db *Database) GetAllMobileRechargesQuery(
 			if err != nil {
 				return nil, err
 			}
-			if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
-				return nil, err
+			if newStatus != "PENDING" {
+				if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
+					return nil, err
+				}
+				recharge.Status = newStatus
 			}
-			recharge.Status = newStatus
 		}
 		history = append(history, recharge)
 	}
@@ -573,10 +575,12 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 			if err != nil {
 				return nil, err
 			}
-			if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
-				return nil, err
+			if newStatus != "PENDING" {
+				if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
+					return nil, err
+				}
+				recharge.Status = newStatus
 			}
-			recharge.Status = newStatus
 		}
 		history = append(history, recharge)
 	}
