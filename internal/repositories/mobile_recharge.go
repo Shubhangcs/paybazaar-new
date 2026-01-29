@@ -58,6 +58,8 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 
+	fmt.Println(reqBody)
+
 	apiRequest, err := http.NewRequest(
 		http.MethodPost,
 		apiUrl,
