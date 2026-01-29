@@ -4,7 +4,7 @@ import "time"
 
 type CreateMobileRechargeRequestModel struct {
 	RetailerID       string  `json:"retailer_id"`
-	MobileNumber     int64   `json:"mobile_number" validate:"required,phone"`
+	MobileNumber     int64   `json:"mobile_number" validate:"required"`
 	OperatorCode     int     `json:"operator_code" validate:"required"`
 	OperatorName     string  `json:"operator_name" validate:"required"`
 	Amount           float64 `json:"amount" validate:"required"`
