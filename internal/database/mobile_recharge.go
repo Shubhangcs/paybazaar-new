@@ -500,7 +500,7 @@ func (db *Database) GetAllMobileRechargesQuery(
 			if err != nil {
 				return nil, err
 			}
-			if newStatus != "PENDING" {
+			if newStatus != "PENDING" && newStatus != "" {
 				if err := db.UpdateRechargeStatus(ctx, newStatus, recharge.MobileRechargeTransactionID); err != nil {
 					return nil, err
 				}

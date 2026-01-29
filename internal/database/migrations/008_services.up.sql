@@ -65,3 +65,22 @@ CREATE TABLE
         operator_code INTEGER NOT NULL,
         operator_name TEXT NOT NULL
     );
+
+CREATE TABLE
+    IF NOT EXISTS dth_recharge (
+        dth_transaction_id BIGSERIAL NOT NULL,
+        retailer_id TEXT NOT NULL,
+        partner_request_id TEXT NOT NULL,
+        customer_id TEXT NOT NULL,
+        operator_name TEXT NOT NULL,
+        operator_code INTEGER NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'PENDING', 'FAILED')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
+    );
+
+CREATE TABLE
+    IF NOT EXISTS dth_recharge_operators (
+        operator_code INTEGER NOT NULL,
+        operator_name TEXT NOT NULL
+    );
