@@ -50,7 +50,7 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		"amount":             req.Amount,
 		"partner_request_id": req.PartnerRequestID,
 		"circle":             req.CircleCode,
-		"recharge_type":      "1",
+		"recharge_type":      1,
 	})
 	if err != nil {
 		return err
