@@ -63,7 +63,7 @@ func (db *Database) RechargeStatusCheck(
 	}
 
 	if apiResponse.Status == 3 {
-		return "FAILURE", nil
+		return "FAILED", nil
 	}
 
 	return "", fmt.Errorf("invalid status code in response: %s", apiResponse.Message)
