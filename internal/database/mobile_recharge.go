@@ -241,7 +241,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 		"before_balance":     beforeBalance,
 		"after_balance":      afterBalance,
 		"transaction_reason": "MOBILE_RECHARGE",
-		"remarks":            fmt.Sprintf("Mobile Recharge to: %s", req.MobileNumber),
+		"remarks":            fmt.Sprintf("Mobile Recharge to: %d", req.MobileNumber),
 	}); err != nil {
 		return err
 	}
@@ -437,7 +437,7 @@ func (db *Database) mobileRechargeWithCommision(
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
 		"transaction_reason": "MOBILE_RECHARGE",
-		"remarks":            fmt.Sprintf("Mobile Recharge to: %s", req.MobileNumber),
+		"remarks":            fmt.Sprintf("Mobile Recharge to: %d", req.MobileNumber),
 	}); err != nil {
 		return err
 	}
