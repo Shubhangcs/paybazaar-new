@@ -13,6 +13,7 @@ type CreateMobileRechargeRequestModel struct {
 	RechargeType     string  `json:"recharge_type,omitempty"`
 	PartnerRequestID string  `json:"partner_request_id,omitempty"`
 	Commision        float64 `json:"commision"`
+	Status           string  `json:"status"`
 }
 
 type GetMobileRechargeHistoryResponseModel struct {
@@ -27,6 +28,8 @@ type GetMobileRechargeHistoryResponseModel struct {
 	RechargeType                string    `json:"recharge_type"`
 	PartnerRequestID            string    `json:"partner_request_id"`
 	CreatedAt                   time.Time `json:"created_at"`
+	Commision                   float64   `json:"commision"`
+	Status                      string    `json:"status"`
 }
 
 type GetMobileRechargeOperatorsResponseModel struct {
@@ -40,6 +43,19 @@ type GetMobileRechargeCircleResponseModel struct {
 }
 
 type GetMobileRechargePlansRequestModel struct {
-	OperatorCode int64 `json:"operator_code"`
-	Circle       int64 `json:"circle_code"`
+	OperatorCode int64 `json:"operator_code" validate:"required"`
+	Circle       int64 `json:"circle" validate:"required"`
+}
+
+type GetMobileRechargePlansResponseModel struct {
+	Error    int64         `json:"error"`
+	Message  string        `json:"msg"`
+	Status   int64         `json:"status"`
+	PlanData PlanDataModel `json:"planData"`
+}
+
+type PlanDataModel struct {
+	CircleCode int64  `json:"circle_id"`
+	ID         string `json:"_id"`
+	Plans      []any  `json:"plan"`
 }

@@ -48,8 +48,9 @@ CREATE TABLE
         operator_code INTEGER NOT NULL,
         circle_code INTEGER NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
-        commision NUMERIC (20,2) NOT NULL,
+        commision NUMERIC(20, 2) NOT NULL,
         recharge_type INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'FAILED', 'PENDING')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
 
