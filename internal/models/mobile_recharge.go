@@ -48,10 +48,10 @@ type GetMobileRechargePlansRequestModel struct {
 }
 
 type GetMobileRechargePlansResponseModel struct {
-	Error    int           `json:"error"`
-	Message  string        `json:"msg"`
-	Status   int           `json:"status"`
-	PlanData PlanDataModel `json:"planData"`
+	Error    int    `json:"error"`
+	Message  string `json:"msg"`
+	Status   int    `json:"status"`
+	PlanData any    `json:"planData"`
 }
 
 type PlanDataModel struct {
