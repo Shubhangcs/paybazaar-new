@@ -13,8 +13,8 @@ func (db *Database) GetAllMobileRechargeOperatorsQuery(
 ) ([]models.GetMobileRechargeOperatorsResponseModel, error) {
 	query := `
 		SELECT 
-			operator_name,
-			operator_code 
+			operator_code,
+			operator_name
 		FROM mobile_recharge_operators;
 	`
 	res, err := db.pool.Query(ctx, query)
@@ -27,12 +27,11 @@ func (db *Database) GetAllMobileRechargeOperatorsQuery(
 	for res.Next() {
 		var operator models.GetMobileRechargeOperatorsResponseModel
 		if err := res.Scan(
-			&operator.OperatorName,
 			&operator.OperatorCode,
+			&operator.OperatorName,
 		); err != nil {
 			return nil, err
 		}
-
 		operators = append(operators, operator)
 	}
 	return operators, res.Err()
@@ -43,8 +42,8 @@ func (db *Database) GetAllMobileRechargeCirclesQuery(
 ) ([]models.GetMobileRechargeCircleResponseModel, error) {
 	query := `
 		SELECT 
-			circle_name,
-			circle_code
+			circle_code,
+			circle_name
 		FROM mobile_recharge_circles;
 	`
 	res, err := db.pool.Query(ctx, query)
@@ -57,8 +56,8 @@ func (db *Database) GetAllMobileRechargeCirclesQuery(
 	for res.Next() {
 		var circle models.GetMobileRechargeCircleResponseModel
 		if err := res.Scan(
-			&circle.CircleName,
 			&circle.CircleCode,
+			&circle.CircleName,
 		); err != nil {
 			return nil, err
 		}
@@ -112,7 +111,7 @@ func (db *Database) CreateMobileRechargeFailedQuery(
 	if _, err := db.pool.Exec(ctx, insertToMobileRechargeTable, pgx.NamedArgs{
 		"retailer_id":        req.RetailerID,
 		"partner_request_id": req.PartnerRequestID,
-		"mobile_number":      req.MobileNumber,
+		"mobile_number":      fmt.Sprintf("%d", req.MobileNumber),
 		"operator_name":      req.OperatorName,
 		"circle_name":        req.CircleName,
 		"operator_code":      req.OperatorCode,
@@ -131,7 +130,6 @@ func (db *Database) mobileRechargeWithoutCommision(
 	ctx context.Context,
 	req models.CreateMobileRechargeRequestModel,
 ) error {
-
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -146,9 +144,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 	var beforeBalance float64
 	if err := tx.QueryRow(ctx, getRetailerBeforeBalance, pgx.NamedArgs{
 		"retailer_id": req.RetailerID,
-	}).Scan(
-		&beforeBalance,
-	); err != nil {
+	}).Scan(&beforeBalance); err != nil {
 		return err
 	}
 
@@ -162,9 +158,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 	if err := tx.QueryRow(ctx, deductAmountFromRetailerQuery, pgx.NamedArgs{
 		"amount":      req.Amount,
 		"retailer_id": req.RetailerID,
-	}).Scan(
-		&afterBalance,
-	); err != nil {
+	}).Scan(&afterBalance); err != nil {
 		return err
 	}
 
@@ -200,7 +194,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 	if err := tx.QueryRow(ctx, insertToMobileRechargeTable, pgx.NamedArgs{
 		"retailer_id":        req.RetailerID,
 		"partner_request_id": req.PartnerRequestID,
-		"mobile_number":      req.MobileNumber,
+		"mobile_number":      fmt.Sprintf("%d", req.MobileNumber),
 		"operator_name":      req.OperatorName,
 		"circle_name":        req.CircleName,
 		"operator_code":      req.OperatorCode,
@@ -209,9 +203,7 @@ func (db *Database) mobileRechargeWithoutCommision(
 		"commision":          0,
 		"recharge_type":      1,
 		"status":             req.Status,
-	}).Scan(
-		&transactionId,
-	); err != nil {
+	}).Scan(&transactionId); err != nil {
 		return err
 	}
 
@@ -245,6 +237,12 @@ func (db *Database) mobileRechargeWithoutCommision(
 	}); err != nil {
 		return err
 	}
+
+	// CRITICAL: Commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	
 	return nil
 }
 
@@ -252,7 +250,6 @@ func (db *Database) mobileRechargeWithCommision(
 	ctx context.Context,
 	req models.CreateMobileRechargeRequestModel,
 ) error {
-
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -274,21 +271,19 @@ func (db *Database) mobileRechargeWithCommision(
 	var adminID string
 	if err := tx.QueryRow(ctx, getAdminBeforeBalanceQuery, pgx.NamedArgs{
 		"retailer_id": req.RetailerID,
-	}).Scan(
-		&adminBeforeBalance,
-		&adminID,
-	); err != nil {
+	}).Scan(&adminBeforeBalance, &adminID); err != nil {
 		return err
 	}
 
+	// Deduct commission from admin wallet
 	deductAdminAmountAndGetAfterBalanceQuery := `
 		UPDATE admins AS ad
 		SET admin_wallet_balance = admin_wallet_balance - @commision
-		FROM master_distributors AS md
-		JOIN distributors AS d
-    		ON d.master_distributor_id = md.master_distributor_id
-		JOIN retailers AS r
+		FROM retailers AS r
+		LEFT JOIN distributors AS d
     		ON r.distributor_id = d.distributor_id
+		LEFT JOIN master_distributors AS md
+    		ON d.master_distributor_id = md.master_distributor_id
 		WHERE r.retailer_id = @retailer_id
     		AND md.admin_id = ad.admin_id
 		RETURNING ad.admin_wallet_balance AS admin_after_balance;
@@ -297,39 +292,35 @@ func (db *Database) mobileRechargeWithCommision(
 	if err := tx.QueryRow(ctx, deductAdminAmountAndGetAfterBalanceQuery, pgx.NamedArgs{
 		"retailer_id": req.RetailerID,
 		"commision":   1,
-	}).Scan(
-		&adminAfterBalance,
-	); err != nil {
+	}).Scan(&adminAfterBalance); err != nil {
 		return err
 	}
 
 	getRetailerBeforeBalanceQuery := `
 		SELECT retailer_wallet_balance AS retailer_before_balance
 		FROM retailers
-		WHERE retailer_id=@retailer_id;
+		WHERE retailer_id = @retailer_id;
 	`
 	var retailerBeforeBalance float64
 	if err := tx.QueryRow(ctx, getRetailerBeforeBalanceQuery, pgx.NamedArgs{
 		"retailer_id": req.RetailerID,
-	}).Scan(
-		&retailerBeforeBalance,
-	); err != nil {
+	}).Scan(&retailerBeforeBalance); err != nil {
 		return err
 	}
 
+	// Deduct (amount - commission) from retailer
+	// Retailer pays less because they get commission benefit
 	deductAmountFromRetailerQuery := `
 		UPDATE retailers 
 		SET retailer_wallet_balance = retailer_wallet_balance - @amount
-		WHERE retailer_id=@retailer_id
+		WHERE retailer_id = @retailer_id
 		RETURNING retailer_wallet_balance AS retailer_after_balance;
 	`
 	var retailerAfterBalance float64
 	if err := tx.QueryRow(ctx, deductAmountFromRetailerQuery, pgx.NamedArgs{
-		"amount":      req.Amount - 1,
+		"amount":      req.Amount - 1, // Amount minus commission
 		"retailer_id": req.RetailerID,
-	}).Scan(
-		&retailerAfterBalance,
-	); err != nil {
+	}).Scan(&retailerAfterBalance); err != nil {
 		return err
 	}
 
@@ -344,7 +335,8 @@ func (db *Database) mobileRechargeWithCommision(
     		circle_code,
     		amount,
     		commision,
-    		recharge_type
+    		recharge_type,
+			status
 		) VALUES (
     		@retailer_id,
     		@partner_request_id,
@@ -355,15 +347,16 @@ func (db *Database) mobileRechargeWithCommision(
     		@circle_code,
     		@amount,
     		@commision,
-    		@recharge_type
+    		@recharge_type,
+			@status
 		)
 		RETURNING mobile_recharge_transaction_id AS transaction_id;
 	`
 	var transactionID string
 	if err := tx.QueryRow(ctx, insertToMobileRechargeTableQuery, pgx.NamedArgs{
 		"retailer_id":        req.RetailerID,
-		"partner_requset_id": req.PartnerRequestID,
-		"mobile_number":      req.MobileNumber,
+		"partner_request_id": req.PartnerRequestID, // FIXED TYPO
+		"mobile_number":      fmt.Sprintf("%d", req.MobileNumber),
 		"operator_name":      req.OperatorName,
 		"circle_name":        req.CircleName,
 		"operator_code":      req.OperatorCode,
@@ -371,12 +364,12 @@ func (db *Database) mobileRechargeWithCommision(
 		"amount":             req.Amount,
 		"commision":          1,
 		"recharge_type":      1,
-	}).Scan(
-		&transactionID,
-	); err != nil {
+		"status":             req.Status,
+	}).Scan(&transactionID); err != nil {
 		return err
 	}
 
+	// Record admin's commission deduction
 	insertToAdminWalletTransactionsQuery := `
 		INSERT INTO wallet_transactions (
     		user_id,
@@ -403,16 +396,16 @@ func (db *Database) mobileRechargeWithCommision(
 		"before_balance":     adminBeforeBalance,
 		"after_balance":      adminAfterBalance,
 		"transaction_reason": "MOBILE_RECHARGE",
-		"remarks":            fmt.Sprintf("Commision Sent To: %s", req.RetailerID),
+		"remarks":            fmt.Sprintf("Commission for Retailer: %s", req.RetailerID),
 	}); err != nil {
 		return err
 	}
 
+	// Record retailer's transaction (debit for recharge amount minus commission received)
 	insertToRetailerWalletTransactionsQuery := `
 		INSERT INTO wallet_transactions (
     		user_id,
     		reference_id,
-			credit_amount,
     		debit_amount,
     		before_balance,
     		after_balance,
@@ -421,7 +414,6 @@ func (db *Database) mobileRechargeWithCommision(
 		) VALUES (
     		@user_id,
     		@reference_id,
-			@credit_amount,
     		@debit_amount,
     		@before_balance,
     		@after_balance,
@@ -432,15 +424,20 @@ func (db *Database) mobileRechargeWithCommision(
 	if _, err := tx.Exec(ctx, insertToRetailerWalletTransactionsQuery, pgx.NamedArgs{
 		"user_id":            req.RetailerID,
 		"reference_id":       transactionID,
-		"debit_amount":       req.Amount,
-		"credit_amount":      1,
+		"debit_amount":       req.Amount - 1, // Net amount paid by retailer
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
 		"transaction_reason": "MOBILE_RECHARGE",
-		"remarks":            fmt.Sprintf("Mobile Recharge to: %d", req.MobileNumber),
+		"remarks":            fmt.Sprintf("Mobile Recharge to: %d (Commission: ₹1)", req.MobileNumber),
 	}); err != nil {
 		return err
 	}
+
+	// CRITICAL: Commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -461,6 +458,7 @@ func (db *Database) GetAllMobileRechargesQuery(
     		amount,
     		commision,
     		recharge_type,
+			status,
 			created_at
 		FROM mobile_recharge 
 		ORDER BY created_at DESC
@@ -478,11 +476,12 @@ func (db *Database) GetAllMobileRechargesQuery(
 	var history []models.GetMobileRechargeHistoryResponseModel
 	for res.Next() {
 		var recharge models.GetMobileRechargeHistoryResponseModel
+		var mobileNumber string
 		if err := res.Scan(
 			&recharge.MobileRechargeTransactionID,
 			&recharge.RetailerID,
 			&recharge.PartnerRequestID,
-			&recharge.MobileNumber,
+			&mobileNumber,
 			&recharge.OperatorName,
 			&recharge.CircleName,
 			&recharge.OperatorCode,
@@ -490,10 +489,13 @@ func (db *Database) GetAllMobileRechargesQuery(
 			&recharge.Amount,
 			&recharge.Commision,
 			&recharge.RechargeType,
+			&recharge.Status,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
+		// Convert string to int64
+		fmt.Sscanf(mobileNumber, "%d", &recharge.MobileNumber)
 		history = append(history, recharge)
 	}
 	return history, res.Err()
@@ -517,6 +519,7 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
     		amount,
     		commision,
     		recharge_type,
+			status,
 			created_at
 		FROM mobile_recharge
 		WHERE retailer_id = @retailer_id
@@ -536,11 +539,12 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 	var history []models.GetMobileRechargeHistoryResponseModel
 	for res.Next() {
 		var recharge models.GetMobileRechargeHistoryResponseModel
+		var mobileNumber string
 		if err := res.Scan(
 			&recharge.MobileRechargeTransactionID,
 			&recharge.RetailerID,
 			&recharge.PartnerRequestID,
-			&recharge.MobileNumber,
+			&mobileNumber,
 			&recharge.OperatorName,
 			&recharge.CircleName,
 			&recharge.OperatorCode,
@@ -548,10 +552,13 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 			&recharge.Amount,
 			&recharge.Commision,
 			&recharge.RechargeType,
+			&recharge.Status,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
+		// Convert string to int64
+		fmt.Sscanf(mobileNumber, "%d", &recharge.MobileNumber)
 		history = append(history, recharge)
 	}
 	return history, res.Err()
