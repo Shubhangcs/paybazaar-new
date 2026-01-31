@@ -46,6 +46,8 @@ func (drr *dthRechargeRepository) CreateDTHRecharge(c echo.Context) error {
 	}
 	req.PartnerRequestID = uuid.NewString()
 
+	fmt.Println(req)
+
 	apiUrl := `https://v2a.rechargkit.biz/recharge/dth`
 	reqBody, err := json.Marshal(map[string]any{
 		"customer_id":        req.CustomerID,
@@ -92,6 +94,8 @@ func (drr *dthRechargeRepository) CreateDTHRecharge(c echo.Context) error {
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
 	defer cancel()
+
+	fmt.Println(apiResponse)
 	if apiResponse.Status == 1 {
 		req.Status = "SUCCESS"
 		if err := drr.db.CreateDTHRechargeSuccessOrPendingQuery(ctx, req); err != nil {
