@@ -113,6 +113,8 @@ func (db *Database) DTHRechargeStatusCheck(
 		return "", err
 	}
 
+	fmt.Println(apiResponse)
+
 	if apiResponse.Status == 1 {
 		return "SUCCESS", nil
 	}
