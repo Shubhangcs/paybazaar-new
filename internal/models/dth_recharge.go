@@ -13,8 +13,9 @@ type CreateDTHRechargeRequestModel struct {
 	Commision        float64 `json:"commision"`
 }
 
-type GetDTHRechargeResponseModel struct {
-	DTHTransactionID string    `json:"dth_transaction_id"`
+type GetDTHRechargeHistoryResponseModel struct {
+	DTHTransactionID int       `json:"dth_transaction_id"`
+	RetailerID       string    `json:"retailer_id"`
 	CustomerID       string    `json:"customer_id"`
 	OperatorName     string    `json:"operator_name"`
 	OperatorCode     int       `json:"operator_code"`

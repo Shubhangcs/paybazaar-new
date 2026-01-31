@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -42,8 +41,6 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 	req.PartnerRequestID = uuid.NewString()
-
-	log.Println(req)
 
 	apiUrl := `https://v2a.rechargkit.biz/recharge/prepaid`
 	reqBody, err := json.Marshal(map[string]any{
