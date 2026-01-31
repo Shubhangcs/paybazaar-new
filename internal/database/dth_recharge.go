@@ -335,7 +335,7 @@ func (db *Database) dthRechargeWithCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToAdminWalletTransactionsQuery, pgx.NamedArgs{
 		"user_id":            adminID,
-		"reference_id":       transactionID,
+		"reference_id":       fmt.Sprintf("%d",transactionID),
 		"debit_amount":       1,
 		"before_balance":     adminBeforeBalance,
 		"after_balance":      adminAfterBalance,
@@ -367,7 +367,7 @@ func (db *Database) dthRechargeWithCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToRetailerWalletTransactionsQuery, pgx.NamedArgs{
 		"user_id":            req.RetailerID,
-		"reference_id":       transactionID,
+		"reference_id":       fmt.Sprintf("%d",transactionID),
 		"debit_amount":       req.Amount - 1, // Net amount paid by retailer
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
