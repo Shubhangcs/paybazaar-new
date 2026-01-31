@@ -181,7 +181,7 @@ func (db *Database) dthRechargeWithoutCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToRetailerWalletTransactionsTable, pgx.NamedArgs{
 		"user_id":            req.RetailerID,
-		"reference_id":       transactionID,
+		"reference_id":       fmt.Sprintf("%d",transactionID),
 		"debit_amount":       req.Amount,
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
