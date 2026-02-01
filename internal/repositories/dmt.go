@@ -40,7 +40,7 @@ func (dr *dmtRepository) CheckDMTWalletExists(c echo.Context) (*models.CheckDMTW
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/moneytransfer/checkWalletExist`
+	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/checkWalletExist`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.CreateDMTWalle
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/moneytransfer/createWalletRequest`
+	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/createWalletRequest`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (dr *dmtRepository) VerifyDMTWalletCreation(c echo.Context) (*models.Create
 	if err := dr.db.GetUserDetailsForDMTWalletCreation(ctx, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/moneytransfer/verifyOtp`
+	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/verifyOtp`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -184,7 +184,7 @@ func (dr *dmtRepository) CreateDMTBeneficiary(c echo.Context) (*models.CreateDMT
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/addBeneficiaryRequest`
+	apiUrl := `https://v2bapi.rechargkit.biz/addBeneficiaryRequest`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func (dr *dmtRepository) GetDMTBeneficieries(c echo.Context) (*models.GetDMTBene
 	if err := bindAndValidate(c,&req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/getUserDetails`
+	apiUrl := `https://v2bapi.rechargkit.biz/getUserDetails`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -276,7 +276,7 @@ func (dr *dmtRepository) DeleteDMTBeneficiary(c echo.Context) (*models.DeleteDMT
 	if err := bindAndValidate(c,&req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/deleteBeneficiaryRequest`
+	apiUrl := `https://v2bapi.rechargkit.biz/deleteBeneficiaryRequest`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -322,7 +322,7 @@ func (dr *dmtRepository) VerifyDMTBeneficiaryDelete(c echo.Context) (*models.Del
 	if err := bindAndValidate(c,&req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/moneytransfer/confirmDeleteBeneficiary`
+	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/confirmDeleteBeneficiary`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
