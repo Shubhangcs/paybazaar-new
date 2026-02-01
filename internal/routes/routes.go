@@ -51,6 +51,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.PayoutBeneficiaryRoutes(cfg.Database, cfg.JWTUtils)
 	routes.MobileRechargeRoutes(cfg.Database, cfg.JWTUtils)
 	routes.DTHRechargeRoutes(cfg.Database, cfg.JWTUtils)
+	routes.DMTRoutes(cfg.Database , cfg.JWTUtils)
 
 	return routes
 }
