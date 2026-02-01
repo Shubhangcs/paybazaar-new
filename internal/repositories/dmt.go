@@ -75,6 +75,7 @@ func (dr *dmtRepository) CheckDMTWalletExists(c echo.Context) (*models.CheckDMTW
 	if err := json.Unmarshal(respBytes, &res); err != nil {
 		return nil, err
 	}
+	fmt.Println(res)
 	if res.Error != 0 {
 		return nil, fmt.Errorf("error from rechargekit: %s", res.Description)
 	}
