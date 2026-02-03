@@ -774,11 +774,11 @@ func (db *Database) MobileRechargeRefundQuery(
 	query := `
 		UPDATE mobile_recharge
 		SET status = 'REFUND'
-		WHERE retailer_id = @retailer_id;
+		WHERE transaction_id = @transaction_id;
 	`
 
 	if _, err := tx.Exec(ctx, query, pgx.NamedArgs{
-		"retailer_id": retailerId,
+		"tranasction_id": transactionId,
 	}); err != nil {
 		return err
 	}
