@@ -393,6 +393,8 @@ func (db *Database) GetAllDTHRechargesQuery(
 		SELECT 
 			d.dth_transaction_id,
 			d.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
     		d.partner_request_id,
     		d.customer_id,
     		d.operator_name,
@@ -404,9 +406,11 @@ func (db *Database) GetAllDTHRechargesQuery(
 			w.after_balance,
 			d.created_at
 		FROM dth_recharge d
+		JOIN retailers r
+    		ON r.retailer_id = d.retailer_id
 		JOIN wallet_transactions w
 			ON w.user_id = d.retailer_id
-			AND w.reference_id = d.dth_transaction_id
+			AND w.reference_id = d.dth_transaction_id::TEXT
    			AND w.transaction_reason = 'DTH_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
