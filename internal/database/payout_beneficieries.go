@@ -33,28 +33,19 @@ func (db *Database) GetBeneficiaries(mobileNumber string) (*[]models.Beneficiary
 	return &beneficiaries, nil
 }
 
-func (db *Database) VerifyBenificary(ctx context.Context, amount float64, retailerId, beneficiaryId string) error {
-	tx, err := db.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
+func (db *Database) VerifyBenificary(ctx context.Context, amount float64, retailerId string) error {
 	deductAmountQuery := `
 		UPDATE retailers 
 		SET retailer_wallet_balance = retailer_wallet_balance - @amount
 		WHERE retailer_id = @retailer_id;
 	`
-	if _, err := tx.Exec(ctx, deductAmountQuery, pgx.NamedArgs{
+	if _, err := db.pool.Exec(ctx, deductAmountQuery, pgx.NamedArgs{
 		"retailer_id": retailerId,
 		"amount":      amount,
 	}); err != nil {
 		return err
 	}
-	query := `UPDATE beneficiaries SET beneficiary_verified = TRUE WHERE beneficiary_id = $1`
-	if _, err := tx.Exec(ctx, query, beneficiaryId); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
+	return nil
 }
 
 func (db *Database) DeleteBeneficiary(beneficiaryId string) error {

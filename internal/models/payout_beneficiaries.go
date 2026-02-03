@@ -13,7 +13,6 @@ type BeneficiaryModel struct {
 
 type VerifyBeneficiaryRequestModel struct {
 	RetailerId    string `json:"retailer_id"`
-	BeneficiaryId string `json:"beneficiary_id"`
 	MobileNumber  string `json:"mobile_number"`
 	AccountNumber string `json:"account_number"`
 	IFSCCode      string `json:"ifsc_code"`

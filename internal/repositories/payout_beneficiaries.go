@@ -115,7 +115,7 @@ func (r *beneficiaryRepo) VerifyBeneficiary(c echo.Context) (*models.VerifyBenef
 		return nil, fmt.Errorf("failed: %s", resp.Message)
 	}
 
-	if err := r.query.VerifyBenificary(ctx, 3, req.RetailerId, req.BeneficiaryId); err != nil {
+	if err := r.query.VerifyBenificary(ctx, 3, req.RetailerId); err != nil {
 		return nil, err
 	}
 
