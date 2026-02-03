@@ -217,6 +217,15 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		RETURNING payout_transaction_id;
 	`
 
+	var transferType string
+	if req.TransferType == 5 {
+		transferType = "IMPS"
+	}
+
+	if req.TransferType == 6 {
+		transferType = "NEFT"
+	}
+
 	if err := tx.QueryRow(ctx, insertToPayoutTransactionQuery, pgx.NamedArgs{
 		"partner_request_id":      req.PartnerRequestId,
 		"operator_transaction_id": req.OperatorTransactionId,
@@ -228,7 +237,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"account_number":          req.AccountNumber,
 		"ifsc_code":               req.IFSCCode,
 		"amount":                  req.Amount,
-		"transfer_type":           req.TransferType,
+		"transfer_type":           transferType,
 		"admin_commision":         commision.AdminCommision,
 		"md_commision":            commision.MasterDistributorCommision,
 		"dis_commision":           commision.DistributorCommision,
