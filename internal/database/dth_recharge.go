@@ -181,7 +181,7 @@ func (db *Database) dthRechargeWithoutCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToRetailerWalletTransactionsTable, pgx.NamedArgs{
 		"user_id":            req.RetailerID,
-		"reference_id":       fmt.Sprintf("%d",transactionID),
+		"reference_id":       fmt.Sprintf("%d", transactionID),
 		"debit_amount":       req.Amount,
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
@@ -335,7 +335,7 @@ func (db *Database) dthRechargeWithCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToAdminWalletTransactionsQuery, pgx.NamedArgs{
 		"user_id":            adminID,
-		"reference_id":       fmt.Sprintf("%d",transactionID),
+		"reference_id":       fmt.Sprintf("%d", transactionID),
 		"debit_amount":       1,
 		"before_balance":     adminBeforeBalance,
 		"after_balance":      adminAfterBalance,
@@ -367,7 +367,7 @@ func (db *Database) dthRechargeWithCommision(
 	`
 	if _, err := tx.Exec(ctx, insertToRetailerWalletTransactionsQuery, pgx.NamedArgs{
 		"user_id":            req.RetailerID,
-		"reference_id":       fmt.Sprintf("%d",transactionID),
+		"reference_id":       fmt.Sprintf("%d", transactionID),
 		"debit_amount":       req.Amount - 1, // Net amount paid by retailer
 		"before_balance":     retailerBeforeBalance,
 		"after_balance":      retailerAfterBalance,
@@ -407,7 +407,7 @@ func (db *Database) GetAllDTHRechargesQuery(
 		JOIN wallet_transactions w
 			ON w.reference_id = d.dth_transaction_id
 			AND w.retailer_id = d.retailer_id
-			AND w.transaction_reason = 'MOBILE_RECHARGE'
+			AND w.transaction_reason = 'DTH_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -433,6 +433,8 @@ func (db *Database) GetAllDTHRechargesQuery(
 			&recharge.Amount,
 			&recharge.Commision,
 			&recharge.Status,
+			&recharge.BeforeBalance,
+			&recharge.AfterBalance,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err
