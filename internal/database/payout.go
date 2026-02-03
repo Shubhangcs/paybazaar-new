@@ -653,5 +653,6 @@ ORDER BY p.created_at DESC;
 		}
 		transactions = append(transactions, transaction)
 	}
+	fmt.Println(transactions)
 	return transactions, res.Err()
 }
