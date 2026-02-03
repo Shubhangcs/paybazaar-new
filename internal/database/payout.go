@@ -372,7 +372,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"debit_amount":       0,
 		"before_balance":     userDetails.adminBeforeBalance,
 		"after_balance":      userDetails.adminAfterBalance,
-		"transaction_reason": "PAYOUT_COMMISSION",
+		"transaction_reason": "PAYOUT",
 		"remarks":            "Payout commission credited",
 	}); err != nil {
 		return err
@@ -386,7 +386,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"debit_amount":       0,
 		"before_balance":     userDetails.mdBeforeBalance,
 		"after_balance":      userDetails.mdAfterBalance,
-		"transaction_reason": "PAYOUT_COMMISSION",
+		"transaction_reason": "PAYOUT",
 		"remarks":            "Payout commission credited",
 	}); err != nil {
 		return err
@@ -400,7 +400,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"debit_amount":       0,
 		"before_balance":     userDetails.disBeforeBalance,
 		"after_balance":      userDetails.disAfterBalance,
-		"transaction_reason": "PAYOUT_COMMISSION",
+		"transaction_reason": "PAYOUT",
 		"remarks":            "Payout commission credited",
 	}); err != nil {
 		return err
