@@ -214,7 +214,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 			@retailer_commision,
 			@status
 		)
-		RETURNING payout_transaction_id;
+		RETURNING payout_transaction_id::TEXT;
 	`
 
 	var transferType string
