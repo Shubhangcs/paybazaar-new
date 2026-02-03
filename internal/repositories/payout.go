@@ -45,6 +45,7 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(commision)
 
 	fmt.Println(req.Amount, commision.TotalCommision)
 
