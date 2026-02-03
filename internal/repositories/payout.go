@@ -46,6 +46,8 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 		return err
 	}
 
+	fmt.Println(req.Amount, commision.TotalCommision)
+
 	if err := pr.db.VerifyRetailerForPayoutTransactionQuery(ctx, req.RetailerId, req.Amount+commision.TotalCommision); err != nil {
 		return err
 	}
