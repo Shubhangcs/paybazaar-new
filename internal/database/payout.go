@@ -585,34 +585,35 @@ func (db *Database) GetPayoutTransactionsByRetailerIdQuery(
 ) ([]models.GetRetailerPayoutTransactionsResponseModel, error) {
 	query := `
 		SELECT
-			p.payout_transaction_id,
-			p.operator_transaction_id,
-			p.order_id,
-			p.partner_request_id,
-			p.retailer_id,
-			r.retailer_name,
-			r.retailer_business_name,
-			p.mobile_number,
-			p.bank_name,
-			p.beneficiary_name,
-			p.account_number,
-			p.ifsc_code,
-			p.amount,
-			p.transfer_type,
-			p.retailer_commision,
-			w.before_balance,
-			w.after_balance,
-			p.payout_transaction_status,
-			p.created_at,
-			p.updated_at
-		FROM payout_transactions p
-		JOIN retailers r
-			ON r.retailer_id = p.retailer_id
-		JOIN wallet_transactions w
-			ON w.user_id = p.retailer_id
-		WHERE retailer_id = @retailer_id
-		ORDER BY created_at DESC
-		LIMIT @limit OFFSET @offset;
+    p.payout_transaction_id,
+    p.operator_transaction_id,
+    p.order_id,
+    p.partner_request_id,
+    p.retailer_id,
+    r.retailer_name,
+    r.retailer_business_name,
+    p.mobile_number,
+    p.bank_name,
+    p.beneficiary_name,
+    p.account_number,
+    p.ifsc_code,
+    p.amount,
+    p.transfer_type,
+    p.retailer_commision,
+    w.before_balance,
+    w.after_balance,
+    p.payout_transaction_status,
+    p.created_at,
+    p.updated_at
+FROM payout_transactions p
+JOIN retailers r
+    ON r.retailer_id = p.retailer_id
+LEFT JOIN wallet_transactions w
+    ON w.reference_id = p.payout_transaction_id::TEXT
+   AND w.transaction_reason = 'PAYOUT'
+WHERE p.retailer_id = @retailer_id
+ORDER BY p.created_at DESC
+LIMIT @limit OFFSET @offset;
 	`
 	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
 		"limit":  limit,
