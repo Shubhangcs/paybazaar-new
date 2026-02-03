@@ -35,7 +35,7 @@ func (db *Database) GetPayoutCommisionQuery(
 		return nil, err
 	}
 
-	getCommission := func(userId string) (*models.GetPayoutCommisionModel, bool, error) {
+	getCommission := func(userId string) (*models.GetPayoutCommisionModel, error) {
 		query := `
 			SELECT 
 				total_commision,
@@ -60,54 +60,53 @@ func (db *Database) GetPayoutCommisionQuery(
 		)
 
 		if err == pgx.ErrNoRows {
-			return nil, false, nil
+			return nil, nil
 		}
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
-		return &c, true, nil
+		return &c, nil
 	}
 
-	var (
-		commission *models.GetPayoutCommisionModel
-		found      bool
-		err        error
-	)
+	var commission *models.GetPayoutCommisionModel
 
-	if commission, found, err = getCommission(retailerId); err != nil {
-		return nil, err
-	} else if found {
-		goto CALCULATE
+	ids := []string{
+		retailerId,
+		distributorId,
+		masterDistributorId,
 	}
 
-	if commission, found, err = getCommission(distributorId); err != nil {
-		return nil, err
-	} else if found {
-		goto CALCULATE
+	for _, id := range ids {
+		c, err := getCommission(id)
+		if err != nil {
+			return nil, err
+		}
+		if c != nil {
+			commission = c
+			break
+		}
 	}
 
-	if commission, found, err = getCommission(masterDistributorId); err != nil {
-		return nil, err
-	} else if found {
-		goto CALCULATE
+	// Default commission if nothing found
+	if commission == nil {
+		commission = &models.GetPayoutCommisionModel{
+			TotalCommision:             1.2, // %
+			RetailerCommision:          0.5, // % of total
+			DistributorCommision:       0.2,
+			MasterDistributorCommision: 0.05,
+			AdminCommision:             0.25,
+		}
 	}
 
-	commission = &models.GetPayoutCommisionModel{
-		TotalCommision:             (1.2 / 100) * amount,
-		RetailerCommision:          (0.5 / 100) * amount,
-		DistributorCommision:       (0.2 / 100) * amount,
-		MasterDistributorCommision: (0.05 / 100) * amount,
-		AdminCommision:             (0.25 / 100) * amount,
-	}
-
-CALCULATE:
+	// Final calculation (percentage → amount)
+	totalAmount := (commission.TotalCommision / 100) * amount
 
 	return &models.GetPayoutCommisionModel{
-		TotalCommision:             (commission.TotalCommision / 100) * amount,
-		RetailerCommision:          (commission.RetailerCommision / 100) * amount,
-		DistributorCommision:       (commission.DistributorCommision / 100) * amount,
-		MasterDistributorCommision: (commission.MasterDistributorCommision / 100) * amount,
-		AdminCommision:             (commission.AdminCommision / 100) * amount,
+		TotalCommision:             totalAmount,
+		RetailerCommision:          totalAmount * commission.RetailerCommision,
+		DistributorCommision:       totalAmount * commission.DistributorCommision,
+		MasterDistributorCommision: totalAmount * commission.MasterDistributorCommision,
+		AdminCommision:             totalAmount * commission.AdminCommision,
 	}, nil
 }
 
@@ -175,7 +174,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		disAfterBalance       float64
 		retailerBeforeBalance float64
 		retailerAfterBalance  float64
-		transactionId         string
+		transactionId         int
 	}
 
 	// 1️⃣ Insert payout transaction
@@ -359,7 +358,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Admin
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.adminId,
-		"reference_id":       userDetails.transactionId,
+		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
 		"credit_amount":      commision.AdminCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.adminBeforeBalance,
@@ -373,7 +372,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Master Distributor
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.mdId,
-		"reference_id":       userDetails.transactionId,
+		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
 		"credit_amount":      commision.MasterDistributorCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.mdBeforeBalance,
@@ -387,7 +386,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Distributor
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.disId,
-		"reference_id":       userDetails.transactionId,
+		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
 		"credit_amount":      commision.DistributorCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.disBeforeBalance,
@@ -401,9 +400,9 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Retailer (DEBIT)
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            req.RetailerId,
-		"reference_id":       userDetails.transactionId,
-		"credit_amount":      0,
+		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
 		"debit_amount":       req.Amount + commision.TotalCommision,
+		"credit_amount":      0,
 		"before_balance":     userDetails.retailerBeforeBalance,
 		"after_balance":      userDetails.retailerAfterBalance,
 		"transaction_reason": "PAYOUT",
