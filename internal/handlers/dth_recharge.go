@@ -30,7 +30,7 @@ func (dh *dthRechargeHandler) CreateDTHRechargeRequest(c echo.Context) error {
 }
 
 func (dh *dthRechargeHandler) GetAllDTHOperatorsRequest(c echo.Context) error {
-		res, err := dh.dthRechargeRepository.GetAllDTHOperators(c)
+	res, err := dh.dthRechargeRepository.GetAllDTHOperators(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest,
 			models.ResponseModel{Status: "failed", Message: err.Error()},
@@ -72,4 +72,15 @@ func (dh *dthRechargeHandler) GetDTHRechargesByRetailerIDRequest(c echo.Context)
 		Message: "dth recharges fetched successfully",
 		Data:    map[string]any{"recharges": res},
 	})
+}
+
+func (dh *dthRechargeHandler) DTHRechargeRefundRequest(c echo.Context) error {
+	if err := dh.dthRechargeRepository.DTHRechargeRefund(c); err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "dth recharge refund successfull"},
+	)
 }

@@ -17,4 +17,5 @@ func (r *routes) DTHRechargeRoutes(db *database.Database, jwtUtils *pkg.JwtUtils
 	mrrg.GET("/get/operators", dthRechargeHandler.GetAllDTHOperatorsRequest, middlewares.RequireRoles("retailer", "admin"))
 	mrrg.GET("/get/admin", dthRechargeHandler.GetAllDTHRechargesRequest, middlewares.RequireRoles("admin"))
 	mrrg.GET("/get/:retailer_id", dthRechargeHandler.GetDTHRechargesByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
+	mrrg.PUT("/refund/:transaction_id", dthRechargeHandler.DTHRechargeRefundRequest, middlewares.RequireRoles("admin"))
 }

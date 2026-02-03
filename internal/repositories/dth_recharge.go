@@ -21,6 +21,7 @@ type DTHRechargeInterface interface {
 	CreateDTHRecharge(echo.Context) error
 	GetAllDTHRecharges(echo.Context) ([]models.GetDTHRechargeHistoryResponseModel, error)
 	GetDTHRechargesByRetailerID(echo.Context) ([]models.GetDTHRechargeHistoryResponseModel, error)
+	DTHRechargeRefund(c echo.Context) error
 }
 
 type dthRechargeRepository struct {
@@ -136,4 +137,11 @@ func (drr *dthRechargeRepository) GetDTHRechargesByRetailerID(c echo.Context) ([
 	defer cancel()
 	limit, offset := parsePagination(c)
 	return drr.db.GetDTHRechargesByRetailerIDQuery(ctx, retailerID, limit, offset)
+}
+
+func (dvr *dthRechargeRepository) DTHRechargeRefund(c echo.Context) error {
+	var transactionID = c.Param("transaction_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
+	defer cancel()
+	return dvr.db.DTHRechargeRefundQuery(ctx, transactionID)
 }

@@ -665,3 +665,12 @@ LIMIT @limit OFFSET @offset;
 	}
 	return transactions, res.Err()
 }
+
+// func (db *Database) PayoutRefundRequest(
+// 	ctx context.Context,
+// 	transactionId string,
+// ) {
+// 	getUserDetailsQuery := `
+		
+// 	`
+// }
