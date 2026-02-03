@@ -705,7 +705,7 @@ func (db *Database) DTHRechargeRefundQuery(
 	`
 
 	if _, err := tx.Exec(ctx, query, pgx.NamedArgs{
-		"tranasction_id": transactionId,
+		"transaction_id": transactionId,
 	}); err != nil {
 		return err
 	}
