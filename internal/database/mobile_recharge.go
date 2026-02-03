@@ -490,6 +490,8 @@ func (db *Database) GetAllMobileRechargesQuery(
 		if err := res.Scan(
 			&recharge.MobileRechargeTransactionID,
 			&recharge.RetailerID,
+			&recharge.RetailerName,
+			&recharge.BusinessName,
 			&recharge.PartnerRequestID,
 			&mobileNumber,
 			&recharge.OperatorName,
@@ -500,6 +502,8 @@ func (db *Database) GetAllMobileRechargesQuery(
 			&recharge.Commision,
 			&recharge.RechargeType,
 			&recharge.Status,
+			&recharge.BeforeBalance,
+			&recharge.AfterBalance,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -574,6 +578,8 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 		if err := res.Scan(
 			&recharge.MobileRechargeTransactionID,
 			&recharge.RetailerID,
+			&recharge.RetailerName,
+			&recharge.BusinessName,
 			&recharge.PartnerRequestID,
 			&mobileNumber,
 			&recharge.OperatorName,
@@ -584,6 +590,8 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 			&recharge.Commision,
 			&recharge.RechargeType,
 			&recharge.Status,
+			&recharge.BeforeBalance,
+			&recharge.AfterBalance,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err
