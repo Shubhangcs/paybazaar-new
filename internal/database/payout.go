@@ -93,21 +93,21 @@ func (db *Database) GetPayoutCommisionQuery(
 	}
 
 	commission = &models.GetPayoutCommisionModel{
-		TotalCommision:             1.2 * amount,
-		RetailerCommision:          0.5 * amount,
-		DistributorCommision:       0.2 * amount,
-		MasterDistributorCommision: 0.05 * amount,
-		AdminCommision:             0.25 * amount,
+		TotalCommision:             (1.2 / 100) * amount,
+		RetailerCommision:          (0.5 / 100) * amount,
+		DistributorCommision:       (0.2 / 100) * amount,
+		MasterDistributorCommision: (0.05 / 100) * amount,
+		AdminCommision:             (0.25 / 100) * amount,
 	}
 
 CALCULATE:
 
 	return &models.GetPayoutCommisionModel{
-		TotalCommision:             commission.TotalCommision * amount,
-		RetailerCommision:          commission.RetailerCommision * amount,
-		DistributorCommision:       commission.DistributorCommision * amount,
-		MasterDistributorCommision: commission.MasterDistributorCommision * amount,
-		AdminCommision:             commission.AdminCommision * amount,
+		TotalCommision:             (commission.TotalCommision / 100) * amount,
+		RetailerCommision:          (commission.RetailerCommision / 100) * amount,
+		DistributorCommision:       (commission.DistributorCommision / 100) * amount,
+		MasterDistributorCommision: (commission.MasterDistributorCommision / 100) * amount,
+		AdminCommision:             (commission.AdminCommision / 100) * amount,
 	}, nil
 }
 
