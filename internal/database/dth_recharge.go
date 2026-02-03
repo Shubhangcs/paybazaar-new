@@ -490,7 +490,7 @@ func (db *Database) GetDTHRechargesByRetailerIDQuery(
 			ON w.user_id = d.retailer_id
 			AND w.reference_id = d.dth_transaction_id::TEXT
    			AND w.transaction_reason = 'DTH_RECHARGE'
-		WHERE retailer_id = @retailer_id
+		WHERE d.retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`

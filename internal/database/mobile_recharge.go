@@ -553,7 +553,7 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 			ON w.user_id = m.retailer_id
 			AND w.reference_id = m.mobile_recharge_transaction_id::TEXT
 			AND w.transaction_reason = 'MOBILE_RECHARGE'
-		WHERE retailer_id = @retailer_id
+		WHERE m.retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
