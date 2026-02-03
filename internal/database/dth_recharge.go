@@ -405,9 +405,9 @@ func (db *Database) GetAllDTHRechargesQuery(
 			d.created_at
 		FROM dth_recharge d
 		JOIN wallet_transactions w
-			ON w.reference_id = d.dth_transaction_id
-			AND w.retailer_id = d.retailer_id
-			AND w.transaction_reason = 'DTH_RECHARGE'
+			ON w.user_id = d.retailer_id
+			AND w.reference_id = d.dth_transaction_id
+   			AND w.transaction_reason = 'DTH_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
