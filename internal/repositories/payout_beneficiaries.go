@@ -116,6 +116,8 @@ func (r *beneficiaryRepo) VerifyBeneficiary(c echo.Context) (*models.VerifyBenef
 		return nil, err
 	}
 
+	fmt.Println(resp)
+
 	return &resp, nil
 }
 
