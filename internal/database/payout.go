@@ -609,7 +609,7 @@ func (db *Database) GetPayoutTransactionsByRetailerIdQuery(
 		JOIN retailers r
 			ON r.retailer_id = p.retailer_id
 		JOIN wallet_transactions w
-			ON w.retailer_id = p.retailer_id
+			ON w.user_id = p.retailer_id
 		WHERE retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
