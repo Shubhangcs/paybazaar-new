@@ -447,20 +447,30 @@ func (db *Database) GetAllMobileRechargesQuery(
 ) ([]models.GetMobileRechargeHistoryResponseModel, error) {
 	query := `
 		SELECT 
-			mobile_recharge_transaction_id,
-			retailer_id,
-    		partner_request_id,
-    		mobile_number,
-    		operator_name,
-    		circle_name,
-    		operator_code,
-    		circle_code,
-    		amount,
-    		commision,
-    		recharge_type,
-			status,
-			created_at
-		FROM mobile_recharge 
+			m.mobile_recharge_transaction_id,
+			m.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+    		m.partner_request_id,
+    		m.mobile_number,
+    		m.operator_name,
+    		m.circle_name,
+    		m.operator_code,
+    		m.circle_code,
+    		m.amount,
+    		m.commision,
+    		m.recharge_type,
+			m.status,
+			w.before_balance,
+			w.after_balance,
+			m.created_at
+		FROM mobile_recharge m
+		JOIN retailers r
+			ON r.retailer_id = m.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = m.retailer_id
+			AND w.reference_id = m.mobile_recharge_transaction_id::TEXT
+			AND w.transaction_reason = 'MOBILE_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -519,20 +529,30 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 ) ([]models.GetMobileRechargeHistoryResponseModel, error) {
 	query := `
 		SELECT 
-			mobile_recharge_transaction_id,
-			retailer_id,
-    		partner_request_id,
-    		mobile_number,
-    		operator_name,
-    		circle_name,
-    		operator_code,
-    		circle_code,
-    		amount,
-    		commision,
-    		recharge_type,
-			status,
-			created_at
-		FROM mobile_recharge
+			m.mobile_recharge_transaction_id,
+			m.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+    		m.partner_request_id,
+    		m.mobile_number,
+    		m.operator_name,
+    		m.circle_name,
+    		m.operator_code,
+    		m.circle_code,
+    		m.amount,
+    		m.commision,
+    		m.recharge_type,
+			m.status,
+			w.before_balance,
+			w.after_balance,
+			m.created_at
+		FROM mobile_recharge m
+		JOIN retailers r
+			ON r.retailer_id = m.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = m.retailer_id
+			AND w.reference_id = m.mobile_recharge_transaction_id::TEXT
+			AND w.transaction_reason = 'MOBILE_RECHARGE'
 		WHERE retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;

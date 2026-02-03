@@ -469,17 +469,27 @@ func (db *Database) GetDTHRechargesByRetailerIDQuery(
 ) ([]models.GetDTHRechargeHistoryResponseModel, error) {
 	query := `
 		SELECT 
-			dth_transaction_id,
-			retailer_id,
-    		partner_request_id,
-    		customer_id,
-    		operator_name,
-    		operator_code,
-    		amount,
-    		commision,
-			status,
-			created_at
-		FROM dth_recharge
+			d.dth_transaction_id,
+			d.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+    		d.partner_request_id,
+    		d.customer_id,
+    		d.operator_name,
+    		d.operator_code,
+    		d.amount,
+    		d.commision,
+			d.status,
+			w.before_balance,
+			w.after_balance,
+			d.created_at
+		FROM dth_recharge d
+		JOIN retailers r
+    		ON r.retailer_id = d.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = d.retailer_id
+			AND w.reference_id = d.dth_transaction_id::TEXT
+   			AND w.transaction_reason = 'DTH_RECHARGE'
 		WHERE retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
@@ -500,6 +510,8 @@ func (db *Database) GetDTHRechargesByRetailerIDQuery(
 		if err := res.Scan(
 			&recharge.DTHTransactionID,
 			&recharge.RetailerID,
+			&recharge.RetailerName,
+			&recharge.BusinessName,
 			&recharge.PartnerRequestID,
 			&recharge.CustomerID,
 			&recharge.OperatorName,
@@ -507,6 +519,8 @@ func (db *Database) GetDTHRechargesByRetailerIDQuery(
 			&recharge.Amount,
 			&recharge.Commision,
 			&recharge.Status,
+			&recharge.BeforeBalance,
+			&recharge.AfterBalance,
 			&recharge.CreatedAt,
 		); err != nil {
 			return nil, err

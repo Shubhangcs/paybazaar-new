@@ -18,6 +18,8 @@ type CreateMobileRechargeRequestModel struct {
 
 type GetMobileRechargeHistoryResponseModel struct {
 	RetailerID                  string    `json:"retailer_id"`
+	RetailerName                string    `json:"retailer_name"`
+	BusinessName                string    `json:"business_name"`
 	MobileRechargeTransactionID int       `json:"mobile_recharge_transaction_id"`
 	MobileNumber                int64     `json:"mobile_number"`
 	OperatorCode                int       `json:"operator_code"`
