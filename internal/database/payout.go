@@ -174,7 +174,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		disAfterBalance       float64
 		retailerBeforeBalance float64
 		retailerAfterBalance  float64
-		transactionId         int
+		transactionId         string
 	}
 
 	// 1️⃣ Insert payout transaction
@@ -367,7 +367,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Admin
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.adminId,
-		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
+		"reference_id":       userDetails.transactionId,
 		"credit_amount":      commision.AdminCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.adminBeforeBalance,
@@ -381,7 +381,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Master Distributor
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.mdId,
-		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
+		"reference_id":       userDetails.transactionId,
 		"credit_amount":      commision.MasterDistributorCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.mdBeforeBalance,
@@ -395,7 +395,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Distributor
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            userDetails.disId,
-		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
+		"reference_id":       userDetails.transactionId,
 		"credit_amount":      commision.DistributorCommision,
 		"debit_amount":       0,
 		"before_balance":     userDetails.disBeforeBalance,
@@ -409,7 +409,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	// Retailer (DEBIT)
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            req.RetailerId,
-		"reference_id":       fmt.Sprintf("%d", userDetails.transactionId),
+		"reference_id":       userDetails.transactionId,
 		"debit_amount":       req.Amount + commision.TotalCommision,
 		"credit_amount":      0,
 		"before_balance":     userDetails.retailerBeforeBalance,
