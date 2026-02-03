@@ -560,3 +560,155 @@ func (db *Database) UpdateDTHRechargeStatus(
 	}
 	return nil
 }
+
+func (db *Database) DTHRechargeRefundQuery(
+	ctx context.Context,
+	transactionId string,
+) error {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	getDetailsQuery := `
+		SELECT retailer_id, amount, commision
+		FROM dth_recharge
+		WHERE dth_transaction_id = @transaction_id::BIGINT;
+	`
+	var (
+		retailerId string
+		amount     float64
+		commision  float64
+	)
+	if err := tx.QueryRow(ctx, getDetailsQuery, pgx.NamedArgs{
+		"transaction_id": transactionId,
+	}).Scan(
+		&retailerId,
+		&amount,
+		&commision,
+	); err != nil {
+		return err
+	}
+
+	getUserDetails := `
+		SELECT r.retailer_wallet_balance, a.admin_id, a.admin_wallet_balance
+		FROM retailers r
+		JOIN distributors d
+			ON d.distributor_id = r.distributor_id
+		JOIN master_distributors m
+			ON m.master_distributor_id = d.master_distributor_id
+		JOIN admins a
+			ON a.admin_id = m.admin_id
+		WHERE r.retailer_id = @retailer_id;
+	`
+	var (
+		retailerBeforeBalance float64
+		adminId               string
+		adminBeforeBalance    float64
+	)
+	if err := tx.QueryRow(ctx, getUserDetails, pgx.NamedArgs{
+		"retailer_id": retailerId,
+	}).Scan(
+		&retailerBeforeBalance,
+		&adminId,
+		&adminBeforeBalance,
+	); err != nil {
+		return err
+	}
+
+	insertToWalletTransactions := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			credit_amount,
+			debit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@credit_amount,
+			@debit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks
+		);
+	`
+
+	if commision > 0 {
+		updateAdminWallet := `
+			UPDATE admins
+			SET admin_wallet_balance = admin_wallet_balance + @commision
+			WHERE admin_id = @admin_id
+			RETURNING admin_wallet_balance;
+		`
+		var adminAfterBalance float64
+		if err := tx.QueryRow(ctx, updateAdminWallet, pgx.NamedArgs{
+			"admin_id":  adminId,
+			"commision": commision,
+		}).Scan(
+			&adminAfterBalance,
+		); err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+			"user_id":            adminId,
+			"reference_id":       transactionId,
+			"credit_amount":      commision,
+			"debit_amount":       0,
+			"before_balance":     adminBeforeBalance,
+			"after_balance":      adminAfterBalance,
+			"transaction_reason": "DTH_RECHARGE_REFUND",
+			"remarks":            fmt.Sprintf("Refund from %s", retailerId),
+		}); err != nil {
+			return err
+		}
+	}
+
+	updateRetailerWallet := `
+		UPDATE retailers
+		SET retailer_wallet_balance = retailer_wallet_balance + @amount
+		WHERE retailer_id = @retailer_id
+		RETURNING retailer_wallet_balance;
+	`
+	var retailerAfterBalance float64
+	if err := tx.QueryRow(ctx, updateRetailerWallet, pgx.NamedArgs{
+		"retailer_id": retailerId,
+		"amount":      amount,
+	}).Scan(
+		&retailerAfterBalance,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+		"user_id":            retailerId,
+		"reference_id":       transactionId,
+		"credit_amount":      amount,
+		"debit_amount":       0,
+		"before_balance":     retailerBeforeBalance,
+		"after_balance":      retailerAfterBalance,
+		"transaction_reason": "DTH_RECHARGE_REFUND",
+		"remarks":            fmt.Sprintf("Refund of transaction %s", transactionId),
+	}); err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE dth_recharge
+		SET status = 'REFUND'
+		WHERE dth_transaction_id = @transaction_id;
+	`
+
+	if _, err := tx.Exec(ctx, query, pgx.NamedArgs{
+		"tranasction_id": transactionId,
+	}); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
