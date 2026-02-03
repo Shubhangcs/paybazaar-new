@@ -613,9 +613,7 @@ JOIN wallet_transactions w
    AND w.reference_id = p.payout_transaction_id::TEXT
    AND w.transaction_reason = 'PAYOUT'
 WHERE p.retailer_id = @retailer_id
-ORDER BY p.created_at DESC
-LIMIT @limit OFFSET @offset;
-
+ORDER BY p.created_at DESC;
 	`
 	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
 		"limit":  limit,
