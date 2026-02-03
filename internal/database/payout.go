@@ -123,7 +123,7 @@ func (db *Database) VerifyRetailerForPayoutTransactionQuery(
 	)
 	query := `
 		SELECT retailer_wallet_balance, retailer_kyc_status,
-		retailer_block_status
+		is_retailer_blocked
 		FROM retailers
 		WHERE retailer_id=@retailer_id;
 	`

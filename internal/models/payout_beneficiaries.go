@@ -10,3 +10,23 @@ type BeneficiaryModel struct {
 	BeneficiaryPhone    string `json:"beneficiary_phone"`
 	BeneficiaryVerified bool   `json:"beneficiary_verified"`
 }
+
+type VerifyBeneficiaryRequestModel struct {
+	RetailerId    string `json:"retailer_id"`
+	MobileNumber  string `json:"mobile_number"`
+	AccountNumber string `json:"account_number"`
+	IFSCCode      string `json:"ifsc_code"`
+}
+
+type VerifyBeneficiaryResponseModel struct {
+	StatusCode int                           `json:"status_code"`
+	Status     bool                          `json:"status"`
+	Message    string                        `json:"message"`
+	Data       VerifyBeneficiaryDetailsModel `json:"data"`
+}
+
+type VerifyBeneficiaryDetailsModel struct {
+	UserName   string `json:"c_name"`
+	BankName   string `json:"bank_name"`
+	BranchName string `json:"branch_name"`
+}

@@ -20,6 +20,7 @@ type PayoutInterface interface {
 	CreatePayoutTransaction(echo.Context) error
 	GetAllPayoutTransactions(echo.Context) ([]models.GetAllPayoutTransactionsResponseModel, error)
 	GetPayoutTransactionsByRetailerId(echo.Context) ([]models.GetRetailerPayoutTransactionsResponseModel, error)
+	VerifyBeneficiaryRequest(echo.Context) (*models.VerifyBeneficiaryResponseModel, error)
 }
 
 type payoutRepository struct {
@@ -145,4 +146,8 @@ func (pr *payoutRepository) GetPayoutTransactionsByRetailerId(c echo.Context) ([
 	defer cancel()
 	limit, offset := parsePagination(c)
 	return pr.db.GetPayoutTransactionsByRetailerIdQuery(ctx, retailerId, limit, offset)
+}
+
+func (pr *payoutRepository) VerifyBeneficiaryRequest(echo.Context) (*models.VerifyBeneficiaryResponseModel, error) {
+	return nil, nil
 }
