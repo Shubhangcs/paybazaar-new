@@ -17,7 +17,7 @@ func (r *routes) PayoutBeneficiaryRoutes(
 
 	rg := r.Router.Group("/bene", middlewares.AuthorizationMiddleware(jwtUtils))
 	rg.GET("/get/beneficiaries/:phone", benHandler.GetBeneficiaries)
-	rg.GET("/verify/beneficiaries/:ben_id", benHandler.VerifyBeneficiary)
+	rg.POST("/verify/beneficiaries", benHandler.VerifyBeneficiary)
 	rg.POST("/add/beneficiary", benHandler.AddNewBeneficiary)
 	rg.GET("/delete/beneficiary/:ben_id", benHandler.DeleteBeneficiary)
 }

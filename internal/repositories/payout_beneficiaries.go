@@ -1,12 +1,14 @@
 package repositories
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -106,6 +108,17 @@ func (r *beneficiaryRepo) VerifyBeneficiary(c echo.Context) (*models.VerifyBenef
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
+	defer cancel()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed: %s", resp.Message)
+	}
+
+	if err := r.query.VerifyBenificary(ctx, 3, req.RetailerId, req.BeneficiaryId); err != nil {
+		return nil, err
+	}
+
 	return &resp, nil
 }
 

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
 )
 
@@ -32,10 +33,28 @@ func (db *Database) GetBeneficiaries(mobileNumber string) (*[]models.Beneficiary
 	return &beneficiaries, nil
 }
 
-func (db *Database) VerifyBenificary(beneficiaryId string) error {
+func (db *Database) VerifyBenificary(ctx context.Context, amount float64, retailerId, beneficiaryId string) error {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	deductAmountQuery := `
+		UPDATE retailers 
+		SET retailer_wallet_balance = retailer_wallet_balance - @amount
+		WHERE retailer_id = @retailer_id;
+	`
+	if _, err := tx.Exec(ctx, deductAmountQuery, pgx.NamedArgs{
+		"retailer_id": retailerId,
+		"amount":      amount,
+	}); err != nil {
+		return err
+	}
 	query := `UPDATE beneficiaries SET beneficiary_verified = TRUE WHERE beneficiary_id = $1`
-	_, err := db.pool.Exec(context.Background(), query, beneficiaryId)
-	return err
+	if _, err := tx.Exec(ctx, query, beneficiaryId); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (db *Database) DeleteBeneficiary(beneficiaryId string) error {
