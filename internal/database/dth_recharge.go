@@ -430,6 +430,8 @@ func (db *Database) GetAllDTHRechargesQuery(
 		if err := res.Scan(
 			&recharge.DTHTransactionID,
 			&recharge.RetailerID,
+			&recharge.RetailerName,
+			&recharge.BusinessName,
 			&recharge.PartnerRequestID,
 			&recharge.CustomerID,
 			&recharge.OperatorName,

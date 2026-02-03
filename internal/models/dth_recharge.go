@@ -16,6 +16,8 @@ type CreateDTHRechargeRequestModel struct {
 type GetDTHRechargeHistoryResponseModel struct {
 	DTHTransactionID int       `json:"dth_transaction_id"`
 	RetailerID       string    `json:"retailer_id"`
+	RetailerName     string    `json:"retailer_name"`
+	BusinessName     string    `json:"business_name"`
 	CustomerID       string    `json:"customer_id"`
 	OperatorName     string    `json:"operator_name"`
 	OperatorCode     int       `json:"operator_code"`
