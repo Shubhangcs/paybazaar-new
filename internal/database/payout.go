@@ -613,11 +613,13 @@ JOIN wallet_transactions w
    AND w.reference_id = p.payout_transaction_id::TEXT
    AND w.transaction_reason = 'PAYOUT'
 WHERE p.retailer_id = @retailer_id
-ORDER BY p.created_at DESC;
+ORDER BY p.created_at DESC
+LIMIT @limit OFFSET @offset;
 	`
 	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
-		"limit":  limit,
-		"offset": offset,
+		"retailer_id": retailerId,
+		"limit":       limit,
+		"offset":      offset,
 	})
 	if err != nil {
 		return nil, err
@@ -651,9 +653,7 @@ ORDER BY p.created_at DESC;
 		); err != nil {
 			return nil, err
 		}
-		fmt.Println(transaction)
 		transactions = append(transactions, transaction)
 	}
-	fmt.Println(transactions)
 	return transactions, res.Err()
 }
