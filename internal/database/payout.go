@@ -608,12 +608,14 @@ func (db *Database) GetPayoutTransactionsByRetailerIdQuery(
 FROM payout_transactions p
 JOIN retailers r
     ON r.retailer_id = p.retailer_id
-LEFT JOIN wallet_transactions w
-    ON w.reference_id = p.payout_transaction_id::TEXT
+JOIN wallet_transactions w
+    ON w.user_id = p.retailer_id
+   AND w.reference_id = p.payout_transaction_id::TEXT
    AND w.transaction_reason = 'PAYOUT'
 WHERE p.retailer_id = @retailer_id
 ORDER BY p.created_at DESC
 LIMIT @limit OFFSET @offset;
+
 	`
 	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
 		"limit":  limit,
