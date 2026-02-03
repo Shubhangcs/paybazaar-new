@@ -111,9 +111,6 @@ func (r *beneficiaryRepo) VerifyBeneficiary(c echo.Context) (*models.VerifyBenef
 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
 	defer cancel()
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed: %s", resp.Message)
-	}
 
 	if err := r.query.VerifyBenificary(ctx, 3, req.RetailerId); err != nil {
 		return nil, err
