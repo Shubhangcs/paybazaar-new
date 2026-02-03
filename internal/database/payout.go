@@ -410,7 +410,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
 		"user_id":            req.RetailerId,
 		"reference_id":       userDetails.transactionId,
-		"debit_amount":       req.Amount + commision.TotalCommision,
+		"debit_amount":       req.Amount + (commision.TotalCommision - commision.RetailerCommision),
 		"credit_amount":      0,
 		"before_balance":     userDetails.retailerBeforeBalance,
 		"after_balance":      userDetails.retailerAfterBalance,
