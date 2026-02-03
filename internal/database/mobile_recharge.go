@@ -771,6 +771,8 @@ func (db *Database) MobileRechargeRefundQuery(
 		return err
 	}
 
+	fmt.Println(transactionId)
+
 	query := `
 		UPDATE mobile_recharge
 		SET status = 'REFUND'
