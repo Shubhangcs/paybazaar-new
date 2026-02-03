@@ -29,6 +29,8 @@ type GetMobileRechargeHistoryResponseModel struct {
 	PartnerRequestID            string    `json:"partner_request_id"`
 	CreatedAt                   time.Time `json:"created_at"`
 	Commision                   float64   `json:"commision"`
+	BeforeBalance               float64   `json:"before_balance"`
+	AfterBalance                float64   `json:"after_balance"`
 	Status                      string    `json:"status"`
 }
 

@@ -32,6 +32,7 @@ func (db *Database) CreateFundRequestQuery(
 			@bank_name,
 			@request_date,
 			@utr_number,
+			@advance_payment,
 			'PENDING',
 			@remarks,
 			''
@@ -41,13 +42,14 @@ func (db *Database) CreateFundRequestQuery(
 
 	var id int64
 	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
-		"requester_id":  req.RequesterID,
-		"request_to_id": req.RequestToID,
-		"amount":        req.Amount,
-		"bank_name":     req.BankName,
-		"request_date":  req.RequestDate,
-		"utr_number":    req.UTRNumber,
-		"remarks":       req.Remarks,
+		"requester_id":    req.RequesterID,
+		"request_to_id":   req.RequestToID,
+		"amount":          req.Amount,
+		"bank_name":       req.BankName,
+		"request_date":    req.RequestDate,
+		"utr_number":      req.UTRNumber,
+		"advance_payment": req.AdvancePayment,
+		"remarks":         req.Remarks,
 	}).Scan(&id)
 
 	return id, err
@@ -73,6 +75,7 @@ func (db *Database) GetFundRequestQuery(
 			fr.bank_name,
 			fr.request_date,
 			fr.utr_number,
+			fr.advance_payment,
 			fr.request_status,
 			fr.remarks,
 			fr.reject_remarks,
@@ -96,6 +99,7 @@ func (db *Database) GetFundRequestQuery(
 		&fr.BankName,
 		&fr.RequestDate,
 		&fr.UTRNumber,
+		&fr.AdvancePayment,
 		&fr.RequestStatus,
 		&fr.Remarks,
 		&fr.RejectRemarks,
@@ -109,7 +113,6 @@ func (db *Database) GetFundRequestQuery(
 
 	return &fr, nil
 }
-
 
 func (db *Database) GetAllFundRequestsQuery(
 	ctx context.Context,
@@ -131,6 +134,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			fr.bank_name,
 			fr.request_date,
 			fr.utr_number,
+			fr.advance_payment,
 			fr.request_status,
 			fr.remarks,
 			fr.reject_remarks,
@@ -167,6 +171,7 @@ func (db *Database) GetAllFundRequestsQuery(
 			&fr.BankName,
 			&fr.RequestDate,
 			&fr.UTRNumber,
+			&fr.AdvancePayment,
 			&fr.RequestStatus,
 			&fr.Remarks,
 			&fr.RejectRemarks,
@@ -180,7 +185,6 @@ func (db *Database) GetAllFundRequestsQuery(
 
 	return list, rows.Err()
 }
-
 
 func (db *Database) getFundRequestsByColumn(
 	ctx context.Context,
@@ -270,7 +274,6 @@ func (db *Database) getFundRequestsByColumn(
 	return list, rows.Err()
 }
 
-
 func (db *Database) GetFundRequestsByRequesterIDQuery(
 	ctx context.Context,
 	req models.GetFundRequestFilterRequestModel,
@@ -286,7 +289,6 @@ func (db *Database) GetFundRequestsByRequestToIDQuery(
 ) ([]models.GetFundRequestResponseModel, error) {
 	return db.getFundRequestsByColumn(ctx, "request_to_id", req, limit, offset)
 }
-
 
 func (db *Database) RejectFundRequestQuery(
 	ctx context.Context,

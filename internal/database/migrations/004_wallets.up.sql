@@ -53,7 +53,8 @@ CREATE TABLE
         amount NUMERIC(20, 2) NOT NULL,
         bank_name TEXT NOT NULL,
         request_date DATE NOT NULL,
-        utr_number TEXT UNIQUE NOT NULL,
+        utr_number TEXT,
+        advance_payment BOOLEAN NOT NULL DEFAULT FALSE,
         request_status TEXT NOT NULL CHECK (
             request_status IN ('PENDING', 'ACCEPTED', 'REJECTED')
         ),

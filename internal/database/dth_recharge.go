@@ -391,17 +391,23 @@ func (db *Database) GetAllDTHRechargesQuery(
 ) ([]models.GetDTHRechargeHistoryResponseModel, error) {
 	query := `
 		SELECT 
-			dth_transaction_id,
-			retailer_id,
-    		partner_request_id,
-    		customer_id,
-    		operator_name,
-    		operator_code,
-    		amount,
-    		commision,
-			status,
-			created_at
-		FROM dth_recharge 
+			d.dth_transaction_id,
+			d.retailer_id,
+    		d.partner_request_id,
+    		d.customer_id,
+    		d.operator_name,
+    		d.operator_code,
+    		d.amount,
+    		d.commision,
+			d.status,
+			w.before_balance,
+			w.after_balance,
+			d.created_at
+		FROM dth_recharge d
+		JOIN wallet_transactions w
+			ON w.reference_id = d.dth_transaction_id
+			AND w.retailer_id = d.retailer_id
+			AND w.transaction_reason = 'MOBILE_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`

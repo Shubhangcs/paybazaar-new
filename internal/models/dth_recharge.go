@@ -22,6 +22,8 @@ type GetDTHRechargeHistoryResponseModel struct {
 	Amount           float64   `json:"amount"`
 	PartnerRequestID string    `json:"partner_request_id"`
 	Status           string    `json:"status"`
+	BeforeBalance    float64   `json:"before_balance"`
+	AfterBalance     float64   `json:"after_balance"`
 	CreatedAt        time.Time `json:"created_at"`
 	Commision        float64   `json:"commision"`
 }
