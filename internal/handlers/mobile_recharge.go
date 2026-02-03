@@ -104,3 +104,13 @@ func (mrh *mobileRechargeHandler) GetMobileRechargePlansRequest(c echo.Context) 
 	})
 }
 
+func (mrh *mobileRechargeHandler) MobileRechargeRefundRequest(c echo.Context) error {
+	if err := mrh.mobileRechargeRepository.MobileRechargeRefund(c); err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "mobile recharge refund successfull"},
+	)
+}

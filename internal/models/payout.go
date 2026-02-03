@@ -45,6 +45,8 @@ type GetAllPayoutTransactionsResponseModel struct {
 	MasterDistributorCommision float64   `json:"master_distributor_commision"`
 	DistributorCommision       float64   `json:"distributor_commision"`
 	RetailerCommision          float64   `json:"retailer_commision"`
+	BeforeBalance              float64   `json:"before_balance"`
+	AfterBalance               float64   `json:"after_balance"`
 	CreatedAt                  time.Time `json:"created_at"`
 	UpdatedAt                  time.Time `json:"updated_at"`
 }

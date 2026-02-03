@@ -17,7 +17,7 @@ CREATE TABLE
         distributor_commision NUMERIC(20, 2) NOT NULL,
         retailer_commision NUMERIC(20, 2) NOT NULL,
         payout_transaction_status TEXT NOT NULL CHECK (
-            payout_transaction_status IN ('SUCCESS', 'PENDING', 'FAILED')
+            payout_transaction_status IN ('SUCCESS', 'PENDING', 'FAILED', 'REFUND')
         ),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
@@ -50,7 +50,9 @@ CREATE TABLE
         amount NUMERIC(20, 2) NOT NULL,
         commision NUMERIC(20, 2) NOT NULL,
         recharge_type INTEGER NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'FAILED', 'PENDING')),
+        status TEXT NOT NULL CHECK (
+            status IN ('SUCCESS', 'FAILED', 'PENDING', 'REFUND')
+        ),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
 
@@ -75,7 +77,10 @@ CREATE TABLE
         operator_name TEXT NOT NULL,
         operator_code INTEGER NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'PENDING', 'FAILED')),
+        commision NUMERIC(20, 2) NOT NULL,
+        status TEXT NOT NULL CHECK (
+            status IN ('SUCCESS', 'PENDING', 'FAILED', 'REFUND')
+        ),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
 

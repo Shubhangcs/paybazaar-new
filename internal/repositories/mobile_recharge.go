@@ -23,6 +23,7 @@ type MobileRechargeInterface interface {
 	GetAllPlansBasedOnCircleAndOperator(echo.Context) (any, error)
 	GetAllMobileRecharges(echo.Context) ([]models.GetMobileRechargeHistoryResponseModel, error)
 	GetMobileRechargesByRetailerID(echo.Context) ([]models.GetMobileRechargeHistoryResponseModel, error)
+	MobileRechargeRefund(echo.Context) error
 }
 
 type mobileRechargeRepository struct {
@@ -187,4 +188,12 @@ func (mrr *mobileRechargeRepository) GetMobileRechargesByRetailerID(c echo.Conte
 	defer cancel()
 	limit, offset := parsePagination(c)
 	return mrr.db.GetMobileRechargesByRetailerIDQuery(ctx, retailerID, limit, offset)
+}
+
+func (mrr *mobileRechargeRepository) MobileRechargeRefund(c echo.Context) error {
+	var transactionId = c.Param("transaction_id")
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return mrr.db.MobileRechargeRefundQuery(ctx, transactionId)
 }

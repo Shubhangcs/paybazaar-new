@@ -526,12 +526,18 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 			p.master_distributor_commision,
 			p.distributor_commision,
 			p.retailer_commision,
+			w.before_balance,
+			w.after_balance,
 			p.payout_transaction_status,
 			p.created_at,
 			p.updated_at
 		FROM payout_transactions p
 		JOIN retailers r
 			ON r.retailer_id = p.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = p.retailer_id
+			AND w.reference_id = p.payout_transaction_id::TEXT
+			AND w.transaction_reason = 'PAYOUT'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -567,6 +573,8 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 			&transaction.MasterDistributorCommision,
 			&transaction.DistributorCommision,
 			&transaction.RetailerCommision,
+			&transaction.BeforeBalance,
+			&transaction.AfterBalance,
 			&transaction.TransactionStatus,
 			&transaction.CreatedAt,
 			&transaction.UpdatedAt,

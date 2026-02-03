@@ -19,4 +19,5 @@ func (r *routes) MobileRechargeRoutes(db *database.Database, jwtUtils *pkg.JwtUt
 	mrrg.GET("/get/admin", mobileRechargeHandler.GetAllMobileRechargesRequest, middlewares.RequireRoles("admin"))
 	mrrg.POST("/get/plans", mobileRechargeHandler.GetMobileRechargePlansRequest, middlewares.RequireRoles("admin", "retailer"))
 	mrrg.GET("/get/:retailer_id", mobileRechargeHandler.GetMobileRechargesByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
+	mrrg.PUT("/refund/:transaction_id", mobileRechargeHandler.MobileRechargeRefundRequest, middlewares.RequireRoles("admin"))
 }
