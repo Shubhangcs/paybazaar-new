@@ -651,6 +651,7 @@ ORDER BY p.created_at DESC;
 		); err != nil {
 			return nil, err
 		}
+		fmt.Println(transaction)
 		transactions = append(transactions, transaction)
 	}
 	fmt.Println(transactions)
