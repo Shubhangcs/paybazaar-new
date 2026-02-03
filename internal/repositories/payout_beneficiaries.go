@@ -49,9 +49,16 @@ func (r *beneficiaryRepo) AddNewBeneficiary(e echo.Context) error {
 	return nil
 }
 
-// func (r *beneficiaryRepo) VerifyBeneficiary(e echo.Context) error {
-// 	var req models.Req
-// }
+func (r *beneficiaryRepo) VerifyBeneficiary(e echo.Context) error {
+	beneficiaryId := e.Param("ben_id")
+	if beneficiaryId == "" {
+		return fmt.Errorf("beneficiary id not found")
+	}
+	if err := r.query.VerifyBenificary(beneficiaryId); err != nil {
+		return fmt.Errorf("failed to verify beneficiary")
+	}
+	return nil
+}
 
 func (r *beneficiaryRepo) DeleteBeneficiary(e echo.Context) error {
 	beneficiaryId := e.Param("ben_id")
