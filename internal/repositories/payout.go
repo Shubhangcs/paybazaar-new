@@ -14,69 +14,52 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/levion-studio/paybazaar/internal/database"
 	"github.com/levion-studio/paybazaar/internal/models"
-	"github.com/levion-studio/paybazaar/pkg"
 )
 
 type PayoutInterface interface {
-	CreatePayout(echo.Context) error
-	GetAllPayouts(echo.Context) ([]models.GetPayoutTransactionModel, error)
-	GetPayoutsByRetailerID(echo.Context) ([]models.GetRetailerPayoutModel, error)
-	GetRetailerPayoutLedgerWithWallet(echo.Context) ([]models.PayoutLedgerWithWalletResponseModel, error)
+	CreatePayoutTransaction(echo.Context) error
+	GetAllPayoutTransactions(echo.Context) ([]models.GetAllPayoutTransactionsResponseModel, error)
+	GetPayoutTransactionsByRetailerId(echo.Context) ([]models.GetRetailerPayoutTransactionsResponseModel, error)
 }
 
 type payoutRepository struct {
-	db       *database.Database
-	jwtUtils *pkg.JwtUtils
+	db *database.Database
 }
 
-func NewPayoutRepository(db *database.Database, jwtUtils *pkg.JwtUtils) *payoutRepository {
+func NewPayoutRepository(db *database.Database) *payoutRepository {
 	return &payoutRepository{
 		db,
-		jwtUtils,
 	}
 }
 
-func (pr *payoutRepository) CreatePayout(c echo.Context) error {
-	var payoutRequest models.CreatePayoutRequestModel
-	if err := bindAndValidate(c, &payoutRequest); err != nil {
+func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
+	var req models.CreatePayoutRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
-	commision, err := pr.db.GetPayoutCommisionQuery(ctx, payoutRequest.RetailerID, "PAYOUT")
 
-	isValid, err := pr.db.ValidateRequestQuery(ctx, payoutRequest, commision.RetailerCommision)
+	commision, err := pr.db.GetPayoutCommisionQuery(ctx, req.RetailerId, req.Amount)
 	if err != nil {
 		return err
 	}
 
-	if !isValid {
-		return fmt.Errorf("incorrect mpin or kyc status or insufficient balance")
+	if err := pr.db.VerifyRetailerForPayoutTransactionQuery(ctx, req.RetailerId, req.Amount+commision.TotalCommision); err != nil {
+		return err
 	}
-
-	if payoutRequest.Amount < 1000 || payoutRequest.Amount > 25000 {
-		return fmt.Errorf("invalid amount")
-	}
-
-	id := uuid.NewString()
-	payoutRequest.PartnerRequestID = id
-
-	fmt.Println(commision)
-	fmt.Println(payoutRequest)
-
-	// ---------------- API CALL ----------------
+	req.PartnerRequestId = uuid.NewString()
 
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitpayout/payoutTransfer`
-
 	reqBody, err := json.Marshal(map[string]any{
-		"mobile_no":          payoutRequest.MobileNumber,
-		"account_no":         payoutRequest.BeneficiaryAccountNumber,
-		"ifsc":               payoutRequest.BeneficiaryIFSCCode,
-		"bank_name":          payoutRequest.BeneficiaryBankName,
-		"beneficiary_name":   payoutRequest.BeneficiaryName,
-		"amount":             fmt.Sprintf("%.2f", payoutRequest.Amount),
-		"transfer_type":      payoutRequest.TransferType,
-		"partner_request_id": payoutRequest.PartnerRequestID,
+		"mobile_no":          req.MobileNumber,
+		"account_no":         req.AccountNumber,
+		"ifsc":               req.IFSCCode,
+		"bank_name":          req.BankName,
+		"beneficiary_name":   req.BeneficiaryName,
+		"amount":             req.Amount,
+		"transfer_type":      req.TransferType,
+		"partner_request_id": req.PartnerRequestId,
 	})
 	if err != nil {
 		return err
@@ -107,61 +90,59 @@ func (pr *payoutRepository) CreatePayout(c echo.Context) error {
 		return err
 	}
 
-	var res models.PayoutAPIResponseModel
-	if err := json.Unmarshal(respBytes, &res); err != nil {
+	var apiResponse struct {
+		Error                 int    `json:"error"`
+		Message               string `json:"msg"`
+		Status                int    `json:"status"`
+		OrderId               string `json:"orderid"`
+		OperatorTransactionId string `json:"optransid"`
+		PartnerRequestId      string `json:"partnerreqid"`
+	}
+
+	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
 		return err
 	}
+	req.OrderId = apiResponse.OrderId
+	req.OperatorTransactionId = apiResponse.OperatorTransactionId
 
-	fmt.Println(res)
-
-	// Basic response sanity check
-	if res.Status == 0 {
-		fmt.Println(res)
-		return fmt.Errorf("invalid payout gateway response")
+	if apiResponse.Status == 1 {
+		req.TransactionStatus = "SUCCESS"
+		if err := pr.db.CreatePayoutSuccessOrPendingQuery(ctx, req, *commision); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	if res.Status == 1 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, "SUCCESS")
+	if apiResponse.Status == 2 {
+		req.TransactionStatus = "PENDING"
+		if err := pr.db.CreatePayoutSuccessOrPendingQuery(ctx, req, *commision); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	if res.Status == 2 {
-		return pr.db.PayoutPendingOrSuccessQuery(ctx, payoutRequest, *commision, res, "PENDING")
+	if apiResponse.Status == 3 {
+		req.TransactionStatus = "FAILED"
+		if err := pr.db.CreatePayoutFailureQuery(ctx, req, *commision); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	if res.Status == 3 {
-		return pr.db.PayoutFailedQuery(ctx, payoutRequest)
-	}
-
-	// ---------------- DB TRANSACTION ----------------
-	return fmt.Errorf("invalid payout status")
+	return fmt.Errorf("invalid status from recharge kit")
 }
 
-func (pr *payoutRepository) GetAllPayouts(
-	c echo.Context,
-) ([]models.GetPayoutTransactionModel, error) {
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+func (pr *payoutRepository) GetAllPayoutTransactions(c echo.Context) ([]models.GetAllPayoutTransactionsResponseModel, error) {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
-
-	return pr.db.GetAllPayoutTransactions(ctx)
+	limit, offset := parsePagination(c)
+	return pr.db.GetAllPayoutTransactionsQuery(ctx, limit, offset)
 }
 
-func (pr *payoutRepository) GetPayoutsByRetailerID(
-	c echo.Context,
-) ([]models.GetRetailerPayoutModel, error) {
-	var retailerID = c.Param("retailer_id")
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
+func (pr *payoutRepository) GetPayoutTransactionsByRetailerId(c echo.Context) ([]models.GetRetailerPayoutTransactionsResponseModel, error) {
+	var retailerId = c.Param("retailer_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
-
-	return pr.db.GetPayoutsByRetailerIDOnlyRetailerCommission(
-		ctx,
-		retailerID,
-	)
-}
-
-func (pr *payoutRepository) GetRetailerPayoutLedgerWithWallet(c echo.Context) ([]models.PayoutLedgerWithWalletResponseModel, error) {
-	var retailerID = c.Param("retailer_id")
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 30*time.Second)
-	defer cancel()
-	return pr.db.GetRetailerPayoutLedgerWithWalletQuery(ctx, retailerID)
+	limit, offset := parsePagination(c)
+	return pr.db.GetPayoutTransactionsByRetailerIdQuery(ctx, retailerId, limit, offset)
 }

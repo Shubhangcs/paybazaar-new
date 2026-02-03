@@ -9,103 +9,41 @@ import (
 )
 
 type payoutHandler struct {
-	payoutRepo repositories.PayoutInterface
+	payoutRepository repositories.PayoutInterface
 }
 
-func NewPayoutHandler(payoutRepo repositories.PayoutInterface) *payoutHandler {
+func NewPayoutHandler(payoutRepository repositories.PayoutInterface) *payoutHandler {
 	return &payoutHandler{
-		payoutRepo: payoutRepo,
+		payoutRepository,
 	}
 }
 
-func (ph *payoutHandler) CreatePayout(c echo.Context) error {
-	if err := ph.payoutRepo.CreatePayout(c); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
-		)
-	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "payout request submitted successfully",
-		},
-	)
-}
-
-func (ph *payoutHandler) GetAllPayoutsRequest(c echo.Context) error {
-	res, err := ph.payoutRepo.GetAllPayouts(c)
+func (ph *payoutHandler) CreatePayoutRequest(c echo.Context) error {
+	err := ph.payoutRepository.CreatePayoutTransaction(c)
 	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
 		)
 	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "payout request submitted successfully",
-			Data: map[string]any{
-				"payout_transactions": res,
-			},
-		},
-	)
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "payout transaction successfull", Status: "success"})
 }
 
-func (ph *payoutHandler) GetPayoutsByRetailerIDRequest(c echo.Context) error {
-	res, err := ph.payoutRepo.GetPayoutsByRetailerID(c)
+func (ph *payoutHandler) GetAllPayoutTransactionsRequest(c echo.Context) error {
+	res, err := ph.payoutRepository.GetAllPayoutTransactions(c)
 	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
 		)
 	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "payout request submitted successfully",
-			Data: map[string]any{
-				"payout_transactions": res,
-			},
-		},
-	)
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "payout transaction fetched successfully", Status: "success", Data: map[string]any{"transactions": res}})
 }
 
-func (ph *payoutHandler) GetRetailerPayoutLedgerWithWalletRequest(c echo.Context) error {
-	res, err := ph.payoutRepo.GetRetailerPayoutLedgerWithWallet(c)
+func (ph *payoutHandler) GetPayoutTransactionsByRetailerIdRequest(c echo.Context) error {
+	res, err := ph.payoutRepository.GetPayoutTransactionsByRetailerId(c)
 	if err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			models.ResponseModel{
-				Status:  "failed",
-				Message: err.Error(),
-			},
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
 		)
 	}
-
-	return c.JSON(
-		http.StatusOK,
-		models.ResponseModel{
-			Status:  "success",
-			Message: "payout request submitted successfully",
-			Data: map[string]any{
-				"payout_ledger_transactions": res,
-			},
-		},
-	)
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "payout transaction fetched successfully", Status: "success", Data: map[string]any{"transactions": res}})
 }

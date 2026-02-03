@@ -13,14 +13,13 @@ func (r *routes) PayoutRoutes(
 	jwtUtils *pkg.JwtUtils,
 ) {
 
-	payoutRepo := repositories.NewPayoutRepository(db, jwtUtils)
+	payoutRepo := repositories.NewPayoutRepository(db)
 	payoutHandler := handlers.NewPayoutHandler(payoutRepo)
 	pr := r.Router.Group(
 		"/payout",
 		middlewares.AuthorizationMiddleware(jwtUtils),
 	)
-	pr.POST("/create", payoutHandler.CreatePayout, middlewares.RequireRoles("retailer"))
-	pr.GET("/get", payoutHandler.GetAllPayoutsRequest, middlewares.RequireRoles("admin"))
-	pr.GET("/get/:retailer_id", payoutHandler.GetPayoutsByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
-	pr.GET("/get/ledger/:retailer_id", payoutHandler.GetRetailerPayoutLedgerWithWalletRequest, middlewares.RequireRoles("retailer" , "admin"))
+	pr.POST("/create", payoutHandler.CreatePayoutRequest, middlewares.RequireRoles("retailer"))
+	pr.GET("/get/all", payoutHandler.GetAllPayoutTransactionsRequest, middlewares.RequireRoles("admin"))
+	pr.GET("/get/:retailer_id", payoutHandler.GetPayoutTransactionsByRetailerIdRequest, middlewares.RequireRoles("retailer", "admin"))
 }
