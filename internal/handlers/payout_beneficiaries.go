@@ -35,11 +35,11 @@ func (bh *beneficiaryHandler) AddNewBeneficiary(c echo.Context) error {
 }
 
 func (bh *beneficiaryHandler) VerifyBeneficiary(c echo.Context) error {
-	err := bh.repo.VerifyBeneficiary(c)
+	res, err := bh.repo.VerifyBeneficiary(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, models.ResponseModel{Message: err.Error(), Status: "falied"})
 	}
-	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries verification successfully", Status: "success"})
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "beneficiaries verification successfully", Status: "success", Data: map[string]any{"response": res}})
 }
 
 func (bh *beneficiaryHandler) DeleteBeneficiary(c echo.Context) error {

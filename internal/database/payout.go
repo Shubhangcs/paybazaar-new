@@ -533,7 +533,7 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 		JOIN retailers r
 			ON r.retailer_id = p.retailer_id
 		ORDER BY created_at DESC
-		LIMIT @limit AND OFFSET @offset;
+		LIMIT @limit OFFSET @offset;
 	`
 
 	res, err := db.pool.Query(ctx, query, pgx.NamedArgs{
