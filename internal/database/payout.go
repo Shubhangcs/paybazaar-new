@@ -876,6 +876,8 @@ func (db *Database) PayoutRefundQuery(
 		return err
 	}
 
+	fmt.Println(transactionId)
+
 	updatePayoutTable := `
 		UPDATE payout_transactions 
 		SET payout_transaction_status = 'REFUND'
