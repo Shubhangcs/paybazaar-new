@@ -411,7 +411,7 @@ func (db *Database) GetAllDTHRechargesQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = d.retailer_id
 			AND w.reference_id = d.dth_transaction_id::TEXT
-   			AND w.transaction_reason IN ('DTH_RECHARGE', 'DTH_RECHARGE_REFUND')
+   			AND w.transaction_reason = 'DTH_RECHARGE'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -489,7 +489,7 @@ func (db *Database) GetDTHRechargesByRetailerIDQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = d.retailer_id
 			AND w.reference_id = d.dth_transaction_id::TEXT
-   			AND w.transaction_reason IN ('DTH_RECHARGE', 'DTH_RECHARGE_REFUND')
+   			AND w.transaction_reason = 'DTH_RECHARGE'
 		WHERE d.retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;

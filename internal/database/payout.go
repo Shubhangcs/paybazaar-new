@@ -537,7 +537,7 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = p.retailer_id
 			AND w.reference_id = p.payout_transaction_id::TEXT
-			AND w.transaction_reason IN ('PAYOUT' , 'PAYOUT_REFUND')
+			AND w.transaction_reason = 'PAYOUT'
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -619,7 +619,7 @@ JOIN retailers r
 JOIN wallet_transactions w
     ON w.user_id = p.retailer_id
    AND w.reference_id = p.payout_transaction_id::TEXT
-   AND w.transaction_reason IN ('PAYOUT' , 'PAYOUT_REFUND')
+   AND w.transaction_reason = 'PAYOUT'
 WHERE p.retailer_id = @retailer_id
 ORDER BY p.created_at DESC
 LIMIT @limit OFFSET @offset;
