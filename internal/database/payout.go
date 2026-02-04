@@ -741,7 +741,7 @@ func (db *Database) PayoutRefundQuery(
 
 	updateAdminWallet := `
 		UPDATE admins
-		SET admin_wallet_balance = admin_wallet_balance = admin_wallet_balance - @commision
+		SET admin_wallet_balance = admin_wallet_balance - @commision
 		WHERE admin_id = @admin_id
 		RETURNING admin_wallet_balance;
 	`
