@@ -470,7 +470,7 @@ func (db *Database) GetAllMobileRechargesQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = m.retailer_id
 			AND w.reference_id = m.mobile_recharge_transaction_id::TEXT
-			AND w.transaction_reason = 'MOBILE_RECHARGE'
+			AND w.transaction_reason IN ('MOBILE_RECHARGE', 'MOBILE_RECHARGE_REFUND')
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -556,7 +556,7 @@ func (db *Database) GetMobileRechargesByRetailerIDQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = m.retailer_id
 			AND w.reference_id = m.mobile_recharge_transaction_id::TEXT
-			AND w.transaction_reason = 'MOBILE_RECHARGE'
+			AND w.transaction_reason IN ('MOBILE_RECHARGE', 'MOBILE_RECHARGE_REFUND')
 		WHERE m.retailer_id = @retailer_id
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;

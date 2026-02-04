@@ -20,7 +20,7 @@ type PayoutInterface interface {
 	CreatePayoutTransaction(echo.Context) error
 	GetAllPayoutTransactions(echo.Context) ([]models.GetAllPayoutTransactionsResponseModel, error)
 	GetPayoutTransactionsByRetailerId(echo.Context) ([]models.GetRetailerPayoutTransactionsResponseModel, error)
-	VerifyBeneficiaryRequest(echo.Context) (*models.VerifyBeneficiaryResponseModel, error)
+	PayoutRefund(echo.Context) error
 }
 
 type payoutRepository struct {
@@ -151,6 +151,9 @@ func (pr *payoutRepository) GetPayoutTransactionsByRetailerId(c echo.Context) ([
 	return pr.db.GetPayoutTransactionsByRetailerIdQuery(ctx, retailerId, limit, offset)
 }
 
-func (pr *payoutRepository) VerifyBeneficiaryRequest(echo.Context) (*models.VerifyBeneficiaryResponseModel, error) {
-	return nil, nil
+func (pr *payoutRepository) PayoutRefund(c echo.Context) error {
+	var transactionId = c.Param("transaction_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return pr.db.PayoutRefundQuery(ctx, transactionId)
 }

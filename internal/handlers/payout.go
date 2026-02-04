@@ -47,3 +47,13 @@ func (ph *payoutHandler) GetPayoutTransactionsByRetailerIdRequest(c echo.Context
 	}
 	return c.JSON(http.StatusOK, models.ResponseModel{Message: "payout transaction fetched successfully", Status: "success", Data: map[string]any{"transactions": res}})
 }
+
+func (ph *payoutHandler) PayoutRefundRequest(c echo.Context) error {
+	err := ph.payoutRepository.PayoutRefund(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK, models.ResponseModel{Message: "payout transaction refund successfull", Status: "success"})
+}

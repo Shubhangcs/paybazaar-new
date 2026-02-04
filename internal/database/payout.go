@@ -537,7 +537,7 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 		JOIN wallet_transactions w
 			ON w.user_id = p.retailer_id
 			AND w.reference_id = p.payout_transaction_id::TEXT
-			AND w.transaction_reason = 'PAYOUT'
+			AND w.transaction_reason IN ('PAYOUT' , 'PAYOUT_REFUND')
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset;
 	`
@@ -619,7 +619,7 @@ JOIN retailers r
 JOIN wallet_transactions w
     ON w.user_id = p.retailer_id
    AND w.reference_id = p.payout_transaction_id::TEXT
-   AND w.transaction_reason = 'PAYOUT'
+   AND w.transaction_reason IN ('PAYOUT' , 'PAYOUT_REFUND')
 WHERE p.retailer_id = @retailer_id
 ORDER BY p.created_at DESC
 LIMIT @limit OFFSET @offset;
@@ -666,11 +666,226 @@ LIMIT @limit OFFSET @offset;
 	return transactions, res.Err()
 }
 
-// func (db *Database) PayoutRefundRequest(
-// 	ctx context.Context,
-// 	transactionId string,
-// ) {
-// 	getUserDetailsQuery := `
-		
-// 	`
-// }
+func (db *Database) PayoutRefundQuery(
+	ctx context.Context,
+	transactionId string,
+) error {
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	getPayoutDetails := `
+		SELECT retailer_id, admin_commision, master_distributor_commision, distributor_commision,
+		retailer_commision, amount
+		FROM payout_transactions
+		WHERE payout_transaction_id = @payout_transaction_id 
+		AND payout_transaction_status NOT IN ('REFUND');
+	`
+	var (
+		retailerId                 string
+		adminCommision             float64
+		masterDistributorCommision float64
+		distributorCommision       float64
+		amount                     float64
+	)
+	if err := tx.QueryRow(ctx, getPayoutDetails, pgx.NamedArgs{
+		"payout_transaction_id": transactionId,
+	}).Scan(
+		&retailerId,
+		&adminCommision,
+		&masterDistributorCommision,
+		&distributorCommision,
+		&amount,
+	); err != nil {
+		return err
+	}
+
+	getUserDetailsQuery := `
+		SELECT a.admin_id, a.admin_wallet_balance,
+		m.master_distributor_id, m.master_distributor_wallet_balance,
+		d.distributor_id, d.distributor_wallet_balance,
+		r.retailer_wallet_balance
+		FROM retailers r
+		JOIN distributors d
+			ON d.distributor_id = r.distributor_id
+		JOIN master_distributors m
+			ON m.master_distributor_id = d.master_distributor_id
+		JOIN admins a
+			ON a.admin_id = m.admin_id
+		WHERE r.retailer_id = @retailer_id;
+	`
+	var (
+		adminId                        string
+		adminBeforeBalance             float64
+		masterDistributorId            string
+		masterDistributorBeforeBalance float64
+		distributorId                  string
+		distributorBeforeBalance       float64
+		retailerBeforeBalance          float64
+	)
+	if err := tx.QueryRow(ctx, getUserDetailsQuery, pgx.NamedArgs{
+		"retailer_id": retailerId,
+	}).Scan(
+		&adminId,
+		&adminBeforeBalance,
+		&masterDistributorId,
+		&masterDistributorBeforeBalance,
+		&distributorId,
+		&distributorBeforeBalance,
+		&retailerBeforeBalance,
+	); err != nil {
+		return err
+	}
+
+	updateAdminWallet := `
+		UPDATE admins
+		SET admin_wallet_balance = admin_wallet_balance = admin_wallet_balance - @commision
+		WHERE admin_id = @admin_id
+		RETURNING admin_wallet_balance;
+	`
+	var adminAfterBalance float64
+	if err := tx.QueryRow(ctx, updateAdminWallet, pgx.NamedArgs{
+		"admin_id":  adminId,
+		"commision": adminCommision,
+	}).Scan(
+		&adminAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	updateMasterDistributorWallet := `
+		UPDATE master_distributors 
+		SET master_distributor_wallet_balance = master_distributor_wallet_balance - @commision
+		WHERE master_distributor_id = @master_distributor_id
+		RETURNING master_distributor_wallet_balance;
+	`
+	var masterDistributorAfterBalance float64
+	if err := tx.QueryRow(ctx, updateMasterDistributorWallet, pgx.NamedArgs{
+		"master_distributor_id": masterDistributorId,
+		"commision":             masterDistributorCommision,
+	}).Scan(
+		&masterDistributorAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	updateDistributorWallet := `
+		UPDATE distributors
+		SET distributor_wallet_balance = distributor_wallet_balance - @commision
+		WHERE distributor_id = @distributor_id
+		RETURNING distributor_wallet_balance;
+	`
+	var distributorAfterBalance float64
+	if err := tx.QueryRow(ctx, updateDistributorWallet, pgx.NamedArgs{
+		"distributor_id": distributorId,
+		"commision":      distributorCommision,
+	}).Scan(
+		&distributorAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	updateRetailerWallet := `
+		UPDATE retailers 
+		SET retailer_wallet_balance = retailer_wallet_balance + @amount
+		WHERE retailer_id = @retailer_id
+		RETURNING retailer_wallet_balance;
+	`
+	var retailerAfterBalance float64
+	if err := tx.QueryRow(ctx, updateRetailerWallet, pgx.NamedArgs{
+		"retailer_id": retailerId,
+		"amount":      amount + masterDistributorCommision + distributorCommision + adminCommision,
+	}).Scan(
+		&retailerAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	insertToWalletTransactions := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			credit_amount,
+			debit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			user_id,
+			reference_id,
+			credit_amount,
+			debit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		)
+	`
+	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+		"user_id":            adminId,
+		"reference_id":       transactionId,
+		"credit_amount":      0,
+		"debit_amount":       adminCommision,
+		"before_balance":     adminBeforeBalance,
+		"after_balance":      adminAfterBalance,
+		"transaction_reason": "PAYOUT_REFUND",
+		"remarks":            fmt.Sprintf("Commision Sent Back To: %s", retailerId),
+	}); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+		"user_id":            masterDistributorId,
+		"reference_id":       transactionId,
+		"credit_amount":      0,
+		"debit_amount":       masterDistributorCommision,
+		"before_balance":     masterDistributorBeforeBalance,
+		"after_balance":      masterDistributorAfterBalance,
+		"transaction_reason": "PAYOUT_REFUND",
+		"remarks":            fmt.Sprintf("Commision Sent Back To: %s", retailerId),
+	}); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+		"user_id":            distributorId,
+		"reference_id":       transactionId,
+		"credit_amount":      0,
+		"debit_amount":       distributorCommision,
+		"before_balance":     distributorBeforeBalance,
+		"after_balance":      distributorAfterBalance,
+		"transaction_reason": "PAYOUT_REFUND",
+		"remarks":            fmt.Sprintf("Commision Sent Back To: %s", retailerId),
+	}); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
+		"user_id":            retailerId,
+		"reference_id":       transactionId,
+		"credit_amount":      amount + adminCommision + masterDistributorCommision + distributorCommision,
+		"debit_amount":       0,
+		"before_balance":     retailerBeforeBalance,
+		"after_balance":      retailerAfterBalance,
+		"transaction_reason": "PAYOUT_REFUND",
+		"remarks":            fmt.Sprintf("Got Refund Of: %s", transactionId),
+	}); err != nil {
+		return err
+	}
+
+	updatePayoutTable := `
+		UPDATE payout_transactions 
+		SET payout_transaction_status = 'REFUND'
+		WHERE payout_transaction_id = @transaction_id;
+	`
+	if _, err := tx.Exec(ctx, updatePayoutTable, pgx.NamedArgs{
+		"payout_transaction_id": transactionId,
+	}); err != nil {
+		return err
+	}
+	return nil
+}

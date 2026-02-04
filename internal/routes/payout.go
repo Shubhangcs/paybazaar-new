@@ -22,4 +22,5 @@ func (r *routes) PayoutRoutes(
 	pr.POST("/create", payoutHandler.CreatePayoutRequest, middlewares.RequireRoles("retailer"))
 	pr.GET("/get/all", payoutHandler.GetAllPayoutTransactionsRequest, middlewares.RequireRoles("admin"))
 	pr.GET("/get/:retailer_id", payoutHandler.GetPayoutTransactionsByRetailerIdRequest, middlewares.RequireRoles("retailer", "admin"))
+	pr.PUT("/refund/:transaction_id", payoutHandler.PayoutRefundRequest, middlewares.RequireRoles("admin"))
 }
