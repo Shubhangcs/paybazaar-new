@@ -888,5 +888,5 @@ func (db *Database) PayoutRefundQuery(
 	}); err != nil {
 		return err
 	}
-	return nil
+	return tx.Commit(ctx)
 }
