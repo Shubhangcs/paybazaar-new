@@ -678,8 +678,7 @@ func (db *Database) PayoutRefundQuery(
 	defer tx.Rollback(ctx)
 
 	getPayoutDetails := `
-		SELECT retailer_id, admin_commision, master_distributor_commision, distributor_commision,
-		retailer_commision, amount
+		SELECT retailer_id, admin_commision, master_distributor_commision, distributor_commision, amount
 		FROM payout_transactions
 		WHERE payout_transaction_id = @payout_transaction_id 
 		AND payout_transaction_status NOT IN ('REFUND');
