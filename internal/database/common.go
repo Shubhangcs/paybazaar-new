@@ -129,3 +129,9 @@ func (db *Database) DTHRechargeStatusCheck(
 
 	return "", fmt.Errorf("invalid status code in response: %s", apiResponse.Message)
 }
+
+func (db *Database) PayoutStatusCheck(
+	partnerRequestId string,
+) {
+	
+}

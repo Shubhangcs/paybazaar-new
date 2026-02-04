@@ -24,5 +24,6 @@ func (r *routes) AdminRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	arg.GET("/get/dropdown", adminHandler.GetAdminsForDropdownRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/get/:admin_id", adminHandler.GetAdminDetailsByAdminIDRequest, middlewares.RequireRoles("admin"))
 	arg.GET("/portal/lock", repositories.NewAdminLockRepository().LockAPI, middlewares.RequireRoles("admin"))
-	arg.GET("/portal/unlock" , repositories.NewAdminLockRepository().UnlockAPI , middlewares.RequireRoles("admin"))
+	arg.GET("/portal/unlock", repositories.NewAdminLockRepository().UnlockAPI, middlewares.RequireRoles("admin"))
+	arg.GET("/get/rechargekit/wallet/balance", adminHandler.GetRechargeKitWalletBalanceRequest, middlewares.RequireRoles("admin"))
 }

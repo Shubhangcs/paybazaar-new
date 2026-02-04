@@ -177,3 +177,22 @@ func (ah *adminHandler) AdminLoginRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (ah *adminHandler) GetRechargeKitWalletBalanceRequest(c echo.Context) error {
+	res, err := ah.adminRepository.GetRechargeKitWalletBalance(c)
+	if err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "wallet balance fetched successfully",
+			Data:    map[string]any{"response": res},
+		},
+	)
+}

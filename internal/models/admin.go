@@ -61,3 +61,10 @@ type AdminLoginRequestModel struct {
 	AdminID       string `json:"admin_id" validate:"required"`
 	AdminPassword string `json:"admin_password" validate:"required,strpwd"`
 }
+
+type RechargeKitWalletBalanceResponseModel struct {
+	Error           int     `json:"error"`
+	Message         string  `json:"msg"`
+	WalletAmount    float64 `json:"wallet_amount"`
+	DMRWalletAmount float64 `json:"dmr_wallet_amount"`
+}
