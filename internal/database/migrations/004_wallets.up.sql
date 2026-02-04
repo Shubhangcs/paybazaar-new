@@ -55,10 +55,10 @@ CREATE TABLE
         requester_id TEXT NOT NULL,
         request_to_id TEXT NOT NULL,
         amount NUMERIC(20, 2) NOT NULL,
-        bank_name TEXT NOT NULL,
+        bank_name TEXT,
         request_date DATE NOT NULL,
         utr_number TEXT,
-        advance_payment BOOLEAN NOT NULL DEFAULT FALSE,
+        request_type TEXT NOT NULL CHECK (request_type IN ('NORMAL' , 'ADVANCE')),
         request_status TEXT NOT NULL CHECK (
             request_status IN ('PENDING', 'ACCEPTED', 'REJECTED')
         ),
