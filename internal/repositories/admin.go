@@ -26,7 +26,8 @@ type AdminInterface interface {
 	UpdateAdminBlockStatus(echo.Context) error
 	DeleteAdmin(echo.Context) error
 	AdminLogin(echo.Context) (string, error)
-	GetRechargeKitWalletBalance(c echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error)
+	GetRechargeKitWalletRechargeBalance(echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error)
+	GetRechargeKitWalletPrimaryBalance(echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error)
 }
 
 type adminRepository struct {
@@ -152,8 +153,44 @@ func (ar *adminRepository) AdminLogin(c echo.Context) (string, error) {
 	return token, nil
 }
 
-func (ar *adminRepository) GetRechargeKitWalletBalance(c echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error) {
+func (ar *adminRepository) GetRechargeKitWalletRechargeBalance(c echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error) {
 	apiUrl := `https://v2a.rechargkit.biz/recharge/balanceCheck`
+
+	apiRequest, err := http.NewRequest(
+		http.MethodGet,
+		apiUrl,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	apiRequest.Header.Set("Content-Type", "application/json")
+	apiRequest.Header.Set("Authorization", "Bearer "+os.Getenv("RKIT_API_TOKEN"))
+
+	client := &http.Client{Timeout: 20 * time.Second}
+
+	resp, err := client.Do(apiRequest)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse models.RechargeKitWalletBalanceResponseModel
+
+	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
+		return nil, err
+	}
+	return &apiResponse, nil
+}
+
+func (ar *adminRepository) GetRechargeKitWalletPrimaryBalance(c echo.Context) (*models.RechargeKitWalletBalanceResponseModel, error) {
+	apiUrl := `https://v2bapi.rechargkit.biz/recharge/balanceCheck`
 
 	apiRequest, err := http.NewRequest(
 		http.MethodGet,
