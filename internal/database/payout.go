@@ -814,14 +814,14 @@ func (db *Database) PayoutRefundQuery(
 			transaction_reason,
 			remarks
 		) VALUES (
-			user_id,
-			reference_id,
-			credit_amount,
-			debit_amount,
-			before_balance,
-			after_balance,
-			transaction_reason,
-			remarks
+			@user_id,
+			@reference_id,
+			@credit_amount,
+			@debit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks
 		)
 	`
 	if _, err := tx.Exec(ctx, insertToWalletTransactions, pgx.NamedArgs{
