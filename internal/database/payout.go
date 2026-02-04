@@ -581,6 +581,18 @@ func (db *Database) GetAllPayoutTransactionsQuery(
 		); err != nil {
 			return nil, err
 		}
+		if transaction.TransactionStatus == "PENDING" {
+			status, err := db.PayoutStatusCheck(transaction.PartnerRequestId)
+			if err != nil {
+				return nil, err
+			}
+			if status != "PENDING" {
+				if err := db.UpdatePayoutStatus(ctx, status, transaction.PayoutTransactionId); err != nil {
+					return nil, err
+				}
+				transaction.TransactionStatus = status
+			}
+		}
 		transactions = append(transactions, transaction)
 	}
 	return transactions, res.Err()
@@ -660,6 +672,18 @@ LIMIT @limit OFFSET @offset;
 			&transaction.UpdatedAt,
 		); err != nil {
 			return nil, err
+		}
+		if transaction.TransactionStatus == "PENDING" {
+			status, err := db.PayoutStatusCheck(transaction.PartnerRequestId)
+			if err != nil {
+				return nil, err
+			}
+			if status != "PENDING" {
+				if err := db.UpdatePayoutStatus(ctx, status, transaction.PayoutTransactionId); err != nil {
+					return nil, err
+				}
+				transaction.TransactionStatus = status
+			}
 		}
 		transactions = append(transactions, transaction)
 	}
@@ -889,4 +913,23 @@ func (db *Database) PayoutRefundQuery(
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func (db *Database) UpdatePayoutStatus(
+	ctx context.Context,
+	status string,
+	payoutTransactionId string,
+) error {
+	query := `
+		UPDATE payout_transactions
+		SET payout_transaction_status = @status
+		WHERE payout_transaction_id = @transaction_id;
+	`
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"transaction_id": payoutTransactionId,
+		"status":         status,
+	}); err != nil {
+		return err
+	}
+	return nil
 }
