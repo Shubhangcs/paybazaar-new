@@ -882,7 +882,7 @@ func (db *Database) PayoutRefundQuery(
 		WHERE payout_transaction_id = @transaction_id;
 	`
 	if _, err := tx.Exec(ctx, updatePayoutTable, pgx.NamedArgs{
-		"payout_transaction_id": transactionId,
+		"transaction_id": transactionId,
 	}); err != nil {
 		return err
 	}
