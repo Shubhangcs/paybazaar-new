@@ -41,8 +41,8 @@ jobs:
           scp paybazaar $USERNAME@$HOST:/tmp/paybazaar
           
           ssh $USERNAME@$HOST << 'EOF'
-            mkdir paybazaar
-            mv /tmp/paybazaar /paybazaar
+            sudo mkdir paybazaar
+            sudo mv /tmp/paybazaar /paybazaar
             chmod +x /paybazaar/paybazaar
             echo "$APP_ENV" > /paybazaar/.env
             cd /paybazaar
