@@ -42,7 +42,7 @@ jobs:
           
           ssh $USERNAME@$HOST << 'EOF'
             mkdir paybazaar
-            mv /tmp/paybazaar /paybazaar/paybazaar
+            mv /tmp/paybazaar /paybazaar
             chmod +x /paybazaar/paybazaar
             echo "$APP_ENV" > /paybazaar/.env
             cd /paybazaar
