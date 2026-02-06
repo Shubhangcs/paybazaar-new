@@ -26,48 +26,48 @@ jobs:
           GOOS: linux
           GOARCH: amd64
 
+      - name: Create PM2 ecosystem file
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          cat > ecosystem.config.js << 'EOF'
+          module.exports = {
+            apps: [{
+              name: 'paybazaar',
+              script: './paybazaar',
+              cwd: '/home/paybazaar/paybazaar',
+              env: {
+          EOF
+          
+          # Parse APP_ENV and add to ecosystem file
+          echo "$APP_ENV" | while IFS='=' read -r key value; do
+            if [ ! -z "$key" ]; then
+              echo "        $key: '$value'," >> ecosystem.config.js
+            fi
+          done
+          
+          cat >> ecosystem.config.js << 'EOF'
+              }
+            }]
+          };
+          EOF
+
       - name: Deploy to DigitalOcean VM
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           HOST: ${{ secrets.HOST }}
-          APP_ENV: ${{ secrets.APP_ENV }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
           
-          # Transfer binary
+          # Transfer files
           scp paybazaar paybazaar@$HOST:/tmp/paybazaar
-          
-          # Create ecosystem config with env vars
-          cat > ecosystem.config.js << 'EOFJS'
-module.exports = {
-  apps: [{
-    name: 'paybazaar',
-    script: './paybazaar',
-    cwd: '/home/paybazaar/paybazaar',
-    env: {
-EOFJS
-          
-          # Add environment variables from secret
-          echo "$APP_ENV" | while IFS= read -r line; do
-            if [ ! -z "$line" ]; then
-              echo "      $line," >> ecosystem.config.js
-            fi
-          done
-          
-          cat >> ecosystem.config.js << 'EOFJS'
-    }
-  }]
-};
-EOFJS
-          
-          # Transfer ecosystem file
           scp ecosystem.config.js paybazaar@$HOST:/tmp/ecosystem.config.js
           
           # Deploy on server
-          ssh paybazaar@$HOST << 'EOF'
+          ssh paybazaar@$HOST << 'ENDSSH'
             # Create app directory
             mkdir -p ~/paybazaar
             
@@ -86,4 +86,4 @@ EOFJS
             # Start with ecosystem file
             pm2 start ecosystem.config.js
             pm2 save
-          EOF
+          ENDSSH
