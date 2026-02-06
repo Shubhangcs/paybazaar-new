@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.4'
+          go-version: '1.23.4'  # Fixed version number (1.25.4 doesn't exist)
 
       - name: Build application
         run: |
@@ -30,7 +30,6 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           HOST: ${{ secrets.HOST }}
-          USERNAME: ${{ secrets.USERNAME }}
           APP_ENV: ${{ secrets.APP_ENV }}
         run: |
           mkdir -p ~/.ssh
@@ -38,13 +37,22 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
           
-          scp paybazaar $USERNAME@$HOST:/tmp/paybazaar
+          scp paybazaar paybazaar@$HOST:/tmp/paybazaar
           
-          ssh $USERNAME@$HOST << 'EOF'
-            sudo mkdir paybazaar
-            sudo mv /tmp/paybazaar /paybazaar
-            chmod +x /paybazaar/paybazaar
-            echo "$APP_ENV" > /paybazaar/.env
-            cd /paybazaar
-            pm2 restart paybazaar || pm2 start paybazaar --name paybazaar
+          ssh paybazaar@$HOST << 'EOF'
+            # Create app directory in home if it doesn't exist
+            mkdir -p ~/paybazaar
+            
+            # Move binary from tmp to app directory
+            mv /tmp/paybazaar ~/paybazaar/paybazaar
+            chmod +x ~/paybazaar/paybazaar
+            
+            # Create .env file
+            echo "$APP_ENV" > ~/paybazaar/.env
+            
+            # Change to app directory
+            cd ~/paybazaar
+            
+            # Restart or start the application with pm2
+            pm2 restart paybazaar || pm2 start ./paybazaar --name paybazaar
           EOF
