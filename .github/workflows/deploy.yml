@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23.4'  # Fixed version number (1.25.4 doesn't exist)
+          go-version: '1.23.4'
 
       - name: Build application
         run: |
@@ -37,22 +37,53 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
           
+          # Transfer binary
           scp paybazaar paybazaar@$HOST:/tmp/paybazaar
           
+          # Create ecosystem config with env vars
+          cat > ecosystem.config.js << 'EOFJS'
+module.exports = {
+  apps: [{
+    name: 'paybazaar',
+    script: './paybazaar',
+    cwd: '/home/paybazaar/paybazaar',
+    env: {
+EOFJS
+          
+          # Add environment variables from secret
+          echo "$APP_ENV" | while IFS= read -r line; do
+            if [ ! -z "$line" ]; then
+              echo "      $line," >> ecosystem.config.js
+            fi
+          done
+          
+          cat >> ecosystem.config.js << 'EOFJS'
+    }
+  }]
+};
+EOFJS
+          
+          # Transfer ecosystem file
+          scp ecosystem.config.js paybazaar@$HOST:/tmp/ecosystem.config.js
+          
+          # Deploy on server
           ssh paybazaar@$HOST << 'EOF'
-            # Create app directory in home if it doesn't exist
+            # Create app directory
             mkdir -p ~/paybazaar
             
-            # Move binary from tmp to app directory
+            # Move files from tmp
             mv /tmp/paybazaar ~/paybazaar/paybazaar
+            mv /tmp/ecosystem.config.js ~/paybazaar/ecosystem.config.js
             chmod +x ~/paybazaar/paybazaar
-            
-            # Create .env file
-            echo "$APP_ENV" > ~/paybazaar/.env
             
             # Change to app directory
             cd ~/paybazaar
             
-            # Restart or start the application with pm2
-            pm2 restart paybazaar || pm2 start ./paybazaar --name paybazaar
+            # Stop and delete existing process
+            pm2 stop paybazaar 2>/dev/null || true
+            pm2 delete paybazaar 2>/dev/null || true
+            
+            # Start with ecosystem file
+            pm2 start ecosystem.config.js
+            pm2 save
           EOF
