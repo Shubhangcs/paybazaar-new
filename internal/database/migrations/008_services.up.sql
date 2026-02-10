@@ -70,7 +70,7 @@ CREATE TABLE
 
 CREATE TABLE
     IF NOT EXISTS dth_recharge (
-        dth_transaction_id BIGSERIAL NOT NULL,
+        dth_transaction_id BIGSERIAL PRIMARY KEY,
         retailer_id TEXT NOT NULL,
         partner_request_id TEXT NOT NULL,
         customer_id TEXT NOT NULL,
@@ -88,4 +88,25 @@ CREATE TABLE
     IF NOT EXISTS dth_recharge_operators (
         operator_code INTEGER NOT NULL,
         operator_name TEXT NOT NULL
+    );
+
+CREATE TABLE
+    IF NOT EXISTS mobile_recharge_postpaid (
+        postpaid_recharge_transaction_id BIGSERIAL PRIMARY KEY,
+        retailer_id TEXT NOT NULL REFERENCES retailers (retailer_id) ON DELETE CASCADE,
+        partner_request_id TEXT NOT NULL,
+        operator_transaction_id TEXT,
+        order_id TEXT,
+        mobile_number TEXT NOT NULL,
+        operator_code INTEGER NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
+        circle_code INTEGER NOT NULL,
+        circle_name TEXT NOT NULL,
+        operator_name TEXT NOT NULL,
+        recharge_type TEXT NOT NULL,
+        recharge_status TEXT NOT NULL CHECK (
+            recharge_status IN ('PENDING', 'SUCCESS', 'FAILED')
+        ),
+        commision NUMERIC(20, 2) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );

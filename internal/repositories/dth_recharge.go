@@ -47,8 +47,6 @@ func (drr *dthRechargeRepository) CreateDTHRecharge(c echo.Context) error {
 	}
 	req.PartnerRequestID = uuid.NewString()
 
-	fmt.Println(req)
-
 	apiUrl := `https://v2a.rechargkit.biz/recharge/dth`
 	reqBody, err := json.Marshal(map[string]any{
 		"customer_id":        req.CustomerID,
