@@ -190,3 +190,5 @@ func (db *Database) CreatePostpaidMobileRechargeFailureQuery(
 	}
 	return nil
 }
+
+

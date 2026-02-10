@@ -15,5 +15,5 @@ func (r *routes) BBPSRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	bbpsrg := r.Router.Group("/bbps", middlewares.AuthorizationMiddleware(jwtUtils))
 
 	bbpsrg.POST("/create/postpaid", bbpsHandler.CreatePostpaidMobileRechargeRequest)
-	bbpsrg.GET("/get/postpaid/balance", bbpsHandler.GetPostpaidMobileRechargeBalanceRequest)
+	bbpsrg.POST("/get/postpaid/balance", bbpsHandler.GetPostpaidMobileRechargeBalanceRequest)
 }
