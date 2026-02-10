@@ -6,21 +6,10 @@ type GetPostpaidMobileRechargeBillFetchAPIRequestModel struct {
 }
 
 type GetPostpaidMobileRechargeBillFetchAPIResponseModel struct {
-	Error      int                                `json:"error"`
-	Message    string                             `json:"msg"`
-	Status     int                                `json:"status"`
-	BillAmount []GetPostpaidBillAmountAPIResponseModel `json:"billAmount"`
-}
-
-type GetPostpaidBillAmountAPIResponseModel struct {
-	BillAmount    float64 `json:"billAmount"`
-	BillNetAmount float64 `json:"billnetamount"`
-	BillDate      string  `json:"billdate"`
-	BillDueDate   string  `json:"dueDate"`
-	AcceptPayment bool    `json:"acceptPayment"`
-	AcceptPartPay bool    `json:"acceptPartPay"`
-	CellNumber    string  `json:"cellNumber"`
-	UserName      string  `json:"userName"`
+	Error      int    `json:"error"`
+	Message    string `json:"msg"`
+	Status     int    `json:"status"`
+	BillAmount any    `json:"billAmount"`
 }
 
 type CreatePostpaidMobileRechargeAPIRequestModel struct {
