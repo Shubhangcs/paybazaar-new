@@ -9,7 +9,7 @@ type GetPostpaidMobileRechargeBillFetchAPIResponseModel struct {
 	Error      int                                `json:"error"`
 	Message    string                             `json:"msg"`
 	Status     int                                `json:"status"`
-	BillAmount GetPostpaidBillAmountAPIResponseModel `json:"billAmount"`
+	BillAmount []GetPostpaidBillAmountAPIResponseModel `json:"billAmount"`
 }
 
 type GetPostpaidBillAmountAPIResponseModel struct {
