@@ -19,6 +19,8 @@ import (
 type BBPSInterface interface {
 	CreatePostpaidMobileRecharge(echo.Context) error
 	GetPostpaidMobileRechargeBalance(echo.Context) (*models.GetPostpaidMobileRechargeBillFetchAPIResponseModel, error)
+	GetAllPostpaidMobileRecharge(echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error)
+	GetPostpaidMobileRechargeByRetailerID(echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error)
 }
 
 type bbpsRepository struct {
@@ -151,4 +153,19 @@ func (bp *bbpsRepository) GetPostpaidMobileRechargeBalance(c echo.Context) (*mod
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (bp *bbpsRepository) GetAllPostpaidMobileRecharge(c echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error) {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return bp.db.GetAllPostpaidMobileRechargeQuery(ctx, limit, offset)
+}
+
+func (bp *bbpsRepository) GetPostpaidMobileRechargeByRetailerID(c echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error) {
+	var retailerId = c.Param("retailer_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return bp.db.GetPostpaidMobileRechargeByRetailerID(ctx, retailerId, limit, offset)
 }

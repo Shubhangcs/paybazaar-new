@@ -12,6 +12,7 @@ CREATE TABLE
                 'FUND_TRANSFER',
                 'FUND_REQUEST',
                 'MOBILE_RECHARGE',
+                'POSTPAID_MOBILE_RECHARGE',
                 'MOBILE_RECHARGE_REFUND',
                 'DTH_RECHARGE_REFUND',
                 'PAYOUT_REFUND',
@@ -58,7 +59,7 @@ CREATE TABLE
         bank_name TEXT,
         request_date DATE NOT NULL,
         utr_number TEXT,
-        request_type TEXT NOT NULL CHECK (request_type IN ('NORMAL' , 'ADVANCE')),
+        request_type TEXT NOT NULL CHECK (request_type IN ('NORMAL', 'ADVANCE')),
         request_status TEXT NOT NULL CHECK (
             request_status IN ('PENDING', 'ACCEPTED', 'REJECTED')
         ),

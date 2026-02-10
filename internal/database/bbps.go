@@ -190,3 +190,173 @@ func (db *Database) CreatePostpaidMobileRechargeFailureQuery(
 	}
 	return nil
 }
+
+func (db *Database) GetAllPostpaidMobileRechargeQuery(
+	ctx context.Context,
+	limit int,
+	offset int,
+) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error) {
+
+	query := `
+		SELECT
+			m.postpaid_recharge_transaction_id,
+			m.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			m.partner_request_id,
+			m.operator_transaction_id,
+			m.order_id,
+			m.mobile_number,
+			m.operator_code,
+			m.amount,
+			w.before_balance,
+			w.after_balance,
+			m.circle_code,
+			m.circle_name,
+			m.operator_name,
+			m.recharge_type,
+			m.recharge_status,
+			m.commision,
+			m.created_at
+		FROM mobile_recharge_postpaid m
+		JOIN retailers r
+			ON r.retailer_id = m.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = m.retailer_id
+			AND w.reference_id = m.postpaid_recharge_transaction_id::TEXT
+			AND w.transaction_reason = 'POSTPAID_MOBILE_RECHARGE'
+		ORDER BY m.created_at DESC
+		LIMIT $1 OFFSET $2;
+	`
+
+	rows, err := db.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	history := make([]models.GetPostpaidMobileRechargeHistoryResponseModel, 0)
+
+	for rows.Next() {
+		var item models.GetPostpaidMobileRechargeHistoryResponseModel
+
+		err := rows.Scan(
+			&item.PostpaidRechargeTransactionID,
+			&item.RetailerID,
+			&item.RetailerName,
+			&item.RetailerBusinessName,
+			&item.PartnerRequestID,
+			&item.OperatorTransactionID,
+			&item.OrderID,
+			&item.MobileNumber,
+			&item.OperatorCode,
+			&item.Amount,
+			&item.BeforeBalance,
+			&item.AfterBalance,
+			&item.CircleCode,
+			&item.CircleName,
+			&item.OperatorName,
+			&item.RechargeType,
+			&item.RechargeStatus,
+			&item.Commission,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		history = append(history, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return history, nil
+}
+
+func (db *Database) GetPostpaidMobileRechargeByRetailerID(
+	ctx context.Context,
+	retailerID string,
+	limit int,
+	offset int,
+) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error) {
+
+	query := `
+		SELECT
+			m.postpaid_recharge_transaction_id,
+			m.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			m.partner_request_id,
+			m.operator_transaction_id,
+			m.order_id,
+			m.mobile_number,
+			m.operator_code,
+			m.amount,
+			w.before_balance,
+			w.after_balance,
+			m.circle_code,
+			m.circle_name,
+			m.operator_name,
+			m.recharge_type,
+			m.recharge_status,
+			m.commision,
+			m.created_at
+		FROM mobile_recharge_postpaid m
+		JOIN retailers r
+			ON r.retailer_id = m.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = m.retailer_id
+			AND w.reference_id = m.postpaid_recharge_transaction_id::TEXT
+			AND w.transaction_reason = 'POSTPAID_MOBILE_RECHARGE'
+		WHERE m.retailer_id = $1
+		ORDER BY m.created_at DESC
+		LIMIT $2 OFFSET $3;
+	`
+
+	rows, err := db.pool.Query(ctx, query, retailerID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	history := make([]models.GetPostpaidMobileRechargeHistoryResponseModel, 0)
+
+	for rows.Next() {
+		var item models.GetPostpaidMobileRechargeHistoryResponseModel
+
+		err := rows.Scan(
+			&item.PostpaidRechargeTransactionID,
+			&item.RetailerID,
+			&item.RetailerName,
+			&item.RetailerBusinessName,
+			&item.PartnerRequestID,
+			&item.OperatorTransactionID,
+			&item.OrderID,
+			&item.MobileNumber,
+			&item.OperatorCode,
+			&item.Amount,
+			&item.BeforeBalance,
+			&item.AfterBalance,
+			&item.CircleCode,
+			&item.CircleName,
+			&item.OperatorName,
+			&item.RechargeType,
+			&item.RechargeStatus,
+			&item.Commission,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		history = append(history, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return history, nil
+}

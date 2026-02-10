@@ -40,3 +40,27 @@ func (bh *bbpsHandler) GetPostpaidMobileRechargeBalanceRequest(c echo.Context) e
 		models.ResponseModel{Status: "success", Message: "postpaid mobile recharge balance fetched successfully", Data: map[string]any{"response": res}},
 	)
 }
+
+func (bh *bbpsHandler) GetAllPostpaidMobileRechargeRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetAllPostpaidMobileRecharge(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "postpaid mobile recharges fetched successfully", Data: map[string]any{"history": res}},
+	)
+}
+
+func (bh *bbpsHandler) GetPostpaidMobileRechargeByRetailerIDRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetPostpaidMobileRechargeByRetailerID(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "postpaid mobile recharges fetched successfully", Data: map[string]any{"history": res}},
+	)
+}
