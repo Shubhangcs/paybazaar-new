@@ -144,11 +144,11 @@ func (bp *bbpsRepository) GetPostpaidMobileRechargeBalance(c echo.Context) (*mod
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(string(respBytes))
 
 	var res models.GetPostpaidMobileRechargeBillFetchAPIResponseModel
 	if err := json.Unmarshal(respBytes, &res); err != nil {
 		return nil, err
 	}
-	fmt.Println(string(respBytes))
 	return &res, nil
 }
