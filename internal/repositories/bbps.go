@@ -118,7 +118,7 @@ func (bp *bbpsRepository) GetPostpaidMobileRechargeBalance(c echo.Context) (*mod
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2a.rechargkit.biz/recharge/postPaidBillFetch`
+	apiUrl := `https://v2a.rechargkit.biz/recharge/postPaidBillFetch?`
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":     req.MobileNumber,
 		"operator_code": req.OperatorCode,
