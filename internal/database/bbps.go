@@ -92,7 +92,7 @@ func (db *Database) CreatePostpaidMobileRechargeSuccessOrPendingQuery(
 		"circle_code":             req.OperatorCircle,
 		"circle_name":             req.CircleName,
 		"operator_name":           req.OperatorName,
-		"recharge_type":           1,
+		"recharge_type":           fmt.Sprintf("%d", 1),
 		"recharge_status":         status,
 		"commision":               0,
 	}).Scan(&transactionId); err != nil {
@@ -182,7 +182,7 @@ func (db *Database) CreatePostpaidMobileRechargeFailureQuery(
 		"circle_code":             req.OperatorCircle,
 		"circle_name":             req.CircleName,
 		"operator_name":           req.OperatorName,
-		"recharge_type":           1,
+		"recharge_type":           fmt.Sprintf("%d", 1),
 		"recharge_status":         "FAILED",
 		"commision":               0,
 	}); err != nil {
@@ -190,5 +190,3 @@ func (db *Database) CreatePostpaidMobileRechargeFailureQuery(
 	}
 	return nil
 }
-
-
