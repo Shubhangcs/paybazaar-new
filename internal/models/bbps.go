@@ -71,7 +71,7 @@ type CreateElectricityBillPaymentRequestModel struct {
 	RetailerID       string  `json:"retailer_id"`
 	CustomerID       string  `json:"customer_id" validate:"required"`
 	CustomerEmail    string  `json:"customer_email" validate:"required"`
-	OperatorCode     string  `json:"operator_code" validate:"required"`
+	OperatorCode     int     `json:"operator_code" validate:"required"`
 	OperatorName     string  `json:"operator_name" validate:"required"`
 	Amount           float64 `json:"amount" validate:"required"`
 	PartnerRequestID string  `json:"partner_request_id,omitempty"`
