@@ -265,7 +265,7 @@ func (bp *bbpsRepository) GetElectricityBillFetchBalance(c echo.Context) (*model
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := fmt.Sprintf("https://v2a.rechargkit.biz/recharge/electricityBillFetch?customer_id=%s&operator_code=%d", req.CustomerID, req.OperatorCode)
+	apiUrl := fmt.Sprintf("https://v2a.rechargkit.biz/recharge/electricityBillFetch?consumer_id=%s&operator_code=%d", req.CustomerID, req.OperatorCode)
 
 	apiRequest, err := http.NewRequest(
 		http.MethodGet,
