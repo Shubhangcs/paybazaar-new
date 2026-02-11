@@ -190,3 +190,4 @@ func (db *Database) PayoutStatusCheck(
 
 	return "", fmt.Errorf("invalid status code in response: %s", apiResponse.Message)
 }
+

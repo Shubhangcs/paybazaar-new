@@ -264,6 +264,18 @@ func (db *Database) GetAllPostpaidMobileRechargeQuery(
 		if err != nil {
 			return nil, err
 		}
+		if item.RechargeStatus == "PENDING" {
+			newStatus, err := db.DTHRechargeStatusCheck(item.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if newStatus != "PENDING" {
+				if err := db.UpdatePostpaidMobileRechargeStatus(ctx, item.PostpaidRechargeTransactionID, newStatus); err != nil {
+					return nil, err
+				}
+				item.RechargeStatus = newStatus
+			}
+		}
 
 		history = append(history, item)
 	}
@@ -275,7 +287,26 @@ func (db *Database) GetAllPostpaidMobileRechargeQuery(
 	return history, nil
 }
 
-func (db *Database) GetPostpaidMobileRechargeByRetailerID(
+func (db *Database) UpdatePostpaidMobileRechargeStatus(
+	ctx context.Context,
+	transactionId int,
+	status string,
+) error {
+	query := `
+		UPDATE mobile_recharge_postpaid
+		SET recharge_status = @status
+		WHERE postpaid_recharge_transaction_id = @transaction_id;
+	`
+	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
+		"recharge_status": status,
+		"transaction_id":  transactionId,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Database) GetPostpaidMobileRechargeByRetailerIDQuery(
 	ctx context.Context,
 	retailerID string,
 	limit int,
@@ -350,6 +381,18 @@ func (db *Database) GetPostpaidMobileRechargeByRetailerID(
 		if err != nil {
 			return nil, err
 		}
+		if item.RechargeStatus == "PENDING" {
+			newStatus, err := db.DTHRechargeStatusCheck(item.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if newStatus != "PENDING" {
+				if err := db.UpdatePostpaidMobileRechargeStatus(ctx, item.PostpaidRechargeTransactionID, newStatus); err != nil {
+					return nil, err
+				}
+				item.RechargeStatus = newStatus
+			}
+		}
 
 		history = append(history, item)
 	}
@@ -359,4 +402,213 @@ func (db *Database) GetPostpaidMobileRechargeByRetailerID(
 	}
 
 	return history, nil
+}
+
+func (db *Database) RefundPostpaidMobileRechargeQuery(
+	ctx context.Context,
+	transactionId int,
+) error {
+	return nil
+}
+
+func (db *Database) CreateElectricityBillPaymentSuccessOrPendingQuery(
+	ctx context.Context,
+	req models.CreateElectricityBillPaymentRequestModel,
+	txn models.GetElectricityBillPaymentAPIResponseModel,
+	status string,
+) error {
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	getRetailerWalletBeforeBalanceQuery := `
+		SELECT retailer_wallet_balance
+		FROM retailers
+		WHERE retailer_id = @retailer_id;
+	`
+	var retailerBeforeBalance float64
+	if err := tx.QueryRow(ctx, getRetailerWalletBeforeBalanceQuery, pgx.NamedArgs{
+		"retailer_id": req.RetailerID,
+	}).Scan(&retailerBeforeBalance); err != nil {
+		return err
+	}
+
+	updateRetailerWalletAndGetAfterBalanceQuery := `
+		UPDATE retailers
+		SET retailer_wallet_balance = retailer_wallet_balance - @amount
+		WHERE retailer_id = @retailer_id
+		RETURNING retailer_wallet_balance;
+	`
+	var retailerAfterBalance float64
+	if err := tx.QueryRow(ctx, updateRetailerWalletAndGetAfterBalanceQuery, pgx.NamedArgs{
+		"retailer_id": req.RetailerID,
+		"amount":      req.Amount,
+	}).Scan(&retailerAfterBalance); err != nil {
+		return err
+	}
+
+	insertToElectricityBillTransactionsQuery := `
+		INSERT INTO electricity_bill_payments (
+			retailer_id,
+			order_id,
+			operator_transaction_id,
+			partner_request_id,
+			customer_id,
+			amount,
+			operator_code,
+			operator_name,
+			customer_email,
+			commision,
+			transaction_status
+		) VALUES (
+			@retailer_id,
+			@order_id,
+			@operator_transaction_id,
+			@partner_request_id,
+			@customer_id,
+			@amount,
+			@operator_code,
+			@operator_name,
+			@customer_email,
+			@commision,
+			@transaction_status
+		)
+		RETURNING electricity_bill_transaction_id;
+	`
+	var transactionId int
+	if err := tx.QueryRow(ctx, insertToElectricityBillTransactionsQuery, pgx.NamedArgs{
+		"retailer_id":             req.RetailerID,
+		"order_id":                txn.OrderID,
+		"operator_transaction_id": txn.OperatorTransactionID,
+		"partner_request_id":      txn.PartnerRequestID,
+		"customer_id":             req.CustomerID,
+		"customer_email":          req.CustomerEmail,
+		"amount":                  req.Amount,
+		"operator_code":           req.OperatorCode,
+		"operator_name":           req.OperatorName,
+		"commision":               0,
+		"transaction_status":      status,
+	}).Scan(&transactionId); err != nil {
+		return err
+	}
+
+	insertIntoWalletTransactionsQuery := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			before_balance,
+			after_balance,
+			credit_amount,
+			debit_amount,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@before_balance,
+			@after_balance,
+			@credit_amount,
+			@debit_amount,
+			@transaction_reason,
+			@remarks
+		);
+	`
+
+	if _, err := tx.Exec(ctx, insertIntoWalletTransactionsQuery, pgx.NamedArgs{
+		"user_id":            req.RetailerID,
+		"reference_id":       fmt.Sprintf("%d", transactionId),
+		"before_balance":     retailerBeforeBalance,
+		"after_balance":      retailerAfterBalance,
+		"credit_amount":      0,
+		"debit_amount":       req.Amount,
+		"transaction_reason": "ELECTRICITY_BILL",
+		"remarks":            fmt.Sprintf("electricity bill paid to: %s", req.CustomerID),
+	}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (db *Database) CreateElectricityBillPaymentFailureQuery(
+	ctx context.Context,
+	req models.CreateElectricityBillPaymentRequestModel,
+	txn models.GetElectricityBillPaymentAPIResponseModel,
+) error {
+	insertToElectricityBillTransactionsQuery := `
+		INSERT INTO electricity_bill_payments (
+			retailer_id,
+			order_id,
+			operator_transaction_id,
+			partner_request_id,
+			customer_id,
+			amount,
+			operator_code,
+			operator_name,
+			customer_email,
+			commision,
+			transaction_status
+		) VALUES (
+			@retailer_id,
+			@order_id,
+			@operator_transaction_id,
+			@partner_request_id,
+			@customer_id,
+			@amount,
+			@operator_code,
+			@operator_name,
+			@customer_email,
+			@commision,
+			@transaction_status
+		)
+		RETURNING electricity_bill_transaction_id;
+	`
+	if _, err := db.pool.Exec(ctx, insertToElectricityBillTransactionsQuery, pgx.NamedArgs{
+		"retailer_id":             req.RetailerID,
+		"order_id":                txn.OrderID,
+		"operator_transaction_id": txn.OperatorTransactionID,
+		"partner_request_id":      txn.PartnerRequestID,
+		"customer_id":             req.CustomerID,
+		"customer_email":          req.CustomerEmail,
+		"amount":                  req.Amount,
+		"operator_code":           req.OperatorCode,
+		"operator_name":           req.OperatorName,
+		"commision":               0,
+		"transaction_status":      "FAILED",
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *Database) GetElectricityOperatorsQuery(
+	ctx context.Context,
+) ([]models.GetElectricityOperatorResponseModel, error) {
+	query := `
+		SELECT
+			operator_name,
+			operator_code
+		FROM electricity_operators;
+	`
+
+	res, err := db.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var operators []models.GetElectricityOperatorResponseModel
+	for res.Next() {
+		var operator models.GetElectricityOperatorResponseModel
+		if err := res.Scan(
+			&operator.OperatorName,
+			&operator.OperatorCode,
+		); err != nil {
+			return nil, err
+		}
+		operators = append(operators, operator)
+	}
+	return operators, res.Err()
 }

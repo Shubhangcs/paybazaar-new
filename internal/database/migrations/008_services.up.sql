@@ -110,3 +110,28 @@ CREATE TABLE
         commision NUMERIC(20, 2) NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
+
+CREATE TABLE
+    IF NOT EXISTS electricity_bill_payments (
+        electricity_bill_transaction_id BIGSERIAL PRIMARY KEY,
+        retailer_id TEXT NOT NULL REFERENCES retailers (retailer_id) ON DELETE CASCADE,
+        order_id TEXT,
+        operator_transaction_id TEXT,
+        partner_request_id TEXT NOT NULL,
+        customer_id TEXT NOT NULL,
+        amount NUMERIC(20, 2) NOT NULL,
+        operator_code INTEGER NOT NULL,
+        operator_name TEXT NOT NULL,
+        customer_email TEXT NOT NULL,
+        commision NUMERIC(20, 2) NOT NULL,
+        transaction_status TEXT NOT NULL CHECK (
+            transaction_status IN ('PENDING', 'SUCCESS', 'FAILED')
+        ),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
+    );
+
+CREATE TABLE
+    IF NOT EXISTS electricity_operators (
+        operator_name TEXT NOT NULL,
+        operator_code INTEGER NOT NULL
+    );

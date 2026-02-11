@@ -64,3 +64,26 @@ func (bh *bbpsHandler) GetPostpaidMobileRechargeByRetailerIDRequest(c echo.Conte
 		models.ResponseModel{Status: "success", Message: "postpaid mobile recharges fetched successfully", Data: map[string]any{"history": res}},
 	)
 }
+
+func (bh *bbpsHandler) CreateElectricityBillPaymentRequest(c echo.Context) error {
+	if err := bh.bbpsRepository.CreateElectricityBillPayment(c); err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "electricity bill paid successfully"},
+	)
+}
+
+func (bh *bbpsHandler) GetAllElectricityBillOperatorsRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetAllElectricityOperators(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "operators fetched successfully", Data: map[string]any{"operators": res}},
+	)
+}

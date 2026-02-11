@@ -21,6 +21,8 @@ type BBPSInterface interface {
 	GetPostpaidMobileRechargeBalance(echo.Context) (*models.GetPostpaidMobileRechargeBillFetchAPIResponseModel, error)
 	GetAllPostpaidMobileRecharge(echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error)
 	GetPostpaidMobileRechargeByRetailerID(echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error)
+	CreateElectricityBillPayment(echo.Context) error
+	GetAllElectricityOperators(echo.Context) ([]models.GetElectricityOperatorResponseModel, error)
 }
 
 type bbpsRepository struct {
@@ -167,5 +169,92 @@ func (bp *bbpsRepository) GetPostpaidMobileRechargeByRetailerID(c echo.Context) 
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	limit, offset := parsePagination(c)
-	return bp.db.GetPostpaidMobileRechargeByRetailerID(ctx, retailerId, limit, offset)
+	return bp.db.GetPostpaidMobileRechargeByRetailerIDQuery(ctx, retailerId, limit, offset)
+}
+
+func (bp *bbpsRepository) CreateElectricityBillPayment(c echo.Context) error {
+	var req models.CreateElectricityBillPaymentRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+	req.PartnerRequestID = uuid.NewString()
+
+	apiUrl := `https://v2a.rechargkit.biz/recharge/billpayment`
+	reqBody, err := json.Marshal(map[string]any{
+		"p1":                 req.CustomerID,
+		"partner_request_id": req.PartnerRequestID,
+		"operator_code":      req.OperatorCode,
+		"customer_email":     req.CustomerEmail,
+		"amount":             req.Amount,
+	})
+	if err != nil {
+		return err
+	}
+
+	apiRequest, err := http.NewRequest(
+		http.MethodPost,
+		apiUrl,
+		bytes.NewReader(reqBody),
+	)
+	if err != nil {
+		return err
+	}
+
+	apiRequest.Header.Set("Content-Type", "application/json")
+	apiRequest.Header.Set("Authorization", "Bearer "+os.Getenv("RKIT_API_TOKEN"))
+
+	client := &http.Client{Timeout: 20 * time.Second}
+
+	resp, err := client.Do(apiRequest)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var res models.GetElectricityBillPaymentAPIResponseModel
+	if err := json.Unmarshal(respBytes, &res); err != nil {
+		return err
+	}
+
+	fmt.Println(string(respBytes))
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	var status string
+	if res.Status == 1 {
+		status = "SUCCESS"
+		if err := bp.db.CreateElectricityBillPaymentSuccessOrPendingQuery(ctx, req, res, status); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if res.Status == 2 {
+		status = "PENDING"
+		if err := bp.db.CreateElectricityBillPaymentSuccessOrPendingQuery(ctx, req, res, status); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if res.Status == 3 {
+		status = "FAILED"
+		if err := bp.db.CreateElectricityBillPaymentFailureQuery(ctx, req, res); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return fmt.Errorf("invalid status from recharge kit")
+}
+
+func (bp *bbpsRepository) GetAllElectricityOperators(c echo.Context) ([]models.GetElectricityOperatorResponseModel, error) {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	return bp.db.GetElectricityOperatorsQuery(ctx)
 }
