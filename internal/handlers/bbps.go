@@ -87,3 +87,15 @@ func (bh *bbpsHandler) GetAllElectricityBillOperatorsRequest(c echo.Context) err
 		models.ResponseModel{Status: "success", Message: "operators fetched successfully", Data: map[string]any{"operators": res}},
 	)
 }
+
+func (bh *bbpsHandler) GetElectricityBillBalanceRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetElectricityBillFetchBalance(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "balance fetched successfully", Data: map[string]any{"response": res}},
+	)
+}

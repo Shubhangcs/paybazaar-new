@@ -23,6 +23,7 @@ type BBPSInterface interface {
 	GetPostpaidMobileRechargeByRetailerID(echo.Context) ([]models.GetPostpaidMobileRechargeHistoryResponseModel, error)
 	CreateElectricityBillPayment(echo.Context) error
 	GetAllElectricityOperators(echo.Context) ([]models.GetElectricityOperatorResponseModel, error)
+	GetElectricityBillFetchBalance(c echo.Context) (*models.GetElectricityBillFetchResponseModel, error)
 }
 
 type bbpsRepository struct {
@@ -257,4 +258,44 @@ func (bp *bbpsRepository) GetAllElectricityOperators(c echo.Context) ([]models.G
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	return bp.db.GetElectricityOperatorsQuery(ctx)
+}
+
+func (bp *bbpsRepository) GetElectricityBillFetchBalance(c echo.Context) (*models.GetElectricityBillFetchResponseModel, error) {
+	var req models.GetElectricityBillFetchRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return nil, err
+	}
+	apiUrl := fmt.Sprintf("https://v2a.rechargkit.biz/recharge/electricityBillFetch?customer_id=%s&operator_code=%d", req.CustomerID, req.OperatorCode)
+
+	apiRequest, err := http.NewRequest(
+		http.MethodGet,
+		apiUrl,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	apiRequest.Header.Set("Content-Type", "application/json")
+	apiRequest.Header.Set("Authorization", "Bearer "+os.Getenv("RKIT_API_TOKEN"))
+
+	client := &http.Client{Timeout: 20 * time.Second}
+
+	resp, err := client.Do(apiRequest)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(respBytes))
+
+	var res models.GetElectricityBillFetchResponseModel
+	if err := json.Unmarshal(respBytes, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
