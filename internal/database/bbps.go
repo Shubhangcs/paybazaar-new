@@ -612,3 +612,217 @@ func (db *Database) GetElectricityOperatorsQuery(
 	}
 	return operators, res.Err()
 }
+
+func (db *Database) GetAllElectricityBillPaymentTransactionsQuery(
+	ctx context.Context,
+	offset, limit int,
+) ([]models.GetElectricityBillHistoryResponseModel, error) {
+
+	query := `
+		SELECT
+			e.electricity_bill_transaction_id,
+			e.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			e.order_id,
+			e.operator_transaction_id,
+			e.partner_request_id,
+			e.customer_id,
+			e.amount,
+			w.before_balance,
+			w.after_balance,
+			e.operator_code,
+			e.operator_name,
+			e.customer_email,
+			e.commision,
+			e.transaction_status,
+			e.created_at
+		FROM electricity_bill_payments e
+		JOIN retailers r
+			ON r.retailer_id = e.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = e.retailer_id
+			AND w.reference_id = e.electricity_bill_transaction_id::TEXT
+			AND w.transaction_reason = 'ELECTRICITY_BILL'
+		ORDER BY e.created_at DESC
+		LIMIT @limit OFFSET @offset;
+	`
+
+	rows, err := db.pool.Query(ctx, query, pgx.NamedArgs{
+		"limit":  limit,
+		"offset": offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []models.GetElectricityBillHistoryResponseModel
+
+	for rows.Next() {
+		var tx models.GetElectricityBillHistoryResponseModel
+
+		err := rows.Scan(
+			&tx.ElectricityBillTransactionID,
+			&tx.RetailerID,
+			&tx.RetailerName,
+			&tx.RetailerBusinessName,
+			&tx.OrderID,
+			&tx.OperatorTransactionID,
+			&tx.PartnerRequestID,
+			&tx.CustomerID,
+			&tx.Amount,
+			&tx.BeforeBalance,
+			&tx.AfterBalance,
+			&tx.OperatorID, // operator_code
+			&tx.OperatorName,
+			&tx.CustomerEmail,
+			&tx.Commision,
+			&tx.TransactionStatus,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if tx.TransactionStatus == "PENDING" {
+			newStatus, err := db.DTHRechargeStatusCheck(tx.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if newStatus != "PENDING" {
+				if err := db.UpdateElectricityBillStatusByTransactionID(ctx, tx.ElectricityBillTransactionID, newStatus); err != nil {
+					return nil, err
+				}
+				tx.TransactionStatus = newStatus
+			}
+		}
+
+		transactions = append(transactions, tx)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
+func (db *Database) GetElectricityBillPaymentTransactionsByRetailerIDQuery(
+	ctx context.Context,
+	retailerID string,
+	offset, limit int,
+) ([]models.GetElectricityBillHistoryResponseModel, error) {
+
+	query := `
+		SELECT
+			e.electricity_bill_transaction_id,
+			e.retailer_id,
+			r.retailer_name,
+			r.retailer_business_name,
+			e.order_id,
+			e.operator_transaction_id,
+			e.partner_request_id,
+			e.customer_id,
+			e.amount,
+			w.before_balance,
+			w.after_balance,
+			e.operator_code,
+			e.operator_name,
+			e.customer_email,
+			e.commision,
+			e.transaction_status,
+			e.created_at
+		FROM electricity_bill_payments e
+		JOIN retailers r
+			ON r.retailer_id = e.retailer_id
+		JOIN wallet_transactions w
+			ON w.user_id = e.retailer_id
+			AND w.reference_id = e.electricity_bill_transaction_id::TEXT
+			AND w.transaction_reason = 'ELECTRICITY_BILL'
+		WHERE e.retailer_id = $1
+		ORDER BY e.created_at DESC
+		LIMIT $2 OFFSET $3;
+	`
+
+	rows, err := db.pool.Query(ctx, query, retailerID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []models.GetElectricityBillHistoryResponseModel
+
+	for rows.Next() {
+		var tx models.GetElectricityBillHistoryResponseModel
+
+		err := rows.Scan(
+			&tx.ElectricityBillTransactionID,
+			&tx.RetailerID,
+			&tx.RetailerName,
+			&tx.RetailerBusinessName,
+			&tx.OrderID,
+			&tx.OperatorTransactionID,
+			&tx.PartnerRequestID,
+			&tx.CustomerID,
+			&tx.Amount,
+			&tx.BeforeBalance,
+			&tx.AfterBalance,
+			&tx.OperatorID,
+			&tx.OperatorName,
+			&tx.CustomerEmail,
+			&tx.Commision,
+			&tx.TransactionStatus,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if tx.TransactionStatus == "PENDING" {
+			newStatus, err := db.DTHRechargeStatusCheck(tx.PartnerRequestID)
+			if err != nil {
+				return nil, err
+			}
+			if newStatus != "PENDING" {
+				if err := db.UpdateElectricityBillStatusByTransactionID(ctx, tx.ElectricityBillTransactionID, newStatus); err != nil {
+					return nil, err
+				}
+				tx.TransactionStatus = newStatus
+			}
+		}
+
+		transactions = append(transactions, tx)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return transactions, nil
+}
+
+func (db *Database) UpdateElectricityBillStatusByTransactionID(
+	ctx context.Context,
+	electricityBillTransactionID int,
+	status string,
+) error {
+
+	query := `
+		UPDATE electricity_bill_payments
+		SET
+			transaction_status = $1,
+			updated_at = NOW()
+		WHERE electricity_bill_transaction_id = $2;
+	`
+
+	_, err := db.pool.Exec(
+		ctx,
+		query,
+		status,
+		electricityBillTransactionID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

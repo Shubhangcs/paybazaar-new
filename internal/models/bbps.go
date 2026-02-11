@@ -68,7 +68,7 @@ type GetElectricityBillFetchResponseModel struct {
 }
 
 type CreateElectricityBillPaymentRequestModel struct {
-	RetailerID       string  `json:"retailer_id"`
+	RetailerID       string  `json:"retailer_id" validate:"required"`
 	CustomerID       string  `json:"customer_id" validate:"required"`
 	CustomerEmail    string  `json:"customer_email" validate:"required"`
 	OperatorCode     int     `json:"operator_code" validate:"required"`
@@ -89,4 +89,24 @@ type GetElectricityBillPaymentAPIResponseModel struct {
 type GetElectricityOperatorResponseModel struct {
 	OperatorName string `json:"operator_name"`
 	OperatorCode int    `json:"operator_code"`
+}
+
+type GetElectricityBillHistoryResponseModel struct {
+	ElectricityBillTransactionID int       `json:"electricity_bill_transaction_id"`
+	OperatorTransactionID        *string   `json:"operator_transaction_id"`
+	OrderID                      *string   `json:"order_id"`
+	PartnerRequestID             string    `json:"partner_request_id"`
+	RetailerID                   string    `json:"retailer_id"`
+	RetailerName                 string    `json:"retailer_name"`
+	RetailerBusinessName         string    `json:"retailer_business_name"`
+	CustomerID                   string    `json:"customer_id"`
+	CustomerEmail                string    `json:"customer_email"`
+	OperatorName                 string    `json:"operator_name"`
+	OperatorID                   int       `json:"operator_id"`
+	Amount                       float64   `json:"amount"`
+	Commision                    float64   `json:"commision"`
+	BeforeBalance                float64   `json:"before_balance"`
+	AfterBalance                 float64   `json:"after_balance"`
+	TransactionStatus            string    `json:"transaction_status"`
+	CreatedAt                    time.Time `json:"created_at"`
 }

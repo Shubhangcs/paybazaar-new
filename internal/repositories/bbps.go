@@ -24,6 +24,8 @@ type BBPSInterface interface {
 	CreateElectricityBillPayment(echo.Context) error
 	GetAllElectricityOperators(echo.Context) ([]models.GetElectricityOperatorResponseModel, error)
 	GetElectricityBillFetchBalance(c echo.Context) (*models.GetElectricityBillFetchResponseModel, error)
+	GetAllElectricityBillPaymentTransactions(echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error)
+	GetElectricityBillPaymentTransactionsByRetailerID(c echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error)
 }
 
 type bbpsRepository struct {
@@ -298,4 +300,19 @@ func (bp *bbpsRepository) GetElectricityBillFetchBalance(c echo.Context) (*model
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (bp *bbpsRepository) GetAllElectricityBillPaymentTransactions(c echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error) {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return bp.db.GetAllElectricityBillPaymentTransactionsQuery(ctx, offset, limit)
+}
+
+func (bp *bbpsRepository) GetElectricityBillPaymentTransactionsByRetailerID(c echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error) {
+	var retailerId = c.Param("retailer_id")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	limit, offset := parsePagination(c)
+	return bp.db.GetElectricityBillPaymentTransactionsByRetailerIDQuery(ctx, retailerId, offset, limit)
 }

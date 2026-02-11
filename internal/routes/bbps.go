@@ -18,7 +18,9 @@ func (r *routes) BBPSRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	bbpsrg.POST("/get/postpaid/balance", bbpsHandler.GetPostpaidMobileRechargeBalanceRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.GET("/recharge/get/all", bbpsHandler.GetAllPostpaidMobileRechargeRequest, middlewares.RequireRoles("admin"))
 	bbpsrg.GET("/recharge/get/:retailer_id", bbpsHandler.GetPostpaidMobileRechargeByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
-	bbpsrg.POST("/create/electricity", bbpsHandler.CreateElectricityBillPaymentRequest)
-	bbpsrg.GET("/get/electricity/operators", bbpsHandler.GetAllElectricityBillOperatorsRequest)
-	bbpsrg.POST("/get/electricity/balance", bbpsHandler.GetElectricityBillBalanceRequest)
+	bbpsrg.POST("/create/electricity", bbpsHandler.CreateElectricityBillPaymentRequest, middlewares.RequireRoles("retailer"))
+	bbpsrg.GET("/get/electricity/operators", bbpsHandler.GetAllElectricityBillOperatorsRequest, middlewares.RequireRoles("retailer"))
+	bbpsrg.POST("/get/electricity/balance", bbpsHandler.GetElectricityBillBalanceRequest, middlewares.RequireRoles("retailer"))
+	bbpsrg.GET("/get/all/electricity/transactions", bbpsHandler.GetAllElectricityBillHistoryRequest, middlewares.RequireRoles("admin"))
+	bbpsrg.GET("/get/electricity/transactions/:retailer_id", bbpsHandler.GetElectricityBillHistoryByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
 }

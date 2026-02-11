@@ -99,3 +99,27 @@ func (bh *bbpsHandler) GetElectricityBillBalanceRequest(c echo.Context) error {
 		models.ResponseModel{Status: "success", Message: "balance fetched successfully", Data: map[string]any{"response": res}},
 	)
 }
+
+func (bh *bbpsHandler) GetAllElectricityBillHistoryRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetAllElectricityBillPaymentTransactions(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "transactions fetched successfully", Data: map[string]any{"transactions": res}},
+	)
+}
+
+func (bh *bbpsHandler) GetElectricityBillHistoryByRetailerIDRequest(c echo.Context) error {
+	res, err := bh.bbpsRepository.GetElectricityBillPaymentTransactionsByRetailerID(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+	return c.JSON(http.StatusOK,
+		models.ResponseModel{Status: "success", Message: "transactions fetched successfully", Data: map[string]any{"transactions": res}},
+	)
+}
