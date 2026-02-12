@@ -83,13 +83,13 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 		return nil, err
 	}
 	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/createWalletRequest`
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
-	aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
-	if err != nil {
-		return nil, err
-	}
-	req.AadharNumber = aadharNumber
+	// ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	// defer cancel()
+	// aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// req.AadharNumber = aadharNumber
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
