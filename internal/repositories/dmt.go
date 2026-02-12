@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -118,6 +119,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	if err != nil {
 		return nil, err
 	}
+	log.Println(string(respBytes))
 
 	var apiResponse models.DMTCreateWalletResponseModel
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
