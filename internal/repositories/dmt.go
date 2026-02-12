@@ -38,7 +38,7 @@ func (dr *dmtRepository) CheckDMTWalletExists(c echo.Context) (*models.DMTWallet
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2b.rechargkit.biz/moneytransfer/checkWalletExist`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/checkWalletExist`
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2b.rechargkit.biz/moneytransfer/createWalletRequest`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/createWalletRequest`
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
@@ -131,7 +131,7 @@ func (dr *dmtRepository) VerifyDMTWallet(c echo.Context) (*models.DMTWalletVerif
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2b.rechargkit.biz/moneytransfer/verifyWalletRequest`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/verifyWalletRequest`
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
@@ -181,7 +181,7 @@ func (dr *dmtRepository) AddDMTBeneficiary(c echo.Context) (*models.DMTAddBenefi
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2b.rechargkit.biz/moneytransfer/addBeneficiaryRequest`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/addBeneficiaryRequest`
 	req.PartnerRequestID = uuid.NewString()
 	reqBody, err := json.Marshal(req)
 	if err != nil {
@@ -221,7 +221,7 @@ func (dr *dmtRepository) AddDMTBeneficiary(c echo.Context) (*models.DMTAddBenefi
 }
 
 func (dr *dmtRepository) GetDMTBankList(c echo.Context) (*models.DMTBankListResponseModel, error) {
-	apiUrl := `https://v2b.rechargkit.biz/moneytransfer/getBankList`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/getBankList`
 
 	apiRequest, err := http.NewRequest(
 		http.MethodGet,
