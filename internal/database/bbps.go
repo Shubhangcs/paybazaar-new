@@ -269,6 +269,7 @@ func (db *Database) GetAllPostpaidMobileRechargeQuery(
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println(newStatus)
 			if newStatus != "PENDING" {
 				if err := db.UpdatePostpaidMobileRechargeStatus(ctx, item.PostpaidRechargeTransactionID, newStatus); err != nil {
 					return nil, err
@@ -298,7 +299,7 @@ func (db *Database) UpdatePostpaidMobileRechargeStatus(
 		WHERE postpaid_recharge_transaction_id = @transaction_id;
 	`
 	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"recharge_status": status,
+		"status": status,
 		"transaction_id":  transactionId,
 	}); err != nil {
 		return err
@@ -809,8 +810,7 @@ func (db *Database) UpdateElectricityBillStatusByTransactionID(
 	query := `
 		UPDATE electricity_bill_payments
 		SET
-			transaction_status = $1,
-			updated_at = NOW()
+			transaction_status = $1
 		WHERE electricity_bill_transaction_id = $2;
 	`
 

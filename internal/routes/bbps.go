@@ -17,7 +17,7 @@ func (r *routes) BBPSRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	bbpsrg.POST("/create/postpaid", bbpsHandler.CreatePostpaidMobileRechargeRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.POST("/get/postpaid/balance", bbpsHandler.GetPostpaidMobileRechargeBalanceRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.GET("/recharge/get/all", bbpsHandler.GetAllPostpaidMobileRechargeRequest, middlewares.RequireRoles("admin"))
-	bbpsrg.GET("/recharge/get/:retailer_id", bbpsHandler.GetPostpaidMobileRechargeByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
+	bbpsrg.GET("/recharge/get/:retailer_id", bbpsHandler.GetPostpaidMobileRechargeByRetailerIDRequest)
 	bbpsrg.POST("/create/electricity", bbpsHandler.CreateElectricityBillPaymentRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.GET("/get/electricity/operators", bbpsHandler.GetAllElectricityBillOperatorsRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.POST("/get/electricity/balance", bbpsHandler.GetElectricityBillBalanceRequest, middlewares.RequireRoles("retailer"))
