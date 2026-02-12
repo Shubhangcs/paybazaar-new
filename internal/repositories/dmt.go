@@ -224,7 +224,6 @@ func (dr *dmtRepository) AddDMTBeneficiary(c echo.Context) (*models.DMTAddBenefi
 
 func (dr *dmtRepository) GetDMTBankList(c echo.Context) (*models.DMTBankListResponseModel, error) {
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitdmr/getBankList`
-
 	apiRequest, err := http.NewRequest(
 		http.MethodGet,
 		apiUrl,

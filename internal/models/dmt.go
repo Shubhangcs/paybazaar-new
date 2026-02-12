@@ -16,7 +16,7 @@ type DMTCreateWalletRequestModel struct {
 	MobileNumber string  `json:"mobile_no" validate:"required"`
 	Latitude     float64 `json:"lat" validate:"required"`
 	Longitude    float64 `json:"long" validate:"required"`
-	AadharNumber string  `json:"aadhar_number"`
+	AadharNumber string  `json:"aadhaar_number"`
 	PidData      string  `json:"pid_data" validate:"required"`
 	IsIris       int     `json:"is_iris" validate:"required"`
 }
