@@ -84,7 +84,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 		return nil, err
 	}
 
-	apiUrl := `https://stagev2a.rechargkit.biz/createWalletRequest`
+	apiUrl := `https://stagev2a.rechargkit.biz/moneytransfer/createWalletRequest`
 	// ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	// defer cancel()
 	// aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
