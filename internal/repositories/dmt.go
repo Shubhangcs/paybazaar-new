@@ -83,6 +83,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
+	
 	apiUrl := `https://stagev2a.rechargkit.biz/rkitdmr/createWalletRequest`
 	// ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	// defer cancel()
