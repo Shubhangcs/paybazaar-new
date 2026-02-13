@@ -90,7 +90,14 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	// 	return nil, err
 	// }
 	// req.AadharNumber = aadharNumber
-	reqBody, err := json.Marshal(req)
+	reqBody, err := json.Marshal(map[string]any{
+		"mobile_no":      req.MobileNumber,
+		"lat":            req.Latitude,
+		"long":           req.Longitude,
+		"aadhaar_number": req.AadharNumber,
+		"pid_data":       req.PidData,
+		"is_iris":        req.IsIris,
+	})
 	if err != nil {
 		return nil, err
 	}
