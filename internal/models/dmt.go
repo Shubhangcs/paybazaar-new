@@ -14,8 +14,8 @@ type DMTWalletCheckResponseModel struct {
 type DMTCreateWalletRequestModel struct {
 	RetailerID   string  `json:"retailer_id" validate:"required"`
 	MobileNumber string  `json:"mobile_no" validate:"required"`
-	Latitude     float64 `json:"lat" validate:"required"`
-	Longitude    float64 `json:"long" validate:"required"`
+	Latitude     string `json:"lat" validate:"required"`
+	Longitude    string `json:"long" validate:"required"`
 	AadharNumber string  `json:"aadhaar_number"`
 	PidData      string  `json:"pid_data" validate:"required"`
 	IsIris       int     `json:"is_iris" validate:"required"`
