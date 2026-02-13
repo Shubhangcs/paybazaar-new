@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -82,7 +83,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
 	}
-	apiUrl := `https://v2bapi.rechargkit.biz/moneytransfer/createWalletRequest`
+	apiUrl := `https://v2bapi.rechargkit.biz/rkitdmr/createWalletRequest`
 	// ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	// defer cancel()
 	// aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
@@ -101,6 +102,8 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("%s" , string(reqBody))
 
 	apiRequest, err := http.NewRequest(
 		http.MethodPost,
