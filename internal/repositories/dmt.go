@@ -21,7 +21,7 @@ type DMTInterface interface {
 	CreateDMTWallet(echo.Context) (*models.DMTCreateWalletResponseModel, error)
 	VerifyDMTWallet(echo.Context) (*models.DMTWalletVerificationResponseModel, error)
 	AddDMTBeneficiary(echo.Context) (*models.DMTAddBeneficiaryResponseModel, error)
-	GetDmtBeneficiary(echo.Context) (any, error)
+	GetDmtBeneficiary(echo.Context) (*models.DMTGetBeneficiaryResponseModel, error)
 	GetDMTBankList(echo.Context) (*models.DMTBankListResponseModel, error)
 }
 
