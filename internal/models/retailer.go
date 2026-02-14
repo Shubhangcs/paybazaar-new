@@ -38,6 +38,7 @@ type UpdateRetailerDetailsRequestModel struct {
 	BusinessType  *string    `json:"business_type" validate:"omitempty"`
 	GSTNumber     *string    `json:"gst_number" validate:"omitempty,len=15"`
 	DocumentsURL  *string    `json:"documents_url" validate:"omitempty"`
+	WalletBalance *float64   `json:"wallet_balance"`
 }
 
 type UpdateRetailerPasswordRequestModel struct {

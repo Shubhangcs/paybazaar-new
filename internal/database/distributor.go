@@ -295,6 +295,7 @@ func (db *Database) UpdateDistributorDetailsQuery(
 			distributor_gst_number = COALESCE(@gst_number, distributor_gst_number),
 
 			distributor_documents_url = COALESCE(@documents_url, distributor_documents_url),
+			distributor_wallet_balance = COALESCE(@distributor_wallet_balance , distributor_wallet_balance),
 			updated_at = NOW()
 		WHERE distributor_id = @distributor_id;
 	`
@@ -320,6 +321,7 @@ func (db *Database) UpdateDistributorDetailsQuery(
 		"gst_number":    req.GSTNumber,
 
 		"documents_url": req.DocumentsURL,
+		"distributor_wallet_balance": req.WalletBalance,
 	})
 
 	if err != nil {

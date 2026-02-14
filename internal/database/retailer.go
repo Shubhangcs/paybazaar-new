@@ -455,6 +455,7 @@ func (db *Database) UpdateRetailerDetailsQuery(
 
 			retailer_gst_number = COALESCE(@gst, retailer_gst_number),
 			retailer_documents_url = COALESCE(@documents_url, retailer_documents_url),
+			retailer_wallet_balance = COALESCE(@wallet_balance , retailer_wallet_balance),
 			updated_at = NOW()
 		WHERE retailer_id = @retailer_id;
 	`
@@ -476,6 +477,7 @@ func (db *Database) UpdateRetailerDetailsQuery(
 		"business_type": req.BusinessType,
 		"gst":           req.GSTNumber,
 		"documents_url": req.DocumentsURL,
+		"wallet_balance": req.WalletBalance,
 	})
 
 	if err != nil {

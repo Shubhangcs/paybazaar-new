@@ -201,27 +201,29 @@ func (db *Database) UpdateMasterDistributorDetailsQuery(
 
 			master_distributor_gst_number = COALESCE(@gst, master_distributor_gst_number),
 			master_distributor_documents_url = COALESCE(@documents_url, master_distributor_documents_url),
+			master_distributor_wallet_balance = COALESCE(@wallet_balance , master_distributor_wallet_balance),
 			updated_at = NOW()
 		WHERE master_distributor_id = @md_id;
 	`
 
 	tag, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"md_id":         req.MasterDistributorID,
-		"name":          req.MasterDistributorName,
-		"phone":         req.MasterDistributorPhone,
-		"email":         req.MasterDistributorEmail,
-		"aadhar":        req.AadharNumber,
-		"pan":           req.PanNumber,
-		"dob":           req.DateOfBirth,
-		"gender":        req.Gender,
-		"city":          req.City,
-		"state":         req.State,
-		"address":       req.Address,
-		"pincode":       req.Pincode,
-		"business_name": req.BusinessName,
-		"business_type": req.BusinessType,
-		"gst":           req.GSTNumber,
-		"documents_url": req.DocumentsURL,
+		"md_id":          req.MasterDistributorID,
+		"name":           req.MasterDistributorName,
+		"phone":          req.MasterDistributorPhone,
+		"email":          req.MasterDistributorEmail,
+		"aadhar":         req.AadharNumber,
+		"pan":            req.PanNumber,
+		"dob":            req.DateOfBirth,
+		"gender":         req.Gender,
+		"city":           req.City,
+		"state":          req.State,
+		"address":        req.Address,
+		"pincode":        req.Pincode,
+		"business_name":  req.BusinessName,
+		"business_type":  req.BusinessType,
+		"gst":            req.GSTNumber,
+		"documents_url":  req.DocumentsURL,
+		"wallet_balance": req.WalletBalance,
 	})
 
 	if err != nil {
