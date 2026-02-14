@@ -373,7 +373,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"before_balance":     userDetails.adminBeforeBalance,
 		"after_balance":      userDetails.adminAfterBalance,
 		"transaction_reason": "PAYOUT",
-		"remarks":            "Payout commission credited",
+		"remarks":            fmt.Sprintf("Payout commission credited from %s", req.RetailerId),
 	}); err != nil {
 		return err
 	}
@@ -387,7 +387,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"before_balance":     userDetails.mdBeforeBalance,
 		"after_balance":      userDetails.mdAfterBalance,
 		"transaction_reason": "PAYOUT",
-		"remarks":            "Payout commission credited",
+		"remarks":            fmt.Sprintf("Payout commission credited from %s", req.RetailerId),
 	}); err != nil {
 		return err
 	}
@@ -401,7 +401,7 @@ func (db *Database) CreatePayoutSuccessOrPendingQuery(
 		"before_balance":     userDetails.disBeforeBalance,
 		"after_balance":      userDetails.disAfterBalance,
 		"transaction_reason": "PAYOUT",
-		"remarks":            "Payout commission credited",
+		"remarks":            fmt.Sprintf("Payout commission credited from %s", req.RetailerId),
 	}); err != nil {
 		return err
 	}
