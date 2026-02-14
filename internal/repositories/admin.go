@@ -58,7 +58,7 @@ func (ar *adminRepository) GetAdminDetailsByAdminID(c echo.Context) (*models.Get
 	var adminID = c.Param("admin_id")
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
-	return ar.db.GetAdminDetailsByAdminID(ctx, adminID)
+	return ar.db.GetAdminDetailsByAdminIDQuery(ctx, adminID)
 }
 
 func (ar *adminRepository) GetAllAdmins(c echo.Context) ([]models.GetCompleteAdminDetailsResponseModel, error) {
@@ -129,7 +129,7 @@ func (ar *adminRepository) AdminLogin(c echo.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*10)
 	defer cancel()
 
-	details, err := ar.db.GetAdminDetailsForLogin(ctx, req.AdminID)
+	details, err := ar.db.GetAdminDetailsForLoginQuery(ctx, req.AdminID)
 	if err != nil {
 		return "", err
 	}

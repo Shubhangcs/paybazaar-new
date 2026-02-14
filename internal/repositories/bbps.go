@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +27,8 @@ type BBPSInterface interface {
 	GetElectricityBillFetchBalance(c echo.Context) (*models.GetElectricityBillFetchResponseModel, error)
 	GetAllElectricityBillPaymentTransactions(echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error)
 	GetElectricityBillPaymentTransactionsByRetailerID(c echo.Context) ([]models.GetElectricityBillHistoryResponseModel, error)
+	PostpaidMobileRechargeRefund(echo.Context) error
+	ElectricityBillPaymentRefund(echo.Context) error
 }
 
 type bbpsRepository struct {
@@ -315,4 +318,32 @@ func (bp *bbpsRepository) GetElectricityBillPaymentTransactionsByRetailerID(c ec
 	defer cancel()
 	limit, offset := parsePagination(c)
 	return bp.db.GetElectricityBillPaymentTransactionsByRetailerIDQuery(ctx, retailerId, offset, limit)
+}
+
+func (bp *bbpsRepository) PostpaidMobileRechargeRefund(c echo.Context) error {
+	var transactionId = c.Param("transaction_id")
+
+	trId, err := strconv.ParseInt(transactionId, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+
+	return bp.db.RefundPostpaidMobileRechargeQuery(ctx, int(trId))
+}
+
+func (bp *bbpsRepository) ElectricityBillPaymentRefund(c echo.Context) error {
+	var transactionId = c.Param("transaction_id")
+
+	trId, err := strconv.ParseInt(transactionId, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+
+	return bp.db.RefundElectricityBillPaymentQuery(ctx, int(trId))
 }

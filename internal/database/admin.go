@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 
@@ -37,7 +38,7 @@ func (db *Database) CreateAdminQuery(
 	return nil
 }
 
-func (db *Database) GetAdminDetailsByAdminID(
+func (db *Database) GetAdminDetailsByAdminIDQuery(
 	ctx context.Context,
 	adminID string,
 ) (*models.GetCompleteAdminDetailsResponseModel, error) {
@@ -76,7 +77,7 @@ func (db *Database) GetAdminDetailsByAdminID(
 	return &res, nil
 }
 
-func (db *Database) GetAdminDetailsForLogin(
+func (db *Database) GetAdminDetailsForLoginQuery(
 	ctx context.Context,
 	adminID string,
 ) (*models.GetAdminDetailsForLoginModel, error) {
@@ -127,7 +128,7 @@ func (db *Database) DeleteAdminQuery(
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("invalid admin id or admin not found")
+		return sql.ErrNoRows
 	}
 
 	return nil
@@ -217,7 +218,6 @@ func (db *Database) UpdateAdminWalletQuery(
 	}
 	defer tx.Rollback(ctx)
 
-	// 1️⃣ Get current wallet balance
 	var beforeBalance float64
 	getBalanceQuery := `
 		SELECT admin_wallet_balance
@@ -237,7 +237,6 @@ func (db *Database) UpdateAdminWalletQuery(
 
 	afterBalance := beforeBalance + req.Amount
 
-	// 2️⃣ Update admin wallet
 	updateWalletQuery := `
 		UPDATE admins
 		SET admin_wallet_balance = @after_balance,
@@ -261,7 +260,6 @@ func (db *Database) UpdateAdminWalletQuery(
 		return fmt.Errorf("invalid admin id or admin not found")
 	}
 
-	// 3️⃣ Insert wallet transaction record
 	insertTransactionQuery := `
 		INSERT INTO wallet_transactions (
 			user_id,
@@ -287,7 +285,7 @@ func (db *Database) UpdateAdminWalletQuery(
 		insertTransactionQuery,
 		pgx.NamedArgs{
 			"user_id":            req.AdminID,
-			"reference_id":       req.AdminID, // ✅ admin id as reference
+			"reference_id":       req.AdminID,
 			"credit_amount":      req.Amount,
 			"before_balance":     beforeBalance,
 			"after_balance":      afterBalance,
@@ -298,7 +296,6 @@ func (db *Database) UpdateAdminWalletQuery(
 		return fmt.Errorf("failed to insert wallet transaction")
 	}
 
-	// 4️⃣ Commit transaction
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit wallet transaction")
 	}

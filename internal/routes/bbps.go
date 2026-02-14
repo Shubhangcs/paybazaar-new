@@ -23,4 +23,6 @@ func (r *routes) BBPSRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	bbpsrg.POST("/get/electricity/balance", bbpsHandler.GetElectricityBillBalanceRequest, middlewares.RequireRoles("retailer"))
 	bbpsrg.GET("/get/all/electricity/transactions", bbpsHandler.GetAllElectricityBillHistoryRequest, middlewares.RequireRoles("admin"))
 	bbpsrg.GET("/get/electricity/transactions/:retailer_id", bbpsHandler.GetElectricityBillHistoryByRetailerIDRequest, middlewares.RequireRoles("retailer", "admin"))
+	bbpsrg.GET("/electricity/transaction/refund/:transaction_id", bbpsHandler.ElectricityBillPaymentRefundRequest, middlewares.RequireRoles("admin"))
+	bbpsrg.GET("/postpaid/recharge/transaction/refund/:transaction_id", bbpsHandler.MobileRechargePostpaidRefundRequest, middlewares.RequireRoles("admin"))
 }

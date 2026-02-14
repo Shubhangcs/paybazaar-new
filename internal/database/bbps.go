@@ -299,8 +299,8 @@ func (db *Database) UpdatePostpaidMobileRechargeStatus(
 		WHERE postpaid_recharge_transaction_id = @transaction_id;
 	`
 	if _, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
-		"status": status,
-		"transaction_id":  transactionId,
+		"status":         status,
+		"transaction_id": transactionId,
 	}); err != nil {
 		return err
 	}
@@ -409,7 +409,98 @@ func (db *Database) RefundPostpaidMobileRechargeQuery(
 	ctx context.Context,
 	transactionId int,
 ) error {
-	return nil
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	getTransactionDetails := `
+		UPDATE mobile_recharge_postpaid
+		SET recharge_status = @status
+		WHERE postpaid_recharge_transaction_id = @transaction_id
+		RETURNING retailer_id, amount;
+	`
+	var (
+		retailerID string
+		amount     float64
+	)
+	if err := tx.QueryRow(ctx, getTransactionDetails, pgx.NamedArgs{
+		"status":         "REFUND",
+		"transaction_id": transactionId,
+	}).Scan(
+		&retailerID,
+		&amount,
+	); err != nil {
+		return err
+	}
+
+	getRetailerBeforeBalanceQuery := `
+		SELECT retailer_wallet_balance 
+		FROM retailers
+		WHERE retailer_id = @retailer_id
+	`
+	var retailerBeforeBalance float64
+	if err := tx.QueryRow(ctx, getRetailerBeforeBalanceQuery, pgx.NamedArgs{
+		"retailer_id": retailerID,
+	}).Scan(
+		retailerBeforeBalance,
+	); err != nil {
+		return err
+	}
+
+	updateRetailersWalletAndGetAfterBalanceQuery := `
+		UPDATE retailers
+		SET retailer_wallet_balance = retailer_wallet_balance + @amount
+		WHERE retailer_id = @retailer_id
+		RETURNING retailer_wallet_balance;
+	`
+	var retailerAfterBalance float64
+	if err := tx.QueryRow(ctx, updateRetailersWalletAndGetAfterBalanceQuery, pgx.NamedArgs{
+		"amount":      amount,
+		"retailer_id": retailerID,
+	}).Scan(
+		&retailerAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	insertToWalletTransactionsQuery := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			debit_amount,
+			credit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@debit_amount,
+			@credit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks 
+		);
+	`
+	if _, err := tx.Exec(ctx, insertToWalletTransactionsQuery, pgx.NamedArgs{
+		"user_id":            retailerID,
+		"reference_id":       fmt.Sprintf("%d", transactionId),
+		"debit_amount":       0,
+		"credit_amount":      amount,
+		"before_balance":     retailerBeforeBalance,
+		"after_balance":      retailerAfterBalance,
+		"transaction_reason": "POSTPAID_MOBILE_RECHARGE_REFUND",
+		"remarks":            fmt.Sprintf("Refunded %d transaction to %s", transactionId, retailerID),
+	}); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (db *Database) CreateElectricityBillPaymentSuccessOrPendingQuery(
@@ -824,5 +915,100 @@ func (db *Database) UpdateElectricityBillStatusByTransactionID(
 		return err
 	}
 
+	return nil
+}
+
+func (db *Database) RefundElectricityBillPaymentQuery(
+	ctx context.Context,
+	transactionId int,
+) error {
+
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	getTransactionDetailsQuery := `
+		UPDATE electricity_bill_payments
+		SET transaction_status = @status
+		WHERE electricity_bill_transaction_id = @transaction_id
+		RETURNING retailer_id, amount;
+	`
+	var (
+		retailerId string
+		amount     float64
+	)
+	if err := tx.QueryRow(ctx, getTransactionDetailsQuery, pgx.NamedArgs{
+		"transaction_id": transactionId,
+		"status":         "REFUND",
+	}).Scan(
+		&retailerId,
+		&amount,
+	); err != nil {
+		return err
+	}
+
+	getRetailerWalletBalanceQuery := `
+		SELECT retailer_wallet_balance 
+		FROM retailers
+		WHERE retailer_id = @retailer_id;
+	`
+	var retailerBeforeBalance float64
+	if err := tx.QueryRow(ctx, getRetailerWalletBalanceQuery, pgx.NamedArgs{
+		"retailer_id": retailerId,
+	}).Scan(&retailerBeforeBalance); err != nil {
+		return err
+	}
+
+	updateRetailerWalletAndGetAfterBalanceQuery := `
+		UPDATE retailers
+		SET retailer_wallet_balance = retailer_wallet_balance + @amount
+		WHERE retailer_id = @retailer_id
+		RETURNING retailer_wallet_balance;
+	`
+	var retailerAfterBalance float64
+	if err := tx.QueryRow(ctx, updateRetailerWalletAndGetAfterBalanceQuery, pgx.NamedArgs{
+		"retailer_id": retailerId,
+		"amount":      amount,
+	}).Scan(
+		&retailerAfterBalance,
+	); err != nil {
+		return err
+	}
+
+	insertToWalletTransactionsQuery := `
+		INSERT INTO wallet_transactions (
+			user_id,
+			reference_id,
+			debit_amount,
+			credit_amount,
+			before_balance,
+			after_balance,
+			transaction_reason,
+			remarks
+		) VALUES (
+			@user_id,
+			@reference_id,
+			@debit_amount,
+			@credit_amount,
+			@before_balance,
+			@after_balance,
+			@transaction_reason,
+			@remarks 
+		);
+	`
+	if _, err := tx.Exec(ctx, insertToWalletTransactionsQuery, pgx.NamedArgs{
+		"user_id":            retailerId,
+		"reference_id":       fmt.Sprintf("%d", transactionId),
+		"debit_amount":       0,
+		"credit_amount":      amount,
+		"before_balance":     retailerBeforeBalance,
+		"after_balance":      retailerAfterBalance,
+		"transaction_reason": "ELECTRICITY_BILL_REFUND",
+		"remarks":            fmt.Sprintf("transaction %d refunded to %s", transactionId, retailerId),
+	}); err != nil {
+		return err
+	}
 	return nil
 }

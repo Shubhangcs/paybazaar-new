@@ -105,7 +105,7 @@ CREATE TABLE
         operator_name TEXT NOT NULL,
         recharge_type TEXT NOT NULL,
         recharge_status TEXT NOT NULL CHECK (
-            recharge_status IN ('PENDING', 'SUCCESS', 'FAILED')
+            recharge_status IN ('PENDING', 'SUCCESS', 'FAILED' , 'REFUND')
         ),
         commision NUMERIC(20, 2) NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
@@ -125,7 +125,7 @@ CREATE TABLE
         customer_email TEXT NOT NULL,
         commision NUMERIC(20, 2) NOT NULL,
         transaction_status TEXT NOT NULL CHECK (
-            transaction_status IN ('PENDING', 'SUCCESS', 'FAILED')
+            transaction_status IN ('PENDING', 'SUCCESS', 'FAILED' , 'REFUND')
         ),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );

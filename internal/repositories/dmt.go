@@ -295,3 +295,5 @@ func (dr *dmtRepository) GetDMTBankList(c echo.Context) (*models.DMTBankListResp
 	}
 	return &apiResponse, nil
 }
+
+

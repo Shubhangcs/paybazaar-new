@@ -75,8 +75,24 @@ type DMTGetBeneficiaryRequestModel struct {
 }
 
 type DMTGetBeneficiaryResponseModel struct {
-	Error   int    `json:"error"`
-	Message string `json:"msg"`
-	MobileNumber string `json:"MobileNo"`
-	BeneficiaryList any `json:"BeneficiaryList"`
+	Error           int    `json:"error"`
+	Message         string `json:"msg"`
+	MobileNumber    string `json:"MobileNo"`
+	BeneficiaryList any    `json:"BeneficiaryList"`
+}
+
+type DMTTransactionRequestModel struct {
+	RetailerID        string `json:"retailer_id"`
+	MobileNumber      string `json:"mobile_number"`
+	TransferType      string `json:"transfer_type"`
+	Amount            int    `json:"amount"`
+	BeneficiaryID     int    `json:"beneficiary_id"`
+	BeneficiaryName   string `json:"beneficiary_name"`
+	BankName          string `json:"bank_name"`
+	AccountNumber     string `json:"account_number"`
+	IFSCCode          string `json:"ifsc_code"`
+	Pincode           string `json:"pincode"`
+	Address           string `json:"address"`
+	PartnerRequestID  string `json:"partner_request_id"`
+	TransactionStatus string `json:"transaction_status"`
 }
