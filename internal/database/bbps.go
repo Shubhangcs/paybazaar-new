@@ -1010,5 +1010,5 @@ func (db *Database) RefundElectricityBillPaymentQuery(
 	}); err != nil {
 		return err
 	}
-	return nil
+	return tx.Commit(ctx)
 }
