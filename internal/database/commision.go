@@ -43,6 +43,7 @@ func (db *Database) CreateCommisionQuery(
 		"distributor_commision": req.DistributorCommision,
 		"retailer_commision":    req.RetailerCommision,
 	}); err != nil {
+		fmt.Println(err)
 		return fmt.Errorf("failed to create commision")
 	}
 
