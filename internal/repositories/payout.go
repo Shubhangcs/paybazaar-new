@@ -38,6 +38,10 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	if req.Amount < 1000 {
+		return fmt.Errorf("invalid amount minimum amount is 1000")
+	}
+
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
