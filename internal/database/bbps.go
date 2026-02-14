@@ -445,7 +445,7 @@ func (db *Database) RefundPostpaidMobileRechargeQuery(
 	if err := tx.QueryRow(ctx, getRetailerBeforeBalanceQuery, pgx.NamedArgs{
 		"retailer_id": retailerID,
 	}).Scan(
-		retailerBeforeBalance,
+		&retailerBeforeBalance,
 	); err != nil {
 		return err
 	}
