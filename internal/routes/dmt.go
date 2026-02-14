@@ -18,4 +18,5 @@ func (r *routes) DMTRoutes(db *database.Database, jutUtils *pkg.JwtUtils) {
 	drg.POST("/verify/wallet", dmtHandler.VerifyDMTWalletRequest)
 	drg.POST("/add/beneficiary", dmtHandler.AddDMTBeneficiaryRequest)
 	drg.GET("/get/banks", dmtHandler.GetDMTBankListRequest)
+	drg.POST("/get/beneficiary", dmtHandler.GetDMTBeneficiariesRequest)
 }

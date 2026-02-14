@@ -12,13 +12,13 @@ type DMTWalletCheckResponseModel struct {
 }
 
 type DMTCreateWalletRequestModel struct {
-	RetailerID   string  `json:"retailer_id" validate:"required"`
-	MobileNumber string  `json:"mobile_no" validate:"required"`
+	RetailerID   string `json:"retailer_id" validate:"required"`
+	MobileNumber string `json:"mobile_no" validate:"required"`
 	Latitude     string `json:"lat" validate:"required"`
 	Longitude    string `json:"long" validate:"required"`
-	AadharNumber string  `json:"aadhaar_number"`
-	PidData      string  `json:"pid_data" validate:"required"`
-	IsIris       int     `json:"is_iris" validate:"required"`
+	AadharNumber string `json:"aadhaar_number"`
+	PidData      string `json:"pid_data" validate:"required"`
+	IsIris       int    `json:"is_iris" validate:"required"`
 }
 
 type DMTCreateWalletResponseModel struct {
@@ -33,7 +33,7 @@ type DMTWalletVerificationRequestModel struct {
 	MobileNumber     string `json:"mobile_no" validate:"required"`
 	OTP              string `json:"otp" validate:"required"`
 	EKycID           string `json:"ekyc_id" validate:"required"`
-	StateResp        string `json:"stateresp"`
+	StateResp        string `json:"stateresp" validate:"required"`
 	PartnerRequestID string `json:"partner_request_id"`
 }
 
@@ -68,4 +68,14 @@ type DMTBankListResponseModel struct {
 	Error    int    `json:"error"`
 	Message  string `json:"message"`
 	BankList []any  `json:"bankList"`
+}
+
+type DMTGetBeneficiaryRequestModel struct {
+	MobileNumber string `json:"mobile_no" validate:"required"`
+}
+
+type DMTGetBeneficiaryResponseModel struct {
+	Error   int    `json:"error"`
+	Message string `json:"msg"`
+	Status  int    `json:"status"`
 }

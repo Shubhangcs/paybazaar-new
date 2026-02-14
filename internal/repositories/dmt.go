@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,6 +21,7 @@ type DMTInterface interface {
 	CreateDMTWallet(echo.Context) (*models.DMTCreateWalletResponseModel, error)
 	VerifyDMTWallet(echo.Context) (*models.DMTWalletVerificationResponseModel, error)
 	AddDMTBeneficiary(echo.Context) (*models.DMTAddBeneficiaryResponseModel, error)
+	GetDmtBeneficiary(echo.Context) (any, error)
 	GetDMTBankList(echo.Context) (*models.DMTBankListResponseModel, error)
 }
 
@@ -84,13 +84,6 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 		return nil, err
 	}
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitdmr/createWalletRequest`
-	// ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	// defer cancel()
-	// aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// req.AadharNumber = aadharNumber
 	reqBody, err := json.Marshal(map[string]any{
 		"mobile_no":      req.MobileNumber,
 		"lat":            req.Latitude,
@@ -103,7 +96,7 @@ func (dr *dmtRepository) CreateDMTWallet(c echo.Context) (*models.DMTCreateWalle
 		return nil, err
 	}
 
-	fmt.Printf("%s" , string(reqBody))
+	fmt.Printf("%s", string(reqBody))
 
 	apiRequest, err := http.NewRequest(
 		http.MethodPost,
@@ -144,13 +137,6 @@ func (dr *dmtRepository) VerifyDMTWallet(c echo.Context) (*models.DMTWalletVerif
 		return nil, err
 	}
 	apiUrl := `https://v2bapi.rechargkit.biz/rkitdmr/verifyWalletRequest`
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
-	aadharNumber, err := dr.db.GetRetailerAadharNumberForDMTQuery(ctx, req.RetailerID)
-	if err != nil {
-		return nil, err
-	}
-	req.StateResp = aadharNumber
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -224,6 +210,50 @@ func (dr *dmtRepository) AddDMTBeneficiary(c echo.Context) (*models.DMTAddBenefi
 	if err != nil {
 		return nil, err
 	}
+
+	var apiResponse models.DMTAddBeneficiaryResponseModel
+	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
+		return nil, err
+	}
+	return &apiResponse, nil
+}
+
+func (dr *dmtRepository) GetDmtBeneficiary(c echo.Context) (any, error) {
+	var req models.DMTGetBeneficiaryRequestModel
+	if err := bindAndValidate(c, &req); err != nil {
+		return nil, err
+	}
+	apiUrl := `https://v2bapi.rechargkit.biz/rkitdmr/getUserDetails`
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	apiRequest, err := http.NewRequest(
+		http.MethodPost,
+		apiUrl,
+		bytes.NewReader(reqBody),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	apiRequest.Header.Set("Content-Type", "application/json")
+	apiRequest.Header.Set("Authorization", "Bearer "+os.Getenv("RKIT_API_TOKEN"))
+
+	client := &http.Client{Timeout: 20 * time.Second}
+
+	resp, err := client.Do(apiRequest)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(respBytes))
 
 	var apiResponse models.DMTAddBeneficiaryResponseModel
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {

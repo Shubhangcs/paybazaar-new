@@ -78,6 +78,21 @@ func (dh *dmtHandler) AddDMTBeneficiaryRequest(c echo.Context) error {
 	})
 }
 
+func (dh *dmtHandler) GetDMTBeneficiariesRequest(c echo.Context) error {
+	res, err := dh.dmtRepository.GetDmtBeneficiary(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest,
+			models.ResponseModel{Status: "failed", Message: err.Error()},
+		)
+	}
+
+	return c.JSON(http.StatusOK, models.ResponseModel{
+		Status:  "success",
+		Message: "dmt request success",
+		Data:    map[string]any{"response": res},
+	})
+}
+
 func (dh *dmtHandler) GetDMTBankListRequest(c echo.Context) error {
 	res, err := dh.dmtRepository.GetDMTBankList(c)
 	if err != nil {
