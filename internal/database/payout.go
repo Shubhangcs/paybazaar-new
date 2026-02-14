@@ -90,8 +90,8 @@ func (db *Database) GetPayoutCommisionQuery(
 	// Default commission if nothing found
 	if commission == nil {
 		commission = &models.GetPayoutCommisionModel{
-			TotalCommision:             1.2, // %
-			RetailerCommision:          0.5, // % of total
+			TotalCommision:             1.2,
+			RetailerCommision:          0.5,
 			DistributorCommision:       0.2,
 			MasterDistributorCommision: 0.05,
 			AdminCommision:             0.25,
@@ -99,7 +99,7 @@ func (db *Database) GetPayoutCommisionQuery(
 	}
 
 	// Final calculation (percentage → amount)
-	totalAmount := (commission.TotalCommision / 10) * amount
+	totalAmount := (commission.TotalCommision / 100) * amount
 
 	return &models.GetPayoutCommisionModel{
 		TotalCommision:             totalAmount,
