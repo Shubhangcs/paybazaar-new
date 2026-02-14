@@ -13,10 +13,10 @@ func (r *routes) DMTRoutes(db *database.Database, jutUtils *pkg.JwtUtils) {
 	dmtHandler := handlers.NewDMTHandler(dmtRepo)
 
 	drg := r.Router.Group("/dmt", middlewares.AuthorizationMiddleware(jutUtils))
-	drg.POST("/check/wallet", dmtHandler.CheckDMTWalletExistsRequest)
-	drg.POST("/create/wallet", dmtHandler.CreateDMTWalletRequest)
-	drg.POST("/verify/wallet", dmtHandler.VerifyDMTWalletRequest)
-	drg.POST("/add/beneficiary", dmtHandler.AddDMTBeneficiaryRequest)
-	drg.GET("/get/banks", dmtHandler.GetDMTBankListRequest)
-	drg.POST("/get/beneficiary", dmtHandler.GetDMTBeneficiariesRequest)
+	drg.POST("/check/wallet", dmtHandler.CheckDMTWalletExistsRequest, middlewares.RequireRoles("retailer"))
+	drg.POST("/create/wallet", dmtHandler.CreateDMTWalletRequest, middlewares.RequireRoles("retailer"))
+	drg.POST("/verify/wallet", dmtHandler.VerifyDMTWalletRequest, middlewares.RequireRoles("retailer"))
+	drg.POST("/add/beneficiary", dmtHandler.AddDMTBeneficiaryRequest, middlewares.RequireRoles("retailer"))
+	drg.GET("/get/banks", dmtHandler.GetDMTBankListRequest, middlewares.RequireRoles("retailer"))
+	drg.POST("/get/beneficiary", dmtHandler.GetDMTBeneficiariesRequest, middlewares.RequireRoles("retailer"))
 }
