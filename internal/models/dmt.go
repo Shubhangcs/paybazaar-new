@@ -77,5 +77,6 @@ type DMTGetBeneficiaryRequestModel struct {
 type DMTGetBeneficiaryResponseModel struct {
 	Error   int    `json:"error"`
 	Message string `json:"msg"`
-	Status  int    `json:"status"`
+	MobileNumber string `json:"MobileNo"`
+	BeneficiaryList any `json:"BeneficiaryList"`
 }

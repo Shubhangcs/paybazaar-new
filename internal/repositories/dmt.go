@@ -218,7 +218,7 @@ func (dr *dmtRepository) AddDMTBeneficiary(c echo.Context) (*models.DMTAddBenefi
 	return &apiResponse, nil
 }
 
-func (dr *dmtRepository) GetDmtBeneficiary(c echo.Context) (any, error) {
+func (dr *dmtRepository) GetDmtBeneficiary(c echo.Context) (*models.DMTGetBeneficiaryResponseModel, error) {
 	var req models.DMTGetBeneficiaryRequestModel
 	if err := bindAndValidate(c, &req); err != nil {
 		return nil, err
@@ -255,7 +255,7 @@ func (dr *dmtRepository) GetDmtBeneficiary(c echo.Context) (any, error) {
 	}
 	fmt.Println(string(respBytes))
 
-	var apiResponse models.DMTAddBeneficiaryResponseModel
+	var apiResponse models.DMTGetBeneficiaryResponseModel
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
 		return nil, err
 	}
