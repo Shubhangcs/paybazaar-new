@@ -110,7 +110,7 @@ func (db *Database) GetPayoutCommisionQuery(
 	}, nil
 }
 
-func (db *Database) VerifyRetailerForPayoutTransactionQuery(
+func (db *Database) VerifyRetailerForTransactionQuery(
 	ctx context.Context,
 	retailerId string,
 	minWallerBalance float64,

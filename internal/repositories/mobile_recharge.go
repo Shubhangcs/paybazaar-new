@@ -41,6 +41,12 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	err := mrr.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerID, req.Amount)
+	if err != nil {
+		return err
+	}
 	req.PartnerRequestID = uuid.NewString()
 
 	apiUrl := `https://v2a.rechargkit.biz/recharge/prepaid`
@@ -89,8 +95,6 @@ func (mrr *mobileRechargeRepository) CreateMobileRecharge(c echo.Context) error 
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
-	defer cancel()
 	if apiResponse.Status == 1 {
 		req.Status = "SUCCESS"
 		if err := mrr.db.CreateMobileRechargeSuccessOrPendingQuery(ctx, req); err != nil {

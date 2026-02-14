@@ -68,3 +68,14 @@ CREATE TABLE
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
     );
+
+CREATE TABLE
+    IF NOT EXISTS transaction_limit (
+        limit_id BIGSERIAL PRIMARY KEY,
+        retailer_id TEXT REFERENCES retailers (retailer_id) ON DELETE CASCADE,
+        limit_amount NUMERIC(20, 2) NOT NULL,
+        service TEXT NOT NULL CHECK (service IN ('PAYOUT', 'DMT', 'AEPS')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+        CONSTRAINT unique_retailer_service UNIQUE (retailer_id, service)
+    );

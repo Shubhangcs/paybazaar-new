@@ -41,6 +41,19 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
+	limit, err := pr.db.GetLimitAmountByRetailerIDAndServiceQuery(ctx, req.RetailerId, "PAYOUT")
+	if err != nil {
+		return err
+	}
+
+	if limit == 0 {
+		limit = 25000
+	}
+
+	if req.Amount > limit {
+		return fmt.Errorf("invalid amount cross the limit")
+	}
+
 	commision, err := pr.db.GetPayoutCommisionQuery(ctx, req.RetailerId, req.Amount)
 	if err != nil {
 		return err
@@ -49,7 +62,7 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 
 	fmt.Println(req.Amount, commision.TotalCommision)
 
-	if err := pr.db.VerifyRetailerForPayoutTransactionQuery(ctx, req.RetailerId, req.Amount+commision.TotalCommision); err != nil {
+	if err := pr.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerId, req.Amount+commision.TotalCommision); err != nil {
 		return err
 	}
 	req.PartnerRequestId = uuid.NewString()

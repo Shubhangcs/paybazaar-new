@@ -46,6 +46,12 @@ func (bp *bbpsRepository) CreatePostpaidMobileRecharge(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	err := bp.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerID, req.Amount)
+	if err != nil {
+		return err
+	}
 	req.PartnerRequestID = uuid.NewString()
 
 	apiUrl := `https://v2a.rechargkit.biz/recharge/postpaid`
@@ -93,8 +99,6 @@ func (bp *bbpsRepository) CreatePostpaidMobileRecharge(c echo.Context) error {
 
 	fmt.Println(string(respBytes))
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
 	var status string
 	if res.Status == 1 {
 		status = "SUCCESS"
@@ -183,6 +187,12 @@ func (bp *bbpsRepository) CreateElectricityBillPayment(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	err := bp.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerID, req.Amount)
+	if err != nil {
+		return err
+	}
 	req.PartnerRequestID = uuid.NewString()
 
 	apiUrl := `https://v2a.rechargkit.biz/recharge/billpayment`
@@ -229,8 +239,6 @@ func (bp *bbpsRepository) CreateElectricityBillPayment(c echo.Context) error {
 
 	fmt.Println(string(respBytes))
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
-	defer cancel()
 	var status string
 	if res.Status == 1 {
 		status = "SUCCESS"

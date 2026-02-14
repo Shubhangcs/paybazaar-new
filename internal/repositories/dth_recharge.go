@@ -45,6 +45,12 @@ func (drr *dthRechargeRepository) CreateDTHRecharge(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+	err := drr.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerID, req.Amount)
+	if err != nil {
+		return err
+	}
 	req.PartnerRequestID = uuid.NewString()
 
 	apiUrl := `https://v2a.rechargkit.biz/recharge/dth`
@@ -90,9 +96,6 @@ func (drr *dthRechargeRepository) CreateDTHRecharge(c echo.Context) error {
 	if err := json.Unmarshal(respBytes, &apiResponse); err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*20)
-	defer cancel()
 
 	fmt.Println(apiResponse)
 	if apiResponse.Status == 1 {
