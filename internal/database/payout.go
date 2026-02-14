@@ -99,7 +99,7 @@ func (db *Database) GetPayoutCommisionQuery(
 	}
 
 	// Final calculation (percentage → amount)
-	totalAmount := (commission.TotalCommision / 100) * amount
+	totalAmount := (commission.TotalCommision / 10) * amount
 
 	return &models.GetPayoutCommisionModel{
 		TotalCommision:             totalAmount,
