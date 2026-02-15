@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -156,8 +155,6 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 	}).Scan(
 		&limit,
 	)
-
-	log.Println(err , "lolo")
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
