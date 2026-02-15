@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -158,7 +159,7 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 
 	log.Println(err)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
 

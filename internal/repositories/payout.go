@@ -48,7 +48,7 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 
 	limit, err := pr.db.GetLimitAmountByRetailerIDAndServiceQuery(ctx, req.RetailerId, "PAYOUT")
 	if err != nil {
-		log.Println(err)
+		log.Println(err, "LIMIT")
 		return err
 	}
 
