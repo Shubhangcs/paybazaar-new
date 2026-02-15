@@ -15,6 +15,7 @@ type LimitInterface interface {
 	UpdateLimit(echo.Context) error
 	DeleteLimit(echo.Context) error
 	GetAllLimits(c echo.Context) ([]models.GetLimitResponseModel, error)
+	GetLimitByRetailerIDAndService(echo.Context) (*models.GetLimitResponseModel, error)
 }
 
 type limitRepository struct {
@@ -62,4 +63,12 @@ func (lr *limitRepository) GetAllLimits(c echo.Context) ([]models.GetLimitRespon
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
 	defer cancel()
 	return lr.db.GetAllLimitsQuery(ctx)
+}
+
+func (lr *limitRepository) GetLimitByRetailerIDAndService(c echo.Context) (*models.GetLimitResponseModel, error) {
+	var retailerId = c.Param("retailer_id")
+	var service = c.Param("service")
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	defer cancel()
+	return lr.db.GetLimitByRetailerIDServiceQuery(ctx, retailerId, service)
 }

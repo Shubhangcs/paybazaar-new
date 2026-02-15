@@ -164,3 +164,37 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 	}
 	return limit, nil
 }
+
+func (db *Database) GetLimitByRetailerIDServiceQuery(
+	ctx context.Context,
+	retailerId, service string,
+) (*models.GetLimitResponseModel, error) {
+	query := `
+		SELECT 
+			limit_id,
+			retailer_id,
+			limit_amount,
+			service,
+			created_at,
+			updated_at
+		FROM transaction_limit
+		WHERE retailer_id = @retailer_id
+		AND service = @service;
+	`
+	var limit models.GetLimitResponseModel
+	err := db.pool.QueryRow(ctx, query, pgx.NamedArgs{
+		"retailer_id": retailerId,
+		"service":     service,
+	}).Scan(
+		&limit.LimitID,
+		&limit.RetailerID,
+		&limit.LimitAmount,
+		&limit.Service,
+		&limit.CreatedAT,
+		&limit.UpdatedAT,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &limit, nil
+}
