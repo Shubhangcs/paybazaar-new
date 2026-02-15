@@ -54,7 +54,7 @@ type UpdateDistributorBlockStatusRequestModel struct {
 
 type UpdateDistributorKYCStatusRequestModel struct {
 	DistributorID string `json:"distributor_id" validate:"required"`
-	KYCStatus     bool   `json:"kyc_status" validate:"required"`
+	KYCStatus     bool   `json:"kyc_status"`
 }
 
 type UpdateDistributorMasterDistributorRequestModel struct {

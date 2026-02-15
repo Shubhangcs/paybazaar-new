@@ -54,7 +54,7 @@ type UpdateRetailerBlockStatusRequestModel struct {
 
 type UpdateRetailerKYCStatusRequestModel struct {
 	RetailerID string `json:"retailer_id" validate:"required"`
-	KYCStatus  bool   `json:"kyc_status" validate:"required"`
+	KYCStatus  bool   `json:"kyc_status"`
 }
 
 type UpdateRetailerMPINRequestModel struct {

@@ -54,7 +54,7 @@ type UpdateMasterDistributorBlockStatusRequestModel struct {
 
 type UpdateMasterDistributorKYCStatusRequestModel struct {
 	MasterDistributorID string `json:"master_distributor_id" validate:"required"`
-	KYCStatus           bool   `json:"kyc_status" validate:"required"`
+	KYCStatus           bool   `json:"kyc_status"`
 }
 
 type UpdateMasterDistributorMPINRequestModel struct {
