@@ -38,10 +38,6 @@ func (fr *fundRequestRepository) CreateFundRequest(
 	
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
 	defer cancel()
-	err := fr.db.VerifyRetailerForTransactionQuery(ctx, req.RequesterID, req.Amount)
-	if err != nil {
-		return 0, err
-	}
 
 	return fr.db.CreateFundRequestQuery(ctx, req)
 }
