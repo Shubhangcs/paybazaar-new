@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/levion-studio/paybazaar/internal/models"
@@ -151,6 +152,8 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 	}).Scan(
 		&limit,
 	)
+
+	log.Println(err)
 
 	if err == sql.ErrNoRows {
 		return 0, nil
