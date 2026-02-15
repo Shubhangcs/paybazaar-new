@@ -117,7 +117,7 @@ func (db *Database) GetAllLimitsQuery(
 	defer res.Close()
 
 	var limits []models.GetLimitResponseModel
-	if res.Next() {
+	for res.Next() {
 		var limit models.GetLimitResponseModel
 		if err := res.Scan(
 			&limit.LimitID,
