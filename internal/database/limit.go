@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5"
@@ -130,6 +131,8 @@ func (db *Database) GetAllLimitsQuery(
 		}
 		limits = append(limits, limit)
 	}
+
+	fmt.Println(limits)
 
 	return limits, res.Err()
 }
