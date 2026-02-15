@@ -22,22 +22,22 @@ type CreateMasterDistributorRequestModel struct {
 }
 
 type UpdateMasterDistributorDetailsRequestModel struct {
-	MasterDistributorID    string     `json:"master_distributor_id" validate:"required"`
-	MasterDistributorName  *string    `json:"master_distributor_name" validate:"omitempty,min=3,max=100"`
-	MasterDistributorPhone *string    `json:"master_distributor_phone" validate:"omitempty,phone"`
-	MasterDistributorEmail *string    `json:"master_distributor_email" validate:"omitempty,email"`
-	AadharNumber           *string    `json:"aadhar_number" validate:"omitempty,aadhar"`
-	PanNumber              *string    `json:"pan_number" validate:"omitempty,pan"`
-	DateOfBirth            *time.Time `json:"date_of_birth" validate:"omitempty"`
-	Gender                 *string    `json:"gender" validate:"omitempty,oneof=MALE FEMALE OTHER"`
-	City                   *string    `json:"city" validate:"omitempty"`
-	State                  *string    `json:"state" validate:"omitempty"`
-	Address                *string    `json:"address" validate:"omitempty"`
-	Pincode                *string    `json:"pincode" validate:"omitempty,len=6,numeric"`
-	BusinessName           *string    `json:"business_name" validate:"omitempty"`
-	BusinessType           *string    `json:"business_type" validate:"omitempty"`
-	GSTNumber              *string    `json:"gst_number" validate:"omitempty,len=15"`
-	DocumentsURL           *string    `json:"documents_url" validate:"omitempty"`
+	MasterDistributorID    string     `json:"master_distributor_id"`
+	MasterDistributorName  *string    `json:"master_distributor_name"`
+	MasterDistributorPhone *string    `json:"master_distributor_phone"`
+	MasterDistributorEmail *string    `json:"master_distributor_email"`
+	AadharNumber           *string    `json:"aadhar_number"`
+	PanNumber              *string    `json:"pan_number"`
+	DateOfBirth            *time.Time `json:"date_of_birth"`
+	Gender                 *string    `json:"gender"`
+	City                   *string    `json:"city"`
+	State                  *string    `json:"state"`
+	Address                *string    `json:"address"`
+	Pincode                *string    `json:"pincode"`
+	BusinessName           *string    `json:"business_name"`
+	BusinessType           *string    `json:"business_type"`
+	GSTNumber              *string    `json:"gst_number"`
+	DocumentsURL           *string    `json:"documents_url"`
 	WalletBalance          *float64   `json:"wallet_balance"`
 }
 

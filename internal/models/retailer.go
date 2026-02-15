@@ -22,22 +22,22 @@ type CreateRetailerRequestModel struct {
 }
 
 type UpdateRetailerDetailsRequestModel struct {
-	RetailerID    string     `json:"retailer_id" validate:"required"`
-	RetailerName  *string    `json:"retailer_name" validate:"omitempty,min=3,max=100"`
-	RetailerPhone *string    `json:"retailer_phone" validate:"omitempty,phone"`
-	RetailerEmail *string    `json:"retailer_email" validate:"omitempty,email"`
-	AadharNumber  *string    `json:"aadhar_number" validate:"omitempty,aadhar"`
-	PanNumber     *string    `json:"pan_number" validate:"omitempty,pan"`
-	DateOfBirth   *time.Time `json:"date_of_birth" validate:"omitempty"`
-	Gender        *string    `json:"gender" validate:"omitempty,oneof=MALE FEMALE OTHER"`
-	City          *string    `json:"city" validate:"omitempty"`
-	State         *string    `json:"state" validate:"omitempty"`
-	Address       *string    `json:"address" validate:"omitempty"`
-	Pincode       *string    `json:"pincode" validate:"omitempty,len=6,numeric"`
-	BusinessName  *string    `json:"business_name" validate:"omitempty"`
-	BusinessType  *string    `json:"business_type" validate:"omitempty"`
-	GSTNumber     *string    `json:"gst_number" validate:"omitempty,len=15"`
-	DocumentsURL  *string    `json:"documents_url" validate:"omitempty"`
+	RetailerID    string     `json:"retailer_id"`
+	RetailerName  *string    `json:"retailer_name"`
+	RetailerPhone *string    `json:"retailer_phone"`
+	RetailerEmail *string    `json:"retailer_email"`
+	AadharNumber  *string    `json:"aadhar_number"`
+	PanNumber     *string    `json:"pan_number"`
+	DateOfBirth   *time.Time `json:"date_of_birth"`
+	Gender        *string    `json:"gender"`
+	City          *string    `json:"city"`
+	State         *string    `json:"state"`
+	Address       *string    `json:"address"`
+	Pincode       *string    `json:"pincode"`
+	BusinessName  *string    `json:"business_name"`
+	BusinessType  *string    `json:"business_type"`
+	GSTNumber     *string    `json:"gst_number"`
+	DocumentsURL  *string    `json:"documents_url"`
 	WalletBalance *float64   `json:"wallet_balance"`
 }
 
