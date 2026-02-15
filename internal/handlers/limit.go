@@ -65,3 +65,21 @@ func (lh *limitHandler) DeleteLimitRequest(c echo.Context) error {
 		},
 	)
 }
+
+func (lh *limitHandler) GetAllLimitsRequest(c echo.Context) error {
+	res , err := lh.limitRepository.GetAllLimits(c); 
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, models.ResponseModel{
+			Status:  "failed",
+			Message: err.Error(),
+		})
+	}
+	return c.JSON(
+		http.StatusOK,
+		models.ResponseModel{
+			Status:  "success",
+			Message: "limit deleted successfully",
+			Data: map[string]any{"limits": res},
+		},
+	)
+}

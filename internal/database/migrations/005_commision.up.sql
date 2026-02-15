@@ -10,14 +10,6 @@ CREATE TABLE
         retailer_commision NUMERIC(20, 2) NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
-        CONSTRAINT commision_split_valid CHECK (
-            master_distributor_commision + distributor_commision + retailer_commision <= total_commision
-        ),
-        CONSTRAINT commision_admin_correct CHECK (
-            admin_commision = total_commision - (
-                master_distributor_commision + distributor_commision + retailer_commision
-            )
-        ),
         UNIQUE (user_id, service)
     );
 

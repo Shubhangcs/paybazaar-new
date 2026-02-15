@@ -53,6 +53,7 @@ func NewRoutes(cfg Config) *routes {
 	routes.DTHRechargeRoutes(cfg.Database, cfg.JWTUtils)
 	routes.BBPSRoutes(cfg.Database, cfg.JWTUtils)
 	routes.DMTRoutes(cfg.Database, cfg.JWTUtils)
+	routes.LimitRoutes(cfg.Database , cfg.JWTUtils)
 
 	return routes
 }

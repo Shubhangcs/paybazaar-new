@@ -16,4 +16,5 @@ func (r *routes) LimitRoutes(db *database.Database, jwtUtils *pkg.JwtUtils) {
 	lrg.POST("/create", limitHandler.CreateLimitRequest, middlewares.RequireRoles("admin"))
 	lrg.PUT("/update", limitHandler.UpdateLimitRequest, middlewares.RequireRoles("admin"))
 	lrg.DELETE("/delete/:limit_id", limitHandler.DeleteLimitRequest, middlewares.RequireRoles("admin"))
+	lrg.GET("/get/all", limitHandler.GetAllLimitsRequest, middlewares.RequireRoles("admin"))
 }
