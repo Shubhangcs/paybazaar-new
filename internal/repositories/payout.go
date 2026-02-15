@@ -62,7 +62,7 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 
 	commision, err := pr.db.GetPayoutCommisionQuery(ctx, req.RetailerId, req.Amount)
 	if err != nil {
-		log.Println(err)
+		log.Println(err , "COMMISION")
 		return err
 	}
 	fmt.Println(commision)
@@ -70,7 +70,7 @@ func (pr *payoutRepository) CreatePayoutTransaction(c echo.Context) error {
 	fmt.Println(req.Amount, commision.TotalCommision)
 
 	if err := pr.db.VerifyRetailerForTransactionQuery(ctx, req.RetailerId, req.Amount+commision.TotalCommision); err != nil {
-		log.Println(err)
+		log.Println(err, "TXN")
 		return err
 	}
 	req.PartnerRequestId = uuid.NewString()
