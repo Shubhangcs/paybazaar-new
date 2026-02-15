@@ -157,7 +157,7 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 		&limit,
 	)
 
-	log.Println(err)
+	log.Println(err , "lolo")
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
