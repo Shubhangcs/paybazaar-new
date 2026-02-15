@@ -56,7 +56,7 @@ func (db *Database) UpdateLimitQuery(
 	res, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"limit_amount": req.LimitAmount,
 		"service":      req.Service,
-		"limit_id":  req.LimitID,
+		"limit_id":     req.LimitID,
 	})
 
 	if err != nil {
@@ -151,6 +151,10 @@ func (db *Database) GetLimitAmountByRetailerIDAndServiceQuery(
 	}).Scan(
 		&limit,
 	)
+
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
 
 	if err != nil {
 		return 0, err
