@@ -48,14 +48,15 @@ func (db *Database) UpdateLimitQuery(
 	query := `
 		UPDATE transaction_limit
 		SET limit_amount = @limit_amount,
-		service = @service
+		service = @service,
+		updated_at = NOW()
 		WHERE limit_id = @limit_id;
 	`
 
 	res, err := db.pool.Exec(ctx, query, pgx.NamedArgs{
 		"limit_amount": req.LimitAmount,
 		"service":      req.Service,
-		"retailer_id":  req.LimitID,
+		"limit_id":  req.LimitID,
 	})
 
 	if err != nil {
