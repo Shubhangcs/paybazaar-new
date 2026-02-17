@@ -12,10 +12,10 @@ type BeneficiaryModel struct {
 }
 
 type VerifyBeneficiaryRequestModel struct {
-	RetailerId    string `json:"retailer_id"`
-	MobileNumber  string `json:"mobile_number"`
-	AccountNumber string `json:"account_number"`
-	IFSCCode      string `json:"ifsc_code"`
+	RetailerId    string `json:"retailer_id" validate:"required"`
+	MobileNumber  string `json:"mobile_number" validate:"required"`
+	AccountNumber string `json:"account_number" validate:"required"`
+	IFSCCode      string `json:"ifsc_code" validate:"required"`
 }
 
 type VerifyBeneficiaryResponseModel struct {
