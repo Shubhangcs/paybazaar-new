@@ -336,30 +336,29 @@ func (db *Database) AcceptFundRequestQuery(
 	defer tx.Rollback(ctx)
 
 	var fr struct {
-		RequesterID   string
-		RequestToID   string
-		Amount        float64
-		RequestStatus string
+		RequesterID string
+		RequestToID string
+		Amount      float64
+		Status      string
 	}
 
 	err = tx.QueryRow(ctx, `
 		SELECT requester_id, request_to_id, amount, request_status
 		FROM fund_requests
-		WHERE fund_request_id = @id
+		WHERE fund_request_id=@id
 		FOR UPDATE;
 	`, pgx.NamedArgs{"id": fundRequestID}).Scan(
 		&fr.RequesterID,
 		&fr.RequestToID,
 		&fr.Amount,
-		&fr.RequestStatus,
+		&fr.Status,
 	)
-
 	if err != nil {
 		return err
 	}
 
-	if fr.RequestStatus != "PENDING" {
-		return errors.New("fund request already processed")
+	if fr.Status != "PENDING" {
+		return errors.New("already processed")
 	}
 
 	senderTable, err := db.getUserTable(fr.RequestToID)
@@ -373,9 +372,13 @@ func (db *Database) AcceptFundRequestQuery(
 
 	var senderBalance, receiverBalance float64
 
-	err = tx.QueryRow(ctx,
-		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id=@id`,
-			senderTable, senderTable, senderTable),
+	// 🔒 Lock sender
+	err = tx.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s_wallet_balance
+		FROM %ss
+		WHERE %s_id=@id
+		FOR UPDATE`,
+		senderTable, senderTable, senderTable),
 		pgx.NamedArgs{"id": fr.RequestToID},
 	).Scan(&senderBalance)
 	if err != nil {
@@ -386,9 +389,13 @@ func (db *Database) AcceptFundRequestQuery(
 		return errors.New("insufficient balance")
 	}
 
-	err = tx.QueryRow(ctx,
-		fmt.Sprintf(`SELECT %s_wallet_balance FROM %ss WHERE %s_id=@id`,
-			receiverTable, receiverTable, receiverTable),
+	// 🔒 Lock receiver
+	err = tx.QueryRow(ctx, fmt.Sprintf(`
+		SELECT %s_wallet_balance
+		FROM %ss
+		WHERE %s_id=@id
+		FOR UPDATE`,
+		receiverTable, receiverTable, receiverTable),
 		pgx.NamedArgs{"id": fr.RequesterID},
 	).Scan(&receiverBalance)
 	if err != nil {
@@ -398,69 +405,48 @@ func (db *Database) AcceptFundRequestQuery(
 	senderAfter := senderBalance - fr.Amount
 	receiverAfter := receiverBalance + fr.Amount
 
-	_, err = tx.Exec(ctx,
-		fmt.Sprintf(`UPDATE %ss SET %s_wallet_balance=@b WHERE %s_id=@id`,
-			senderTable, senderTable, senderTable),
+	// Update sender
+	_, err = tx.Exec(ctx, fmt.Sprintf(`
+		UPDATE %ss
+		SET %s_wallet_balance=@b
+		WHERE %s_id=@id`,
+		senderTable, senderTable, senderTable),
 		pgx.NamedArgs{"b": senderAfter, "id": fr.RequestToID},
 	)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(ctx,
-		fmt.Sprintf(`UPDATE %ss SET %s_wallet_balance=@b WHERE %s_id=@id`,
-			receiverTable, receiverTable, receiverTable),
+	// Update receiver
+	_, err = tx.Exec(ctx, fmt.Sprintf(`
+		UPDATE %ss
+		SET %s_wallet_balance=@b
+		WHERE %s_id=@id`,
+		receiverTable, receiverTable, receiverTable),
 		pgx.NamedArgs{"b": receiverAfter, "id": fr.RequesterID},
 	)
 	if err != nil {
 		return err
 	}
 
-	ref := fmt.Sprintf("%d", fundRequestID)
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO wallet_transactions
-		(user_id, reference_id, debit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@u,@r,@a,@bb,@ab,'FUND_REQUEST',@rm);
-	`, pgx.NamedArgs{
-		"u":  fr.RequestToID,
-		"r":  ref,
-		"a":  fr.Amount,
-		"bb": senderBalance,
-		"ab": senderAfter,
-		"rm": fmt.Sprintf("Fund sent to %s", fr.RequesterID),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO wallet_transactions
-		(user_id, reference_id, credit_amount, before_balance, after_balance, transaction_reason, remarks)
-		VALUES (@u,@r,@a,@bb,@ab,'FUND_REQUEST',@rm);
-	`, pgx.NamedArgs{
-		"u":  fr.RequesterID,
-		"r":  ref,
-		"a":  fr.Amount,
-		"bb": receiverBalance,
-		"ab": receiverAfter,
-		"rm": fmt.Sprintf("Fund received from %s", fr.RequestToID),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(ctx, `
+	// Update request safely
+	tag, err := tx.Exec(ctx, `
 		UPDATE fund_requests
 		SET request_status='ACCEPTED', updated_at=NOW()
-		WHERE fund_request_id=@id;
+		WHERE fund_request_id=@id
+		AND request_status='PENDING';
 	`, pgx.NamedArgs{"id": fundRequestID})
 	if err != nil {
 		return err
 	}
 
+	if tag.RowsAffected() == 0 {
+		return errors.New("already processed")
+	}
+
 	return tx.Commit(ctx)
 }
+
 
 func (db *Database) getUserTable(userID string) (string, error) {
 	if len(userID) == 0 {
