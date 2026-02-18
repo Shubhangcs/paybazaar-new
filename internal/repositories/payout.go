@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -154,6 +155,7 @@ func (pr *payoutRepository) GetAllPayoutTransactions(c echo.Context) ([]models.G
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 	limit, offset := parsePagination(c)
+	log.Println(limit, offset)
 	return pr.db.GetAllPayoutTransactionsQuery(ctx, limit, offset)
 }
 

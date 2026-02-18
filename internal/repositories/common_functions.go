@@ -22,7 +22,7 @@ func bindAndValidate(c echo.Context, req any) error {
 func parsePagination(c echo.Context) (limit int, offset int) {
 	// Defaults
 	const (
-		defaultLimit = 100
+		defaultLimit = 10
 		maxLimit     = 100
 	)
 
